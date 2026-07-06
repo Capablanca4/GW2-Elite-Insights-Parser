@@ -1,0 +1,39 @@
+﻿<template>
+    <div>
+        <ul class="nav nav-tabs justify-content-center mb-1" role="tablist">
+            <li v-for="tab in tabs" :key="tab.id" role="presentation">
+                <button type="button" role="tab" class="nav-link"
+                        :class="{active: activeTab === tab.id, 'bg-transparent': activeTab !== tab.id}" :id="'tab-' + tab.id" 
+                        :aria-selected="activeTab === tab.id" :aria-controls="'panel-' + tab.id"
+                        @click="activeTab = tab.id">
+                    {{ tab.label }}
+                </button>
+            </li>
+        </ul>
+        <div role="tabpanel" :id="'panel-' + activeTab" :aria-labelledby="'tab-' + activeTab">
+            <component :is="activeComponent" v-bind="$attrs"></component>
+        </div>
+    </div>
+</template>
+
+<script>
+    Vue.component("nav-tabs-component", {
+        template: `${template}`,
+        data: function () {
+            return {
+                activeTab: this.tabs[0].id
+            }
+        },
+        props: {
+            tabs: {
+                type: Array,
+                required: true,
+            }
+        },
+        computed: {
+            activeComponent() {
+                return this.tabs.find(tab => tab.id === this.activeTab).component;
+            }
+        }
+    });
+</script>
