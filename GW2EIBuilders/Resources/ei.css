@@ -163,6 +163,10 @@
     vertical-align: middle;
 }
 
+.player-data:not(:last-child) {
+    border-bottom: 1px solid #888;
+}
+
 .theme-slate .player-data.active {
     background-color: rgba(80, 86, 92, 0.9);
 }
@@ -735,6 +739,10 @@ canvas {
 
 .combat-actor-status-container {
     max-height: 830px;
+    width: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    border: 1px solid #fff;
 }
 
 .combat-replay-mechanics-list-row {
