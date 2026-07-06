@@ -20,8 +20,8 @@
         </div>
 
         <div class="d-flex">
-            <div class="mr-2">
-                <fieldset v-for="(group, id) in groups" v-if="group" class="combat-actor-status-container" :style="!singleGroup ? {'transform': 'translate(-24px,0);'} : null">
+            <div class="combat-actor-status-container mr-2" :class="{'mt-2' : singleGroup}">
+                <fieldset v-for="(group, id) in groups" v-if="group" class="border">
                     <legend v-if="!singleGroup" class="scale85 ml-1 px-1 w-auto">Group {{id}}</legend>
                     <combat-replay-actor-stats-component v-for="(player, index) in group" class="player-data p-1"
                         :class="{active: selectedactorid === player.uniqueID}"
@@ -29,7 +29,7 @@
                 </fieldset>
             </div>
 
-            <fieldset class="combat-actor-status-container mt-2">
+            <fieldset class="combat-actor-status-container mt-2 border">
                 <combat-replay-actor-stats-component v-for="target in targets" class="target-data p-1" 
                     :class="{active: selectedactorid === target.uniqueID}"
                     :actorIndex="target.id" :time="time" :buffstoshow="buffsToShowTarget" :isTarget="true" :buffs="true" :rotation="true" />

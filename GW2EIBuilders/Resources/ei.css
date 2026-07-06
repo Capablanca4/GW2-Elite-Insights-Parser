@@ -742,7 +742,6 @@ canvas {
     width: 220px;
     overflow-y: auto;
     scrollbar-width: thin;
-    border: 1px solid #fff;
 }
 
 .combat-replay-mechanics-list-row {
