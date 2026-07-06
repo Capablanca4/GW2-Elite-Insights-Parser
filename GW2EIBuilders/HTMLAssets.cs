@@ -157,7 +157,6 @@ public class HTMLAssets
     {
         List<string> templates =
         [
-            Properties.Resources.tmplCombatReplayDamageData,
             Properties.Resources.tmplCombatReplayStatusData,
             Properties.Resources.tmplCombatReplayDamageTable,
             Properties.Resources.tmplCombatReplayActorBuffStats,
