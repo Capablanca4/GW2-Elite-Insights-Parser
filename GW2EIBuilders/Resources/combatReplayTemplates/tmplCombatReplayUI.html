@@ -8,8 +8,8 @@
         <combat-replay-animation-control-component :time="animationStatus.time / 1000.0" :light="light" :range="animationStatus.range":animated="animationStatus.animated">        
         </combat-replay-animation-control-component>
         <div class="d-flex flex-column align-items-center ml-2" style="margin-right: auto;width:500px; height:940px;">
-            <combat-replay-status-data-component :time="animationStatus.time" :light="light" :selectedactorid="animationStatus.selectedActorID">
-            </combat-replay-status-data-component>
+            <nav-tabs-component v-if="hasMechanics" :tabs="tabs" :time="animationStatus.time" :light="light" :selectedactorid="animationStatus.selectedActorID">
+            </nav-tabs-component>
         </div>
     </div>
 </template>
@@ -23,7 +23,22 @@
                 animationStatus: reactiveAnimationData,
                 selectionMode: 0,
                 targetless: logData.targetless,
+                tabs: [
+                    {
+                        id: 'actors',
+                        label: 'Actors',
+                        component: 'combat-replay-actors-stats-component'
+                    },
+                    {
+                        id: 'mechanics',
+                        label: 'Mechanics',
+                        component: 'combat-replay-mechanics-list-component'
+                    }
+                ]
             };
+        },
+        hasMechanics: function () {
+            return graphData.mechanics.length > 0;
         },
         created() {
             animator = new Animator(crData);
