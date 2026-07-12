@@ -1,17 +1,17 @@
 ﻿<template>
     <div>
         <ul class="nav nav-tabs justify-content-center mb-1" role="tablist">
-            <li v-for="tab in tabs" :key="tab.id" role="presentation">
+            <li v-for="(tab, index) in tabs" :key="index" role="presentation">
                 <button type="button" role="tab" class="nav-link"
-                        :class="{active: activeTab === tab.id, 'bg-transparent': activeTab !== tab.id}" :id="'tab-' + tab.id" 
-                        :aria-selected="activeTab === tab.id" :aria-controls="'panel-' + tab.id"
-                        @click="activeTab = tab.id">
-                    {{ tab.label }}
+                        :class="{active: activeTab === index, 'bg-transparent': activeTab !== index}" :id="'tab-' + index"
+                        :aria-selected="activeTab === index" :aria-controls="'panel-' + index"
+                        @click="selectTab(index)">
+                    {{ tab.$el.attributes.label.nodeValue }}
                 </button>
             </li>
         </ul>
         <div role="tabpanel" :id="'panel-' + activeTab" :aria-labelledby="'tab-' + activeTab">
-            <component :is="activeComponent" v-bind="$attrs"></component>
+            <slot />
         </div>
     </div>
 </template>
@@ -21,18 +21,19 @@
         template: `${template}`,
         data: function () {
             return {
-                activeTab: this.tabs[0].id
+                activeTab: 0,
+                tabs: []
             }
         },
-        props: {
-            tabs: {
-                type: Array,
-                required: true,
-            }
+        mounted() {
+            this.tabs = this.$children;
+            this.selectTab(0);
         },
-        computed: {
-            activeComponent() {
-                return this.tabs.find(tab => tab.id === this.activeTab).component;
+        methods: {
+            selectTab(index) {
+                this.activeTab = index;
+                this.tabs.forEach(t => t.$el.hidden = 'hidden');
+                this.tabs[index].$el.hidden = '';
             }
         }
     });
