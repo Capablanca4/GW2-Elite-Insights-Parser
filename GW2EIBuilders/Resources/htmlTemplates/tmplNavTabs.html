@@ -48,7 +48,7 @@
                     ]
                 );
             });
-            // role="tabpanel" :id="'panel-' + activeTab" :aria-labelledby="'tab-' + activeTab"
+
             const activeVNode = tabVNodes[this.activeIndex];
             return h('div', [
                 h('ul', { class: 'nav nav-tabs justify-content-center mb-1', attrs: { role: 'tablist' } }, navItems),
