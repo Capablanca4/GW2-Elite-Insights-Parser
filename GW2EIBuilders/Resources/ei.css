@@ -1151,7 +1151,3 @@ td.approximate::before {
 .bg-transparent{
     background: transparent;
 }
-
-[hidden] {
-    display: none !important;
-}

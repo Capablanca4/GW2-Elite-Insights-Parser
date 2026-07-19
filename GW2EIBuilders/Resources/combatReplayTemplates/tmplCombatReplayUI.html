@@ -8,8 +8,8 @@
         <combat-replay-animation-control-component :time="animationStatus.time / 1000.0" :light="light" :range="animationStatus.range":animated="animationStatus.animated" />        
 
         <nav-tabs-component v-if="hasMechanics" class="d-flex flex-column align-items-center ml-2" style="margin-right: auto;width:500px; height:940px;">
-            <combat-replay-actors-stats-component label="Actors" :time="animationStatus.time" :light="light" :selectedactorid="animationStatus.selectedActorID" />
-            <combat-replay-mechanics-list-component label="Mechanics" :time="animationStatus.time" :light="light" :selectedactorid="animationStatus.selectedActorID" />
+            <combat-replay-actors-stats-component :label="'Actors'" :time="animationStatus.time" :light="light" :selectedactorid="animationStatus.selectedActorID" />
+            <combat-replay-mechanics-list-component :label="'Mechanics'" :time="animationStatus.time" :light="light" :selectedactorid="animationStatus.selectedActorID" />
         </nav-tabs-component>
     </div>
 </template>

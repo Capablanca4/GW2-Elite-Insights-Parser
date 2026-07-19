@@ -1,40 +1,61 @@
-﻿<template>
-    <div>
-        <ul class="nav nav-tabs justify-content-center mb-1" role="tablist">
-            <li v-for="(tab, index) in tabs" :key="index" role="presentation">
-                <button type="button" role="tab" class="nav-link"
-                        :class="{active: activeTab === index, 'bg-transparent': activeTab !== index}" :id="'tab-' + index"
-                        :aria-selected="activeTab === index" :aria-controls="'panel-' + index"
-                        @click="selectTab(index)">
-                    {{ tab.$el.attributes.label.nodeValue }}
-                </button>
-            </li>
-        </ul>
-        <div role="tabpanel" :id="'panel-' + activeTab" :aria-labelledby="'tab-' + activeTab">
-            <slot />
-        </div>
-    </div>
-</template>
+﻿<template></template>
 
 <script>
     Vue.component("nav-tabs-component", {
         template: `${template}`,
         data: function () {
             return {
-                activeTab: 0,
-                tabs: []
+                activeIndex: 0
             }
         },
-        mounted() {
-            this.tabs = this.$children;
-            this.selectTab(0);
-        },
-        methods: {
-            selectTab(index) {
-                this.activeTab = index;
-                this.tabs.forEach(t => t.$el.hidden = 'hidden');
-                this.tabs[index].$el.hidden = '';
-            }
+
+        render(h) {
+            const tabVNodes = (this.$slots.default || []).filter(vnode => vnode.tag);
+
+            const navItems = tabVNodes.map((vnode, index) => {
+                const label = vnode.componentOptions?.propsData?.label ?? vnode.data?.attrs?.label;
+                return h(
+                    'li',
+                    {
+                        key: label + '-' + index,
+                        attrs: { role: 'presentation' }
+                    },
+                    [
+                        h(
+                            'button',
+                            {
+                                class: [
+                                    'nav-link',
+                                    { 'active': this.activeIndex === index },
+                                    { 'bg-transparent': this.activeIndex !== index }
+                                ],
+                                attrs: {
+                                    id: 'tab-' + index,
+                                    type: "button",
+                                    role: "tab",
+                                    'aria-selected': this.activeIndex === index,
+                                    'aria-controls': 'panel-' + index
+                                },
+                                on: {
+                                    click: (e) => {
+                                        e.preventDefault();
+                                        this.activeIndex = index;
+                                    }
+                                }
+                            },
+                            label
+                        )
+                    ]
+                );
+            });
+            // role="tabpanel" :id="'panel-' + activeTab" :aria-labelledby="'tab-' + activeTab"
+            const activeVNode = tabVNodes[this.activeIndex];
+            return h('div', [
+                h('ul', { class: 'nav nav-tabs justify-content-center mb-1', attrs: { role: 'tablist' } }, navItems),
+                h('div', { attrs: { role: 'tabpanel', id: 'panel-' + this.activeIndex, 'aria-labelledby': 'tab-' + this.activeIndex } }, [
+                    h('keep-alive', activeVNode ? [activeVNode] : [])
+                ])
+            ]);
         }
     });
 </script>
