@@ -4,8 +4,16 @@
     Vue.component("nav-tabs-component", {
         template: `${template}`,
         data: function () {
+            const tabVNodes = (this.$slots.default || []).filter(vnode => vnode.tag);
+            const activeIndex = tabVNodes.findIndex(vnode => this.getNodeProperty(vnode, 'active'));
+
             return {
                 activeIndex: 0
+            }
+        },
+        methods: {
+            getNodeProperty: function (vnode, property) {
+                return vnode.componentOptions?.propsData?.[property] ?? vnode.data?.attrs?.[property];
             }
         },
 
@@ -13,7 +21,7 @@
             const tabVNodes = (this.$slots.default || []).filter(vnode => vnode.tag);
 
             const navItems = tabVNodes.map((vnode, index) => {
-                const label = vnode.componentOptions?.propsData?.label ?? vnode.data?.attrs?.label;
+                const label = this.getNodeProperty(vnode, 'label');
                 return h(
                     'li',
                     {
@@ -40,6 +48,7 @@
                                     click: (e) => {
                                         e.preventDefault();
                                         this.activeIndex = index;
+                                        this.$emit('tab-change', { label });
                                     }
                                 }
                             },

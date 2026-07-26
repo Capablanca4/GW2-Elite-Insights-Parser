@@ -4,65 +4,32 @@
             <phase-component :phases="reactiveLogdata.phases"></phase-component>
         </div>
         <div class="d-flex flex-row justify-content-center mb-2 mt-2" id="actors">
-            <div v-if="hasTargets" v-show="tab !== 5" :class="{'d-flex': tab !== 5}"
-                class="flex-row justify-content-center align-items-center flex-wrap mr-5">
-                <target-component :targets="reactiveLogdata.targets" :phaseindex="activePhase"></target-component>
+            <div v-if="hasTargets && showTarget" class="d-flex flex-row justify-content-center align-items-center flex-wrap mr-5">
+                <target-component :targets="reactiveLogdata.targets" :phaseindex="activePhaseIndex" />
             </div>
             <div class="ml-5">
-                <player-component :players="reactiveLogdata.players" :phaseindex="activePhase"></player-component>
+                <player-component :players="reactiveLogdata.players" :phaseindex="activePhaseIndex" />
             </div>
-        </div>     
-        <ul class="nav nav-tabs">
-            <li>
-                <a class="nav-link" :class="{active: tab === 0}" @click="tab = 0">General Stats</a>
-            </li>
-            <li>
-                <a class="nav-link" :class="{active: tab === 1}" @click="tab = 1">Buffs</a>
-            </li>
-            <li v-if="hasDamageMods">
-                <a class="nav-link" :class="{active: tab === 2}" @click="tab = 2">Damage Modifiers</a>
-            </li>
-            <li v-if="hasMechanics">
-                <a class="nav-link" :class="{active: tab === 3}" @click="tab = 3">Mechanics</a>
-            </li>
-            <li>
-                <a class="nav-link" :class="{active: tab === 4}" @click="tab = 4">Graph</a>
-            </li>
-            <li v-if="hasRotations">
-                <a class="nav-link" :class="{active: tab === 7}" @click="tab = 7">Rotations</a>
-            </li>
-            <li v-if="hasTargets">
-                <a class="nav-link" :class="{active: tab === 5}" @click="tab = 5">Targets Summary</a>
-            </li>
-            <li>
-                <a class="nav-link" :class="{active: tab === 6}" @click="tab = 6">Player Summary</a>
-            </li>
-        </ul>
+        </div>
 
-        <keep-alive>
-            <stat-tables-component v-if="tab === 0" :key="'stat-tables'"
-                :phaseindex="activePhase" :playerindex="activePlayer" 
-                :activetargets="activePhaseTargets"></stat-tables-component>
-            <buff-tab-component v-if="tab === 1" :key="'buff-tables'"
-                :phaseindex="activePhase" :playerindex="activePlayer"></buff-tab-component>
-            <dmgmodifier-stats-container-component v-if="tab === 2" :key="'modifier'"
-                :phaseindex="activePhase" :playerindex="activePlayer" :activetargets="activePhaseTargets">
-            </dmgmodifier-stats-container-component>
-            <mechanics-stats-component v-if="tab === 3" :key="'mechanics'"
-                :phaseindex="activePhase" :playerindex="activePlayer"></mechanics-stats-component>
-            <graph-stats-component v-if="tab === 4" :key="'graph'"
-                :activetargets="activePhaseTargets" :phaseindex="activePhase" :playerindex="activePlayer"
-                :light="light"></graph-stats-component>
-            <player-rotations-tab-component v-if="tab === 7" :key="'rotations'" :phaseindex="activePhase" 
-            :light="light" :playerindex="activePlayer">
-            </player-rotations-tab-component>
-            <target-stats-component v-if="tab === 5" :key="'targets'" :playerindex="activePlayer"
-                :simplephase="reactiveLogdata.phases[activePhase]" :phaseindex="activePhase" :light="light">
-            </target-stats-component>
-            <player-stats-component v-if="tab === 6" :key="'players'"
-                :activeplayer="activePlayer" :phaseindex="activePhase" :activetargets="activePhaseTargets"
-                :light="light"></player-stats-component>
-        </keep-alive>
+        <nav-tabs-component @tab-change="onTabChange">
+            <stat-tables-component :label="'General Stats'" 
+                :phaseindex="activePhaseIndex" :playerindex="activePlayerIndex" :activetargets="activePhaseTargets" />
+            <buff-tab-component :label="'Buffs'" 
+                :phaseindex="activePhaseIndex" :playerindex="activePlayerIndex" />
+            <dmgmodifier-stats-container-component :label="'Damage Modifiers'" 
+                :phaseindex="activePhaseIndex" :playerindex="activePlayerIndex" :activetargets="activePhaseTargets" />
+            <mechanics-stats-component :label="'Mechanics'" 
+                :phaseindex="activePhaseIndex" :playerindex="activePlayerIndex" />
+            <graph-stats-component :label="'Graph'" 
+                :phaseindex="activePhaseIndex" :playerindex="activePlayerIndex" :activetargets="activePhaseTargets" :light="light" />
+            <player-rotations-tab-component :label="'Rotations'" 
+                :phaseindex="activePhaseIndex" :playerindex="activePlayerIndex" :light="light" />
+            <target-stats-component :label="'Targets Summary'" 
+                 :phaseindex="activePhaseIndex" :playerindex="activePlayerIndex" :simplephase="reactiveLogdata.phases[activePhaseIndex]" :light="light" />
+            <player-stats-component :label="'Player Summary'"
+                :phaseindex="activePhaseIndex" :activeplayer="activePlayerIndex" :activetargets="activePhaseTargets" :light="light" />
+        </nav-tabs-component>
     </div>
 </template>
 
@@ -100,60 +67,33 @@
         data: function () {
             return {
                 tab: getDefaultMainSubComponent(),
-                reactiveLogdata: reactiveLogdata
+                reactiveLogdata: reactiveLogdata,
+                showTarget: true
             };
         },
         computed: {
-            activePhase: function () {
-                var phases = this.reactiveLogdata.phases;
-                for (var i = 0; i < phases.length; i++) {
-                    if (phases[i].active) {
-                        return i;
-                    }
-                }
+            activePhaseIndex: function () {
+                return this.reactiveLogdata.phases.findIndex(p => p.active);
             },
-            phase: function () {
-                return logData.phases[this.activePhase];
-            },
-            activePlayer: function () {
-                var players = this.reactiveLogdata.players;
-                for (var i = 0; i < players.length; i++) {
-                    if (players[i].active) {
-                        return i;
-                    }
-                }
-                return -1;
-            },
-            name: function () {
-                const phase = this.phase;
-                return (phase.name) + " Summary";
+            activePlayerIndex: function () {
+                return this.reactiveLogdata.players.findIndex(p => p.active);
             },
             activePhaseTargets: function () {
                 var res = [];
-                var activePhase = logData.phases[this.activePhase];
+                const activePhase = logData.phases[this.activePhaseIndex];
                 for (var i = 0; i < activePhase.targets.length; i++) {
-                    var targetIndex = activePhase.targets[i];
-                    var target = this.reactiveLogdata.targets[targetIndex][this.activePhase];
+                    const targetIndex = activePhase.targets[i];
+                    const target = this.reactiveLogdata.targets[targetIndex][this.activePhaseIndex];
                     if (target.active) {
                         res.push(i);
                     }
                 }
                 return res;
-            },
-            hasDamageMods: function() {
-                return hasDamageMods() ;
-            },
-            hasMechanics: function() {
-                return hasMechanics();
-            },
-            hasTargets: function() {
-                return hasTargets();
-            },
-            hasRotations: function() {
-                return hasRotations();
-            },
-            players: function () {
-                return logData.players;
+            }
+        },
+        methods: {
+            onTabChange: function ({ label }) {
+                this.showTarget = label !== "Targets Summary";
             }
         }
     });
