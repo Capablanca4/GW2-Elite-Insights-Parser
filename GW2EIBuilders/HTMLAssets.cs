@@ -195,7 +195,6 @@ public class HTMLAssets
             Properties.Resources.tmplHealingDistTable,
             Properties.Resources.tmplHealingTakenDistPlayer,
             Properties.Resources.tmplPlayerHealingStats,
-            Properties.Resources.tmplPlayerHealingTab,
             Properties.Resources.tmplPlayerHealingTabGraph,
             Properties.Resources.tmplBarrierDistPlayer,
             Properties.Resources.tmplBarrierDistTable,

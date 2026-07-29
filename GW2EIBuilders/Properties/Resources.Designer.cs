@@ -729,12 +729,12 @@ namespace GW2EIBuilders.Properties {
         /// <summary>
         ///   Looks up a localized string similar to &lt;template&gt;
         ///    &lt;div&gt;
-        ///        &lt;div v-if=&quot;buffs&quot;&gt;
+        ///        &lt;div v-if=&quot;buffs&quot; class=&quot;mb-1&quot;&gt;
         ///            &lt;combat-replay-actor-buff v-if=&quot;isPresent(&apos;Encounter Specifics&apos;)&quot; :buffarray=&quot;data.encounterSpecifics&quot; /&gt;
         ///            &lt;combat-replay-actor-buff v-if=&quot;isPresent(&apos;Others&apos;)&quot; :buffarray=&quot;data.others&quot; /&gt;
         ///            &lt;combat-replay-actor-buff v-if=&quot;isPresent(&apos;Conditions&apos;)&quot; :buffarray=&quot;data.conditions&quot; /&gt;
         ///            &lt;combat-replay-actor-buff v-if=&quot;isPresent(&apos;Shared&apos;)&quot; :buffarray=&quot;data.shared&quot; /&gt;
-        ///            &lt;combat-replay-actor-buff v-if=&quot;isPresen [rest of string was truncated]&quot;;.
+        ///            &lt;combat-replay-actor-buff v [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplCombatReplayActorStats {
             get {
@@ -745,14 +745,14 @@ namespace GW2EIBuilders.Properties {
         /// <summary>
         ///   Looks up a localized string similar to &lt;template&gt;
         ///    &lt;div class=&quot;text-white&quot; @click=&quot;select&quot;&gt;
-        ///        &lt;div class=&quot;actor-status&quot; :style=&quot;{&apos;background&apos;: getActorGradient(time, status), &apos;height&apos;: getActorHeight()}&quot;&gt;
-        ///            &lt;p class=&quot;mb-0 scale65&quot;&gt;
-        ///                {{percentageFormater(healths, time)}}
+        ///        &lt;div class=&quot;actor-status&quot; :style=&quot;{&apos;background&apos;: getActorGradient(time, status), &apos;height&apos;: getActorHeight()}&quot;
+        ///            :data-original-title=&quot;isTarget ? actor.name : actor.name + &apos; - &apos; + actor.acc&quot;&gt;
+        ///            &lt;p class=&quot;mb-0 scale65 cr-status-percent text-left&quot;&gt;
+        ///                {{percentageFormater(healths, time)}} %
         ///            &lt;/p&gt;
         ///
         ///            &lt;h6 class=&quot;text-center mb-0 ellipis align-self-center&quot;&gt;
-        ///                &lt;img v-for=&quot;(marker, _) in activeMarkers()&quot; :src=&quot;marker.imageUrl&quot; height=&quot;16&quot; width=&quot;16&quot;&gt;
-        ///                &lt;img :src=&quot;actor.icon&quot; :alt= [rest of string was truncated]&quot;;.
+        ///                &lt;img v-for=&quot;(ma [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplCombatReplayActorStatus {
             get {
@@ -843,11 +843,11 @@ namespace GW2EIBuilders.Properties {
         ///   Looks up a localized string similar to &lt;template&gt;
         ///    &lt;div class=&quot;d-flex mt-2 justify-content-center&quot;&gt;
         ///        &lt;div class=&quot;d-flex flex-column align-items-center mr-2&quot; style=&quot;margin-left: auto; width:620px;&quot;&gt;
-        ///            &lt;combat-replay-damage-data-component :time=&quot;animationStatus.time&quot; :selectedactorid=&quot;animationStatus.selectedActorID&quot;&gt;
-        ///            &lt;/combat-replay-damage-data-component&gt;
-        ///            &lt;combat-replay-extra-decorations-component :light=&quot;light&quot;&gt;&lt;/combat-replay-extra-decorations-component&gt;
+        ///            &lt;combat-replay-damage-data-component :time=&quot;animationStatus.time&quot; :selectedactorid=&quot;animationStatus.selectedActorID&quot; /&gt;
+        ///            &lt;combat-replay-extra-decorations-component :light=&quot;light&quot; /&gt;
         ///        &lt;/div&gt;
-        ///        &lt;combat-replay-an [rest of string was truncated]&quot;;.
+        ///
+        ///        &lt;combat-replay-animation-control-component :time=&quot;animationStatus.time / 1000.0&quot; :light=&quot;light&quot; :range=&quot;ani [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplCombatReplayUI {
             get {
@@ -920,10 +920,11 @@ namespace GW2EIBuilders.Properties {
         ///        &lt;div v-if=&quot;actor !== null&quot; class=&quot;mb-1 mt-1&quot;&gt;
         ///            &lt;div v-if=&quot;isminion&quot;&gt;
         ///                &lt;p style=&quot;display: table-row;&quot;&gt;
-        ///                    {{actor.name}} did {{percentFormater(round3(dmgdist.contributedDamage/dmgdist.totalDamage))}} of its master&apos;s total
-        ///                    {{istarget ? &apos;Target&apos; :&apos;&apos;}} damage ({{numberFormater(dmgdist.contributedDamage)}})
+        ///                    {{actor.name}} did {{round3(100*dmgdist.contributedDamage/dmgdist.totalDamage)}}% of its master&apos;s total
+        ///                    {{istarget ? &apos;Target&apos; :&apos;&apos;}} damage ({{dmgdist.contributedDamage}})
         ///                &lt;/p&gt;
-        ///                &lt;p v-if=&quot;hasBreakbarDamage &amp;&amp; dmgdist.contributedBreakbarDamage &gt; 0&quot; st [rest of string was truncated]&quot;;.
+        ///                &lt;p v-if=&quot;hasBreakbarDamage &amp;&amp; dmgdist.contributedBreakbarDamage &gt; 0&quot; style=&quot;display: table-row;&quot;&gt;
+        /// [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplDamageDistTable {
             get {
@@ -1394,13 +1395,13 @@ namespace GW2EIBuilders.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to &lt;template&gt;
-        ///    &lt;div&gt;
-        ///        &lt;div class=&quot;d-flex flex-row justify-content-center mt-1&quot; id=&quot;healing-phase-nav&quot;&gt;
-        ///            &lt;phase-component :phases=&quot;reactiveLogdata.phases&quot;&gt;&lt;/phase-component&gt;
-        ///        &lt;/div&gt;
+        ///    &lt;div class=&quot;mt-1&quot;&gt;
+        ///        &lt;phase-component :phases=&quot;reactiveLogdata.phases&quot; /&gt;
         ///        &lt;div class=&quot;d-flex flex-row justify-content-center mb-2 mt-2&quot; id=&quot;healing-actors&quot;&gt;
         ///            &lt;div class=&quot;flex-row justify-content-center align-items-center flex-wrap mr-5&quot;&gt;
-        ///                &lt;player-target-component :players=&quot;reactiveLogdata.players&quot; :phaseindex=&quot;activePhase&quot;&gt;&lt;/player-targe [rest of string was truncated]&quot;;.
+        ///                &lt;player-target-component :players=&quot;reactiveLogdata.players&quot; :phaseindex=&quot;activePhase&quot;&gt;&lt;/player-target-component&gt;
+        ///            &lt;/div&gt;
+        ///            &lt;player-component class=&quot;ml-5&quot; :players=&quot;reactiveLogdata.players&quot; : [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplHealingExtensionView {
             get {
@@ -1432,19 +1433,12 @@ namespace GW2EIBuilders.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to &lt;template&gt;
-        ///    &lt;div&gt;
-        ///        &lt;ul class=&quot;nav nav-tabs&quot;&gt;
-        ///            &lt;li&gt;
-        ///                &lt;a class=&quot;nav-link&quot; :class=&quot;{active: tab === 0}&quot; @click=&quot;tab = 0&quot;&gt;Outgoing Healing Stats&lt;/a&gt;
-        ///            &lt;/li&gt;
-        ///            &lt;li&gt;
-        ///                &lt;a class=&quot;nav-link&quot; :class=&quot;{active: tab === 1}&quot; @click=&quot;tab = 1&quot;&gt;Incoming Healing Stats&lt;/a&gt;
-        ///            &lt;/li&gt;
-        ///            &lt;li&gt;
-        ///                &lt;a class=&quot;nav-link&quot; :class=&quot;{active: tab === 2}&quot; @click=&quot;tab = 2&quot;&gt;Support Stats&lt;/a&gt;
-        ///            &lt;/li&gt;
-        ///        &lt;/ul&gt;
-        ///        [rest of string was truncated]&quot;;.
+        ///    &lt;nav-tabs-component&gt;
+        ///        &lt;outgoing-healing-stats-component :label=&quot;&apos;Outgoing Healing Stats&apos;&quot; :active=&quot;tab === &apos;OutgoingHealingStats&apos;&quot;
+        ///            :phaseindex=&quot;phaseindex&quot; :playerindex=&quot;playerindex&quot; :activetargets=&quot;activetargets&quot; /&gt;
+        ///        &lt;incoming-healing-stats-component :label=&quot;&apos;Incoming Healing Stats&apos;&quot; :active=&quot;tab === &apos;IncomingHealingStats&apos;&quot;
+        ///            :phaseindex=&quot;phaseindex&quot; :playerindex=&quot;playerindex&quot; /&gt;
+        ///        &lt;support-stats-component :label=&quot;&apos;Support Stats&apos;&quot; :active=&quot;tab  [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplHealingStatTables {
             get {
@@ -1553,9 +1547,8 @@ namespace GW2EIBuilders.Properties {
         ///            &lt;phase-component :phases=&quot;reactiveLogdata.phases&quot;&gt;&lt;/phase-component&gt;
         ///        &lt;/div&gt;
         ///        &lt;div class=&quot;d-flex flex-row justify-content-center mb-2 mt-2&quot; id=&quot;actors&quot;&gt;
-        ///            &lt;div v-if=&quot;hasTargets&quot; v-show=&quot;tab !== 5&quot; :class=&quot;{&apos;d-flex&apos;: tab !== 5}&quot;
-        ///                class=&quot;flex-row justify-content-center align-items-center flex-wrap mr-5&quot;&gt;
-        ///                &lt;target-component :targets=&quot;rea [rest of string was truncated]&quot;;.
+        ///            &lt;div v-if=&quot;hasTargets &amp;&amp; showTarget&quot; class=&quot;d-flex flex-row justify-content-center align-items-center flex-wrap mr-5&quot;&gt;
+        ///                &lt;target-component :targets=&quot;reactiveLogdata.targets&quot; :phaseindex=&quot;activePhase [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplMainView {
             get {
@@ -1599,22 +1592,22 @@ namespace GW2EIBuilders.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &lt;template&gt;
-        ///    &lt;div&gt;
-        ///        &lt;ul class=&quot;nav nav-tabs justify-content-center mb-1&quot;&gt;
-        ///            &lt;li v-for=&quot;tab in tabs&quot; :key=&quot;tab.id&quot; class=&quot;nav-link&quot; :class=&quot;{active: activeTab === tab.id}&quot; @click=&quot;activeTab = tab.id&quot;&gt;
-        ///                {{ tab.label }}
-        ///            &lt;/li&gt;
-        ///        &lt;/ul&gt;
-        ///        &lt;component :is=&quot;activeComponent&quot; v-bind=&quot;$attrs&quot;&gt;&lt;/component&gt;
-        ///    &lt;/div&gt;
-        ///&lt;/template&gt;
+        ///   Looks up a localized string similar to &lt;template&gt;&lt;/template&gt;
         ///
         ///&lt;script&gt;
         ///    Vue.component(&quot;nav-tabs-component&quot;, {
         ///        template: `${template}`,
         ///        data: function () {
-        ///         [rest of string was truncated]&quot;;.
+        ///            const tabVNodes = (this.$slots.default || []).filter(vnode =&gt; vnode.tag);
+        ///            const activeIndex = tabVNodes.findIndex(vnode =&gt; this.getNodeProperty(vnode, &apos;active&apos;));
+        ///
+        ///            return {
+        ///                activeIndex: 0
+        ///            }
+        ///        },
+        ///        methods: {
+        ///            getNodeProperty: function (vnode, property) {
+        ///                retu [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplNavTabs {
             get {
@@ -1776,36 +1769,19 @@ namespace GW2EIBuilders.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to &lt;template&gt;
-        ///    &lt;div&gt;
-        ///        &lt;h3 v-for=&quot;player in players&quot; :key=&quot;player.id&quot; v-show=&quot;player.id === activeplayer&quot;
-        ///            class=&quot;text-center mt-2&quot;&gt;
-        ///            &lt;img :alt=&quot;player.profession&quot; class=&quot;icon&quot; :src=&quot;player.icon&quot;&gt;
-        ///            {{player.name}}       
-        ///            &lt;img v-if=&quot;playerIsRunningHealingExtension(player)&quot;
-        ///                            :src=&quot;UIIcons.GreenFlag&quot; alt=&quot;Complete&quot;
-        ///                            class=&quot;icon&quot; data-original-title=&quot;Complete Healing Data&quot;&gt;
+        ///    &lt;div v-if=&quot;!!activeplayer&quot;&gt;
+        ///        &lt;h3 class=&quot;text-center mt-2&quot;&gt;
+        ///            &lt;img :alt=&quot;activeplayer.profession&quot; class=&quot;icon&quot; :src=&quot;activeplayer.icon&quot;&gt;
+        ///            {{activeplayer.name}}       
+        ///            &lt;img v-if=&quot;playerIsRunningHealingExtension(activeplayer)&quot;
+        ///                :src=&quot;UIIcons.GreenFlag&quot; alt=&quot;Complete&quot; class=&quot;icon&quot; data-original-title=&quot;Complete Healing Data&quot;&gt;
         ///        &lt;/h3&gt; 
-        ///        &lt; [rest of string was truncated]&quot;;.
+        ///        &lt;nav-tabs-component&gt;
+        ///            &lt;healingdist-player-component :label=&quot;&apos;Outgoing Healin [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string tmplPlayerHealingStats {
             get {
                 return ResourceManager.GetString("tmplPlayerHealingStats", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to &lt;template&gt;
-        ///    &lt;div&gt;
-        ///        &lt;keep-alive&gt;
-        ///            &lt;healingdist-player-component v-if=&quot;tabmode === 0&quot; :key=&quot;&apos;healingdist&apos; + playerindex&quot; :playerindex=&quot;playerindex&quot;
-        ///                :phaseindex=&quot;phaseindex&quot; :activetargets=&quot;activetargets&quot;&gt;&lt;/healingdist-player-component&gt;
-        ///            &lt;healingtakendist-player-component v-if=&quot;tabmode ===1&quot; :key=&quot;&apos;healingtaken&apos; + playerindex&quot; :playerindex=&quot;playerindex&quot;
-        ///                :phaseindex=&quot;phaseindex&quot;&gt;&lt;/healingtakendist-player-component&gt;
-        ///            &lt;player-healin [rest of string was truncated]&quot;;.
-        /// </summary>
-        internal static string tmplPlayerHealingTab {
-            get {
-                return ResourceManager.GetString("tmplPlayerHealingTab", resourceCulture);
             }
         }
         

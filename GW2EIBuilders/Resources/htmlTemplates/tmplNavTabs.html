@@ -42,7 +42,8 @@
                                     type: "button",
                                     role: "tab",
                                     'aria-selected': this.activeIndex === index,
-                                    'aria-controls': 'panel-' + index
+                                    'aria-controls': 'panel-' + index,
+                                    'data-original-title': this.getNodeProperty(vnode, 'data-original-title')
                                 },
                                 on: {
                                     click: (e) => {
