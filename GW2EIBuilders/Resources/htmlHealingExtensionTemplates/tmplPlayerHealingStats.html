@@ -39,8 +39,6 @@
         mixins: [extensionPresentComponent, UIIconsComponent],
         template: `${template}`,
         data: function () {
-            console.log(this.playerindex);
-            console.log(logData.players.find(p => p.id === this.playerindex));
             return {
                 tab: validateStartPath("HealingStatistics/PlayerSummary") ? EIUrlParams.get("startPage").split('/')[2] : '',
                 activeplayer: logData.players.find(p => p.id === this.playerindex)
