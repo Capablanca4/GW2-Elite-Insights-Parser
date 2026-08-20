@@ -73,10 +73,10 @@ internal static class Program
 
             if (args.Contains("-cache"))
             {
-                ProgramHelper.APIController.WriteAPISkillsToFile(ProgramHelper.SkillAPICacheLocation);
-                ProgramHelper.APIController.WriteAPIMapsToFile(ProgramHelper.MapAPICacheLocation);
-                ProgramHelper.APIController.WriteAPITraitsToFile(ProgramHelper.TraitAPICacheLocation);
-                ProgramHelper.APIController.WriteAPISpecsToFile(ProgramHelper.SpecAPICacheLocation);
+                ProgramHelper.APIController.WriteAPISkillsToFile();
+                ProgramHelper.APIController.WriteAPIMapsToFile();
+                ProgramHelper.APIController.WriteAPITraitsToFile();
+                ProgramHelper.APIController.WriteAPISpecsToFile();
                 parserArgOffset += 1;
             }
 

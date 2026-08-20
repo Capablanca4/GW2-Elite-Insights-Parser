@@ -377,19 +377,27 @@ public class EvtcParser
         {
             using BinaryReader reader = CreateReader(evtcStream);
             operation.UpdateProgressWithCancellationCheck("Parsing: Reading Binary");
+
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing log data");
             ParseLogData(reader, operation);
+
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing agent data");
             ParseAgentData(reader, operation);
+
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing skill data");
             ParseSkillData(reader, operation);
+
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing combat list");
             ParseCombatList(reader, operation);
+
             operation.UpdateProgressWithCancellationCheck("Parsing: Linking agents to combat list");
             CompleteAgents(operation);
+
             operation.UpdateProgressWithCancellationCheck("Parsing: Preparing data for log generation");
             PreProcessEvtcData(operation);
+
             operation.UpdateProgressWithCancellationCheck("Parsing: Data parsed");
+
             var log = new ParsedEvtcLog(_evtcVersion, _logData, _agentData, _skillData, _combatItems, _playerList, _enabledExtensions, _parserSettings, _apiController, operation);
 
             if (multiThreadAcceleration)
@@ -510,6 +518,7 @@ public class EvtcParser
         {
             throw new EvtcFileException("Not EVTC");
         }
+
         _evtcVersion = new EvtcVersionEvent(headerVersion);
         operation.UpdateProgressWithCancellationCheck("Parsing: ArcDPS Build " + evtcVersion.AsSpan().ToString());
 
@@ -600,7 +609,9 @@ public class EvtcParser
                     type = AgentItem.AgentType.Player;
                     break;
             }
-            _allAgentsList.Add(new AgentItem(agent, name, agentProf, ID, type, toughness, healing, condition, concentration, hbWidth, hbHeight));
+
+            AgentItem agentItem = new(agent, name, agentProf, ID, type, toughness, healing, condition, concentration, hbWidth, hbHeight);
+            _allAgentsList.Add(agentItem);
         }
     }
 
@@ -612,21 +623,16 @@ public class EvtcParser
     private void ParseSkillData(BinaryReader reader, ParserController operation)
     {
         using var _t = new AutoTrace("Skill Data");
-        _skillData = new SkillData(_apiController, _evtcVersion);
+        
         // 4 bytes: player count
         uint skillCount = reader.ReadUInt32();
         operation.UpdateProgressWithCancellationCheck("Parsing: Skill Count " + skillCount);
-        //TempData["Debug"] += "Skill Count:" + skill_count.ToString();
-        // 68 bytes: each skill
-        for (int i = 0; i < skillCount; i++)
-        {
-            // 4 bytes: skill ID
-            int skillID = reader.ReadInt32();
-            // 64 bytes: name
-            string name = GetString(reader, 64);
-            //Save
-            _skillData.Add(skillID, name);
-        }
+        // 68 bytes: each skill = 4 bytes: skill ID + 64 bytes: name
+        var skills = Enumerable
+            .Range(0, (int)skillCount)
+            .Select(x => (skillID: reader.ReadInt32(), name: GetString(reader, 64)))
+            .Select(x => new SkillItem(x.skillID, x.name, _apiController.GetAPISkill(x.skillID)));
+        _skillData = new SkillData(_apiController, _evtcVersion, skills);
     }
 
     /// <summary>
@@ -811,9 +817,11 @@ public class EvtcParser
     private void ParseCombatList(BinaryReader reader, ParserController operation)
     {
         using var _t = new AutoTrace("Combat List");
+
         // 64 bytes: each combat
         long cbtItemCount = (reader.BaseStream.Length - reader.BaseStream.Position) / 64;
         operation.UpdateProgressWithCancellationCheck("Parsing: Combat Event Count " + cbtItemCount);
+
         int discardedCbtEvents = 0;
         bool keepOnlyExtensionEvents = false;
         int stopAtLogEndEvent = _id == (int)TargetID.Instance ? 1 : -1;
@@ -822,7 +830,7 @@ public class EvtcParser
         for (long i = 0; i < cbtItemCount; i++)
         {
             CombatItem combatItem = _revision > 0 ? ReadCombatItemRev1(reader) : ReadCombatItem(reader);
-            if (stopAtLogEndEvent == -1 &&
+            if (stopAtLogEndEvent == -1 && 
                 combatItem.IsStateChange == StateChange.SquadCombatStart)
             {
                 // Trigger ID is map ID

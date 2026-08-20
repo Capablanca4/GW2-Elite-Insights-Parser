@@ -5,10 +5,11 @@ namespace GW2EIGW2API;
 
 public class GW2APIController
 {
-    private readonly GW2SkillAPIController skillAPIController = new();
-    private readonly GW2SpecAPIController specAPIController = new();
-    private readonly GW2TraitAPIController traitAPIController = new();
-    private readonly GW2MapAPIController mapAPIController = new();
+    private readonly GW2SkillAPIController skillAPIController;
+    private readonly GW2SpecAPIController specAPIController;
+    private readonly GW2TraitAPIController traitAPIController;
+    private readonly GW2MapAPIController mapAPIController;
+
     /// <summary>
     /// API Cache init with a cache file locations, 
     /// If the files are present, the content will be used to initialize the API caches
@@ -20,25 +21,21 @@ public class GW2APIController
     /// <param name="mapLocation"></param>
     public GW2APIController(string skillLocation, string specLocation, string traitLocation, string mapLocation)
     {
-        skillAPIController.GetAPISkills(skillLocation);
-        specAPIController.GetAPISpecs(specLocation);
-        mapAPIController.GetAPIMaps(mapLocation);
-        //traitAPIController.GetAPITraits(traitLocation);
-    }
-
-    /// <summary>
-    /// Cacheless API initialization
-    /// </summary>
-    public GW2APIController()
-    {
-        skillAPIController.GetAPISkills(null);
-        specAPIController.GetAPISpecs(null);
-        mapAPIController.GetAPIMaps(null);
-        //traitAPIController.GetAPITraits(null);
+        skillAPIController = new GW2SkillAPIController(
+            new GW2BaseCache<GW2APISkill>(skillLocation), 
+            new GW2BaseAPI<GW2APISkill>("/v2/skills"));
+        specAPIController = new GW2SpecAPIController(
+            new GW2BaseCache<GW2APISpec>(specLocation), 
+            new GW2BaseAPI<GW2APISpec>("/v2/specializations"));
+        mapAPIController = new GW2MapAPIController(
+            new GW2BaseCache<GW2APIMap>(mapLocation), 
+            new GW2BaseAPI<GW2APIMap>("/v2/maps"));
+        traitAPIController = new GW2TraitAPIController(
+            new GW2BaseCache<GW2APITrait>(traitLocation), 
+            new GW2BaseAPI<GW2APITrait>("/v2/traits"));
     }
 
     //----------------------------------------------------------------------------- SKILLS
-
     /// <summary>
     /// Returns GW2APISkill item
     /// Warning: this method is not thread safe, 
@@ -46,14 +43,14 @@ public class GW2APIController
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public GW2APISkill GetAPISkill(long id)
+    public GW2APISkill? GetAPISkill(long id)
     {
-        return skillAPIController.GetAPISkills(null).Items.TryGetValue(id, out GW2APISkill skill) ? skill : null;
+        return skillAPIController.GetById(id).GetAwaiter().GetResult();
     }
 
-    public void WriteAPISkillsToFile(string filePath)
+    public void WriteAPISkillsToFile()
     {
-        skillAPIController.WriteAPISkillsToFile(filePath);
+        skillAPIController.WriteAPISkillsToFile().RunSynchronously();
     }
 
     //----------------------------------------------------------------------------- SPECS
@@ -64,53 +61,8 @@ public class GW2APIController
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public GW2APISpec GetAPISpec(int id)
-    {
-        return specAPIController.GetAPISpecs(null).Items.TryGetValue(id, out GW2APISpec spec) ? spec : null;
-    }
-
-    public void WriteAPISpecsToFile(string filePath)
-    {
-        specAPIController.WriteAPISpecsToFile(filePath);
-    }
-
-    //----------------------------------------------------------------------------- MAPS
-    /// <summary>
-    /// Returns GW2APIMap item
-    /// Warning: this method is not thread safe, 
-    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public GW2APIMap GetAPIMap(int id)
-    {
-        return mapAPIController.GetAPIMaps(null).Items.TryGetValue(id, out GW2APIMap map) ? map : null;
-    }
-
-    public void WriteAPIMapsToFile(string filePath)
-    {
-        mapAPIController.WriteAPIMapsToFile(filePath);
-    }
-
-    //----------------------------------------------------------------------------- TRAITS
-
-
-    /// <summary>
-    /// Returns GW2APITrait item
-    /// Warning: this method is not thread safe, 
-    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public GW2APITrait GetAPITrait(long id)
-    {
-        return traitAPIController.GetAPITraits(null).Items.TryGetValue(id, out GW2APITrait trait) ? trait : null;
-    }
-    public void WriteAPITraitsToFile(string filePath)
-    {
-        traitAPIController.WriteAPITraitsToFile(filePath);
-    }
-
+   
+    public static readonly string UNKNOWN_SPEC = "Unknown";
     public string GetSpec(uint prof, uint elite)
     {
         // Non player agents - Gadgets = GDG
@@ -155,8 +107,8 @@ public class GW2APIController
         // Current way
         else
         {
-            GW2APISpec spec = GetAPISpec((int)elite);
-            if (spec == null)
+            GW2APISpec? spec = specAPIController.GetById((int)elite).GetAwaiter().GetResult();
+            if (spec is null)
             {
                 return UNKNOWN_SPEC;
             }
@@ -165,7 +117,44 @@ public class GW2APIController
         throw new InvalidOperationException("Unexpected profession pattern in GetSpec");
     }
 
-    public static readonly string UNKNOWN_SPEC = "Unknown";
+    public void WriteAPISpecsToFile()
+    {
+        specAPIController.WriteAPISpecsToFile().RunSynchronously();
+    }
 
+    //----------------------------------------------------------------------------- MAPS
+    /// <summary>
+    /// Returns GW2APIMap item
+    /// Warning: this method is not thread safe, 
+    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    public GW2APIMap? GetAPIMap(int id)
+    {
+        return mapAPIController.GetById(id).GetAwaiter().GetResult();
+    }
+
+    public void WriteAPIMapsToFile()
+    {
+        mapAPIController.WriteAPIMapsToFile().RunSynchronously();
+    }
+
+    //----------------------------------------------------------------------------- TRAITS
+    /// <summary>
+    /// Returns GW2APITrait item
+    /// Warning: this method is not thread safe, 
+    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    public GW2APITrait GetAPITrait(long id)
+    {
+        return traitAPIController.GetById(id).GetAwaiter().GetResult();
+    }
+
+    public void WriteAPITraitsToFile()
+    {
+        traitAPIController.WriteAPITraitsToFile().RunSynchronously();
+    }
 }
-

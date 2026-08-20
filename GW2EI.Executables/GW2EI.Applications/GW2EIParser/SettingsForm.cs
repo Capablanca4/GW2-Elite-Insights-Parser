@@ -181,27 +181,27 @@ public partial class SettingsForm : Form
     private void BtnResetMapListClick(object sender, EventArgs e)
     {
         //Update map list
-        ProgramHelper.APIController.WriteAPIMapsToFile(ProgramHelper.MapAPICacheLocation);
+        ProgramHelper.APIController.WriteAPIMapsToFile();
         MessageBox.Show("Map List has been redone");
     }
     private void BtnResetSkillListClick(object sender, EventArgs e)
     {
         //Update skill list
-        ProgramHelper.APIController.WriteAPISkillsToFile(ProgramHelper.SkillAPICacheLocation);
+        ProgramHelper.APIController.WriteAPISkillsToFile();
         MessageBox.Show("Skill List has been redone");
     }
 
     private void BtnResetTraitListClick(object sender, EventArgs e)
     {
         //Update skill list
-        ProgramHelper.APIController.WriteAPITraitsToFile(ProgramHelper.TraitAPICacheLocation);
+        ProgramHelper.APIController.WriteAPITraitsToFile();
         MessageBox.Show("Trait List has been redone");
     }
 
     private void BtnResetSpecListClick(object sender, EventArgs e)
     {
         //Update skill list
-        ProgramHelper.APIController.WriteAPISpecsToFile(ProgramHelper.SpecAPICacheLocation);
+        ProgramHelper.APIController.WriteAPISpecsToFile();
         MessageBox.Show("Spec List has been redone");
     }
 

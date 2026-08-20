@@ -1,30 +1,35 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using GW2EIGW2API;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser.ParsedData;
 
 public class SkillData
 {
     // Fields
-    private readonly Dictionary<long, SkillItem> _skills = [];
-    private readonly GW2EIGW2API.GW2APIController _apiController;
+    private readonly Dictionary<long, SkillItem?> _skills = [];
+    private readonly GW2APIController _apiController;
     public readonly long DodgeID;
     public readonly long GenericBreakbarID;
     // Public Methods
 
-    internal SkillData(GW2EIGW2API.GW2APIController apiController, EvtcVersionEvent evtcVersion)
+    internal SkillData(GW2APIController apiController, EvtcVersionEvent evtcVersion, IEnumerable<SkillItem> skills)
     {
         _apiController = apiController;
         (DodgeID, GenericBreakbarID) = SkillItem.GetArcDPSCustomIDs(evtcVersion);
+        _skills = skills.GroupBy(x => x.ID).ToDictionary(x => x.Key, x => x.FirstOrDefault());
     }
 
-    public SkillItem Get(long ID)
+    public SkillItem? Get(long ID)
     {
         if (_skills.TryGetValue(ID, out var value))
         {
             return value;
         }
-        Add(ID, SkillItem.DefaultName);
-        return _skills[ID];
+        GW2APISkill? skill = _apiController.GetAPISkill(ID);
+        SkillItem skillItem = new(ID, SkillItem.DefaultName, skill);
+        _skills.TryAdd(ID, skillItem);
+        return skillItem;
     }
 
     
@@ -56,14 +61,6 @@ public class SkillData
     public bool IsUnconditionalProc(long ID)
     {
         return UnconditionalProc.Contains(ID);
-    }
-
-    internal void Add(long id, string name)
-    {
-        if (!_skills.ContainsKey(id))
-        {
-            _skills.Add(id, new SkillItem(id, name, _apiController));
-        }
     }
 
     internal void CombineWithSkillInfo(Dictionary<long, SkillInfoEvent> skillInfoEvents)

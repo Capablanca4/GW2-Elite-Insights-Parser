@@ -74,11 +74,11 @@ public class SkillItem
     [Obsolete("Dont use this, testing only")] //TODO(Rennorb) @cleanup
     public SkillItem(bool swap) { ID = swap ? WeaponSwap : default; }
 
-    internal SkillItem(long ID, string name, GW2APIController apiController)
+    internal SkillItem(long ID, string name, GW2APISkill? skill)
     {
         this.ID = ID;
         Name = name.Replace("\0", "");
-        ApiSkill = apiController.GetAPISkill(ID);
+        ApiSkill = skill;
         //
         if (SkillItemOverrides.OverridenSkillNames.TryGetValue(ID, out var overrideName))
         {
