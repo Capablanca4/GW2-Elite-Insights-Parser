@@ -13,6 +13,6 @@ internal class GW2SkillAPIController(IGW2BaseCache<GW2APISkill> _skillCache, IGW
     public async Task WriteAPISkillsToFile()
     {
         IEnumerable<GW2APISkill> skills = await _skillAPI.GetGW2APIItems();
-        await _skillCache.WriteItemsToCache(skills);
+         _skillCache.WriteItemsToCache(skills.ToList());
     }
 }

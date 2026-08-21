@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Buffers;
+using System.Text.Json;
 using GW2EIGW2API.GW2API;
 using GW2EIGW2API.Interfaces;
 
@@ -6,8 +7,10 @@ namespace GW2EIGW2API;
 
 public class GW2BaseCache<T> : IGW2BaseCache<T> where T : GW2APIBaseItem
 {
-    private readonly record struct Entry(long Offset, long Length);
-    private readonly Dictionary<long, Entry> _positions;
+    private readonly record struct IndexEntry(long Offset, long Length);
+
+    private readonly Dictionary<long, IndexEntry> _positions;
+    private readonly long _dataOffset;
     private readonly string _filePath;
 
     private static readonly JsonSerializerOptions SerializerSettings = new()
@@ -20,179 +23,191 @@ public class GW2BaseCache<T> : IGW2BaseCache<T> where T : GW2APIBaseItem
 
     public GW2BaseCache(string filePath)
     {
-        _positions = BuildPositions(filePath);
+        (_positions, _dataOffset) = GetIndexEntries();
         _filePath = filePath;
     }
 
-    private Dictionary<long, Entry> BuildPositions(string filePath)
+    private (Dictionary<long, IndexEntry> Index, long DataOffset) GetIndexEntries()
     {
-        FileInfo fileInfo = new(filePath);
-        if (!fileInfo.Exists)
+        if (!File.Exists(_filePath))
         {
-            return [];
+            return ([], 0);
         }
 
         // Buffer management.
-        const int BufferSize = 1024 * 1024;
+        const int BufferSize = 64 * 1024;
         byte[] buffer = new byte[BufferSize];
-        byte[] leftover = new byte[BufferSize];
-        int leftoverCount = 0;
-        long bufferOffset = 0;
+        int bytesInBuffer = 0;
 
         // State of object parsing.
-        long objectOffset = -1;
-        long? objectId = null;
-        bool expectingId = false;
+        JsonReaderState state = new();
+        long absoluteBufferStart = 0;
+        Dictionary<long, IndexEntry> index = null;
+        using FileStream stream = File.OpenRead(_filePath);
 
-        // Read the file in chunks and parse JSON tokens.
-        using FileStream stream = File.OpenRead(filePath);
-        JsonReaderState readerState = new();
-        Dictionary<long, Entry> positions = [];
         while (true)
         {
-            // Preserve bytes from a token split across buffers.
-            if (leftoverCount > 0)
-            {
-                Buffer.BlockCopy(
-                    leftover, 0,
-                    buffer, 0,
-                    leftoverCount);
-            }
-
-            int bytesRead = stream.Read(buffer, leftoverCount, buffer.Length - leftoverCount);
-
-            // Nothing left to read and no leftover bytes, we're done.
-            int totalBytes = leftoverCount + bytesRead;
-            if (totalBytes == 0)
-            {
-                break;
-            }
-
+            int bytesRead = stream.Read(buffer, bytesInBuffer, buffer.Length - bytesInBuffer);
+            bytesInBuffer += bytesRead;
             bool isFinalBlock = bytesRead == 0;
-            int consumed = ParseBuffer(
-                buffer.AsSpan(0, totalBytes),
-                isFinalBlock,
-                ref readerState,
-                bufferOffset,
-                positions,
-                ref objectOffset,
-                ref objectId,
-                ref expectingId);
 
-            int remaining = totalBytes - consumed;
+            Utf8JsonReader reader = new(buffer.AsSpan(0, bytesInBuffer), isFinalBlock, state);
 
-            if (remaining > leftover.Length)
+            while (reader.Read())
             {
-                Array.Resize(
-                    ref leftover,
-                    Math.Max(BufferSize, remaining));
-            }
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    continue;
+                }
 
-            if (remaining > 0)
-            {
-                Buffer.BlockCopy(
-                    buffer,
-                    consumed,
-                    leftover,
-                    0,
-                    remaining);
-            }
+                string? name = reader.GetString();
 
-            bufferOffset += consumed;
-            leftoverCount = remaining;
+                if (name == "data")
+                {
+                    if (index is null)
+                    {
+                        throw new JsonException("Encountered \"data\" before \"index\" was read.");
+                    }
 
-            if (isFinalBlock)
-            {
-                break;
-            }
-        }
-
-        return positions;
-    }
-
-    private static int ParseBuffer(
-         ReadOnlySpan<byte> data,
-         bool isFinalBlock,
-         ref JsonReaderState state,
-         long bufferOffset,
-         Dictionary<long, Entry> positions,
-         ref long objectOffset,
-         ref long? objectId,
-         ref bool expectingId)
-    {
-        var reader = new Utf8JsonReader(
-            data,
-            isFinalBlock,
-            state);
-
-        while (reader.Read())
-        {
-            switch (reader.TokenType)
-            {
-                // We only react to StartObject when we're not already inside an array object.
-                // Nested objects are therefore ignored.
-                case JsonTokenType.StartObject when objectOffset < 0:
-                    objectOffset = bufferOffset + reader.TokenStartIndex;
-                    objectId = null;
-                    expectingId = false;
-                    break;
-
-                case JsonTokenType.PropertyName when objectOffset >= 0:
-                    expectingId = reader.ValueTextEquals("id");
-                    break;
-
-                case JsonTokenType.Number when objectOffset >= 0 && expectingId:
-                    if (!reader.TryGetInt64(out long id))
+                    // Move onto data's opening '[' and report the position right after it.
+                    // If it's not buffered yet, fall through to the shared refill logic.
+                    if (!reader.Read())
                     {
                         break;
                     }
 
-                    objectId = id;
-                    expectingId = false;
-                    break;
+                    long dataStart = absoluteBufferStart + reader.TokenStartIndex + 1;
+                    return (index, dataStart);
+                }
 
-                case JsonTokenType.EndObject when objectOffset >= 0 && reader.CurrentDepth == 1:
-                    // Add entry to the dictionary if we have a valid object
-                    if (objectId.HasValue)
-                    {
-                        long objectEnd = bufferOffset + reader.TokenStartIndex + 1;
-                        long objectLength = objectEnd - objectOffset;
-                        Entry entry = new(objectOffset, objectLength);
-                        positions.TryAdd(objectId.Value, entry);
-                    }
+                if (name != "index")
+                {
+                    continue;
+                }
 
-                    // Reset state for the next object
-                    objectOffset = -1;
-                    objectId = null;
-                    expectingId = false;
-                    break;
+                // If either step below can't complete because the value isn't
+                // fully buffered yet, we just fall out of this inner loop and
+                // let the shared refill logic below top up the buffer.
+                if (!reader.Read())
+                {
+                    break; // value token not buffered yet
+                }
+
+                long valueStart = reader.TokenStartIndex;
+                Utf8JsonReader lookahead = reader;
+                if (!lookahead.TrySkip())
+                {
+                    break; // whole value not buffered yet
+                }
+
+                ReadOnlySpan<byte> valueSpan =
+                    buffer.AsSpan((int)valueStart, (int)(lookahead.BytesConsumed - valueStart));
+
+                index = JsonSerializer.Deserialize<Dictionary<long, IndexEntry>>(valueSpan, SerializerSettings) ?? [];
+                reader = lookahead; // commit: move past the value we just consumed
             }
-        }
 
-        state = reader.CurrentState;
-        return checked((int)reader.BytesConsumed);
+            if (isFinalBlock)
+            {
+                throw new JsonException("Reached end of stream before finding \"index\" and \"data\".");
+            }
+
+            // Not enough buffered data for the current token/value: increase the buffer size.
+            state = reader.CurrentState;
+            int consumed = (int)reader.BytesConsumed;
+            int remaining = bytesInBuffer - consumed;
+
+            if (consumed == 0 && bytesInBuffer == buffer.Length)
+            {
+                Array.Resize(ref buffer, buffer.Length * 2);
+            }
+
+            Buffer.BlockCopy(buffer, consumed, buffer, 0, remaining);
+            bytesInBuffer = remaining;
+            absoluteBufferStart += consumed;
+        }
     }
 
-    public async Task WriteItemsToCache(IEnumerable<T> items)
+    public void WriteItemsToCache(IList<T> items)
     {
-        FileStream fcreate = File.Open(_filePath, FileMode.Create);
-        fcreate.Close();
-        using FileStream writer = new(_filePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-        JsonSerializer.Serialize(writer, items, SerializerSettings);
+        //Serialize every element on its own so we know its exact byte length.
+        byte[][] elements = items.Select(i => JsonSerializer.SerializeToUtf8Bytes(i, SerializerSettings)).ToArray();
+
+        // Build the data section's bytes  
+        using MemoryStream dataBuffer = new();
+        Dictionary<long, IndexEntry> index = new(items.Count);
+
+        dataBuffer.WriteByte((byte)'[');
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (i > 0)
+            {
+                dataBuffer.WriteByte((byte)',');
+            }
+
+            // -1 to account for the leading '['
+            long offset = dataBuffer.Position - 1; 
+            dataBuffer.Write(elements[i], 0, elements[i].Length);
+            index.Add(items[i].Id, new IndexEntry(offset, elements[i].Length));
+        }
+        dataBuffer.WriteByte((byte)']');
+
+        // Write the final document: header, index, then the pre-built data array.
+        using FileStream fileWriter = new(_filePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+        using Utf8JsonWriter writer = new(fileWriter, new JsonWriterOptions { Indented = true });
+
+        writer.WriteStartObject();
+
+        writer.WritePropertyName("index");
+        JsonSerializer.Serialize(writer, index);
+
+        writer.WritePropertyName("data");
+        // dataBuffer already contains a syntactically complete, valid JSON array.
+        writer.WriteRawValue(dataBuffer.ToArray(), skipInputValidation: true);
+
+        writer.WriteEndObject();
+        writer.Flush();
     }
 
     public async Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        if (!_positions.TryGetValue(id, out Entry entry))
+        if (!_positions.TryGetValue(id, out IndexEntry entry) || !File.Exists(_filePath))
         {
-            return default;
+            return null;
         }
 
-        await using var stream = File.OpenRead(_filePath);
-        stream.Position = entry.Offset;
+        await using FileStream stream = new(
+            _filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
 
-        byte[] buffer = new byte[checked((int)entry.Length)];
-        await stream.ReadExactlyAsync(buffer,cancellationToken);
-        return JsonSerializer.Deserialize<T>(buffer, SerializerSettings);
+        byte[] buffer = ArrayPool<byte>.Shared.Rent((int)entry.Length);
+
+        try
+        {
+            stream.Position = _dataOffset + entry.Offset;
+            int totalRead = 0;
+
+            while (totalRead < entry.Length)
+            {
+                int read = await stream.ReadAsync(buffer.AsMemory(totalRead, (int)entry.Length - totalRead), cancellationToken);
+                if (read == 0)
+                {
+                    throw new EndOfStreamException(
+                        "Unexpected end of stream while reading the element.");
+                }
+
+                totalRead += read;
+            }
+
+            return JsonSerializer.Deserialize<T>(buffer.AsSpan(0, (int)entry.Length), SerializerSettings);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 }

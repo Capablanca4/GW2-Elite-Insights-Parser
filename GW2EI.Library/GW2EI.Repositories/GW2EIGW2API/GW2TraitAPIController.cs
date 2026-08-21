@@ -13,6 +13,6 @@ internal class GW2TraitAPIController(IGW2BaseCache<GW2APITrait> _traitCache, IGW
     public async Task WriteAPITraitsToFile()
     {
         IEnumerable<GW2APITrait> traits = await _traitAPI.GetGW2APIItems();
-        await _traitCache.WriteItemsToCache(traits);
+        _traitCache.WriteItemsToCache(traits.ToList());
     }
 }

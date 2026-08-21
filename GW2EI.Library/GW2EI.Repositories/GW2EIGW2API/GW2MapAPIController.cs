@@ -13,6 +13,6 @@ internal class GW2MapAPIController(IGW2BaseCache<GW2APIMap> _mapCache, IGW2BaseA
     public async Task WriteAPIMapsToFile()
     {
         IEnumerable<GW2APIMap> maps = await _mapAPI.GetGW2APIItems();
-        await _mapCache.WriteItemsToCache(maps);
+        _mapCache.WriteItemsToCache(maps.ToList());
     }
 }

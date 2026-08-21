@@ -20,7 +20,7 @@ public class EvctParserBenchmark
         GW2APIController apiController = new("./Content/SkillList.json", "./Content/SpecList.json", "./Content/TraitList.json", "./Content/MapList.json");
         parser = new EvtcParser(parserSettings, apiController);
     }
-
+    
     [Benchmark]
     public ParsedEvtcLog? ParseLog()
     {

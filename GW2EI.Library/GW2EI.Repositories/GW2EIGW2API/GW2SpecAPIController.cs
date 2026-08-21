@@ -13,6 +13,6 @@ internal class GW2SpecAPIController(IGW2BaseCache<GW2APISpec> _specCache, IGW2Ba
     public async Task WriteAPISpecsToFile()
     {
         IEnumerable<GW2APISpec> specs = await _specAPI.GetGW2APIItems();
-        await _specCache.WriteItemsToCache(specs);
+         _specCache.WriteItemsToCache(specs.ToList());
     }
 }

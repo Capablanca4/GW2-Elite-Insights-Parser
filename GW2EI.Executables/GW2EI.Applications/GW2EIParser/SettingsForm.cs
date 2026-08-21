@@ -178,30 +178,30 @@ public partial class SettingsForm : Form
         _programSettings.WebhookURL = TxtUploadWebhookUrl.Text;
         Settings.Default.WebhookURL = _programSettings.WebhookURL;
     }
-    private void BtnResetMapListClick(object sender, EventArgs e)
+    private async void BtnResetMapListClick(object sender, EventArgs e)
     {
         //Update map list
-        ProgramHelper.APIController.WriteAPIMapsToFile();
+        await ProgramHelper.APIController.WriteAPIMapsToFile();
         MessageBox.Show("Map List has been redone");
     }
-    private void BtnResetSkillListClick(object sender, EventArgs e)
+    private async void BtnResetSkillListClick(object sender, EventArgs e)
     {
         //Update skill list
-        ProgramHelper.APIController.WriteAPISkillsToFile();
+        await ProgramHelper.APIController.WriteAPISkillsToFile();
         MessageBox.Show("Skill List has been redone");
     }
 
-    private void BtnResetTraitListClick(object sender, EventArgs e)
+    private async void BtnResetTraitListClick(object sender, EventArgs e)
     {
         //Update skill list
-        ProgramHelper.APIController.WriteAPITraitsToFile();
+        await ProgramHelper.APIController.WriteAPITraitsToFile();
         MessageBox.Show("Trait List has been redone");
     }
 
-    private void BtnResetSpecListClick(object sender, EventArgs e)
+    private async void BtnResetSpecListClick(object sender, EventArgs e)
     {
         //Update skill list
-        ProgramHelper.APIController.WriteAPISpecsToFile();
+        await ProgramHelper.APIController.WriteAPISpecsToFile();
         MessageBox.Show("Spec List has been redone");
     }
 

@@ -48,9 +48,9 @@ public class GW2APIController
         return skillAPIController.GetById(id).GetAwaiter().GetResult();
     }
 
-    public void WriteAPISkillsToFile()
+    public Task WriteAPISkillsToFile()
     {
-        skillAPIController.WriteAPISkillsToFile().RunSynchronously();
+        return skillAPIController.WriteAPISkillsToFile();
     }
 
     //----------------------------------------------------------------------------- SPECS
@@ -117,9 +117,14 @@ public class GW2APIController
         throw new InvalidOperationException("Unexpected profession pattern in GetSpec");
     }
 
-    public void WriteAPISpecsToFile()
+    public GW2APISpec? GetAPISpec(int id)
     {
-        specAPIController.WriteAPISpecsToFile().RunSynchronously();
+        return specAPIController.GetById(id).GetAwaiter().GetResult();
+    }
+
+    public Task WriteAPISpecsToFile()
+    {
+        return specAPIController.WriteAPISpecsToFile();
     }
 
     //----------------------------------------------------------------------------- MAPS
@@ -135,9 +140,9 @@ public class GW2APIController
         return mapAPIController.GetById(id).GetAwaiter().GetResult();
     }
 
-    public void WriteAPIMapsToFile()
+    public Task WriteAPIMapsToFile()
     {
-        mapAPIController.WriteAPIMapsToFile().RunSynchronously();
+        return mapAPIController.WriteAPIMapsToFile();
     }
 
     //----------------------------------------------------------------------------- TRAITS
@@ -153,8 +158,8 @@ public class GW2APIController
         return traitAPIController.GetById(id).GetAwaiter().GetResult();
     }
 
-    public void WriteAPITraitsToFile()
+    public Task WriteAPITraitsToFile()
     {
-        traitAPIController.WriteAPITraitsToFile().RunSynchronously();
+        return traitAPIController.WriteAPITraitsToFile();
     }
 }
