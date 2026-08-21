@@ -182,7 +182,7 @@ public class GW2BaseCache<T> : IGW2BaseCache<T> where T : GW2APIBaseItem
             FileAccess.Read,
             FileShare.Read,
             bufferSize: 4096,
-            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+            options: FileOptions.Asynchronous | FileOptions.RandomAccess);
 
         byte[] buffer = ArrayPool<byte>.Shared.Rent((int)entry.Length);
 
