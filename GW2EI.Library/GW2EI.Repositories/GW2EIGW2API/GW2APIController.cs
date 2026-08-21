@@ -153,7 +153,7 @@ public class GW2APIController
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public GW2APITrait GetAPITrait(long id)
+    public GW2APITrait? GetAPITrait(long id)
     {
         return traitAPIController.GetById(id).GetAwaiter().GetResult();
     }

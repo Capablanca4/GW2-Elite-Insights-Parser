@@ -42,7 +42,7 @@ public class GW2BaseCache<T> : IGW2BaseCache<T> where T : GW2APIBaseItem
         // State of object parsing.
         JsonReaderState state = new();
         long absoluteBufferStart = 0;
-        Dictionary<long, IndexEntry> index = null;
+        Dictionary<long, IndexEntry> index = [];
         using FileStream stream = File.OpenRead(_filePath);
 
         while (true)

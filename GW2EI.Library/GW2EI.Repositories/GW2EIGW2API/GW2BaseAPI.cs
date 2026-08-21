@@ -44,8 +44,8 @@ public class GW2BaseAPI<T>(string APIPath) : IGW2BaseAPI<T> where T : GW2APIBase
                 PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
                 //NOTE(Rennorb): does html escape by default
             };
-            T[] responseArray = await response.Content.ReadFromJsonAsync<T[]>(deSerializerSettings);
-            itemList.AddRange(responseArray);
+            T[]? responseArray = await response.Content.ReadFromJsonAsync<T[]>(deSerializerSettings);
+            itemList.AddRange(responseArray ?? []);
             page++;
         }
 
