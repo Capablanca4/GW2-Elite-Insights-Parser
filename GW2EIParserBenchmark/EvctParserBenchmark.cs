@@ -17,7 +17,7 @@ public class EvctParserBenchmark
     public void Setup()
     {
         EvtcParserSettings parserSettings = new(0, 0);
-        GW2APIController apiController = new("./Content/SkillList.json", "./Content/SpecList.json", "./Content/TraitList.json", "./Content/MapList.json");
+        GW2APIController apiController = new("./Content/SkillList.ndjson", "./Content/SpecList.ndjson", "./Content/TraitList.ndjson", "./Content/MapList.ndjson");
         parser = new EvtcParser(parserSettings, apiController);
     }
     

@@ -1,4 +1,7 @@
 ﻿using System.Buffers;
+using System.Buffers.Binary;
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using GW2EIGW2API.GW2API;
 using GW2EIGW2API.Interfaces;
@@ -23,108 +26,68 @@ public class GW2BaseCache<T> : IGW2BaseCache<T> where T : GW2APIBaseItem
 
     public GW2BaseCache(string filePath)
     {
-        (_positions, _dataOffset) = GetIndexEntries();
         _filePath = filePath;
+        (_positions, _dataOffset) = GetIndexEntries();
     }
 
     private (Dictionary<long, IndexEntry> Index, long DataOffset) GetIndexEntries()
     {
-        if (!File.Exists(_filePath))
-        {
-            return ([], 0);
-        }
-
-        // Buffer management.
-        const int BufferSize = 64 * 1024;
-        byte[] buffer = new byte[BufferSize];
-        int bytesInBuffer = 0;
-
-        // State of object parsing.
-        JsonReaderState state = new();
-        long absoluteBufferStart = 0;
-        Dictionary<long, IndexEntry> index = [];
         using FileStream stream = File.OpenRead(_filePath);
+
+        int indexLength = 0;
 
         while (true)
         {
-            int bytesRead = stream.Read(buffer, bytesInBuffer, buffer.Length - bytesInBuffer);
-            bytesInBuffer += bytesRead;
-            bool isFinalBlock = bytesRead == 0;
+            int value = stream.ReadByte();
 
-            Utf8JsonReader reader = new(buffer.AsSpan(0, bytesInBuffer), isFinalBlock, state);
-
-            while (reader.Read())
+            if (value == '\n')
             {
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                {
-                    continue;
-                }
-
-                string? name = reader.GetString();
-
-                if (name == "data")
-                {
-                    if (index is null)
-                    {
-                        throw new JsonException("Encountered \"data\" before \"index\" was read.");
-                    }
-
-                    // Move onto data's opening '[' and report the position right after it.
-                    // If it's not buffered yet, fall through to the shared refill logic.
-                    if (!reader.Read())
-                    {
-                        break;
-                    }
-
-                    long dataStart = absoluteBufferStart + reader.TokenStartIndex + 1;
-                    return (index, dataStart);
-                }
-
-                if (name != "index")
-                {
-                    continue;
-                }
-
-                // If either step below can't complete because the value isn't
-                // fully buffered yet, we just fall out of this inner loop and
-                // let the shared refill logic below top up the buffer.
-                if (!reader.Read())
-                {
-                    break; // value token not buffered yet
-                }
-
-                long valueStart = reader.TokenStartIndex;
-                Utf8JsonReader lookahead = reader;
-                if (!lookahead.TrySkip())
-                {
-                    break; // whole value not buffered yet
-                }
-
-                ReadOnlySpan<byte> valueSpan =
-                    buffer.AsSpan((int)valueStart, (int)(lookahead.BytesConsumed - valueStart));
-
-                index = JsonSerializer.Deserialize<Dictionary<long, IndexEntry>>(valueSpan, SerializerSettings) ?? [];
-                reader = lookahead; // commit: move past the value we just consumed
+                break;
             }
 
-            if (isFinalBlock)
+            if (value == -1)
             {
-                throw new JsonException("Reached end of stream before finding \"index\" and \"data\".");
+                throw new EndOfStreamException("Unexpected end of file.");
+            }
+            if (value < '0' || value > '9')
+            {
+                throw new InvalidDataException("Invalid index length.");
             }
 
-            // Not enough buffered data for the current token/value: increase the buffer size.
-            state = reader.CurrentState;
-            int consumed = (int)reader.BytesConsumed;
-            int remaining = bytesInBuffer - consumed;
+            indexLength = checked(indexLength * 10 + (value - '0'));
+        }
 
-            if (consumed == 0 && bytesInBuffer == buffer.Length)
+        // The stream is now positioned exactly at the beginning
+        // of the JSON index.
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(indexLength);
+
+        try
+        {
+            int totalRead = 0;
+
+            while (totalRead < indexLength)
             {
-                Array.Resize(ref buffer, buffer.Length * 2);
-            }
+                int read = stream.Read(buffer, totalRead, indexLength - totalRead);
 
-            Buffer.BlockCopy(buffer, consumed, buffer, 0, remaining);
-            bytesInBuffer = remaining;
-            absoluteBufferStart += consumed;
+                if (read == 0)
+                {
+                    throw new EndOfStreamException("Unexpected end of file while reading the index.");
+                }
+
+                totalRead += read;
+            }
+            Dictionary<long, IndexEntry> result = JsonSerializer.Deserialize<Dictionary<long, IndexEntry>>(
+                buffer.AsSpan(0, indexLength),
+                SerializerSettings)!;
+
+            // The stream is now positioned at the beginning of the data.
+            int dataOffset = checked((int)stream.Position);
+
+            return (result, dataOffset);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
@@ -133,45 +96,41 @@ public class GW2BaseCache<T> : IGW2BaseCache<T> where T : GW2APIBaseItem
         //Serialize every element on its own so we know its exact byte length.
         byte[][] elements = items.Select(i => JsonSerializer.SerializeToUtf8Bytes(i, SerializerSettings)).ToArray();
 
-        // Build the data section's bytes  
-        using MemoryStream dataBuffer = new();
+        // Build the index section  
         Dictionary<long, IndexEntry> index = new(items.Count);
-
-        dataBuffer.WriteByte((byte)'[');
+        long currentOffset = 0;
         for (int i = 0; i < items.Count; i++)
         {
-            if (i > 0)
+            index.Add(items[i].Id, new IndexEntry(currentOffset, elements[i].Length));
+            currentOffset += elements[i].Length;
+
+            // comma
+            if (i < items.Count - 1)
             {
-                dataBuffer.WriteByte((byte)',');
-            }
-
-            // -1 to account for the leading '['
-            long offset = dataBuffer.Position - 1; 
-            dataBuffer.Write(elements[i], 0, elements[i].Length);
-            index.Add(items[i].Id, new IndexEntry(offset, elements[i].Length));
+                currentOffset++; 
+            }  
         }
-        dataBuffer.WriteByte((byte)']');
+        byte[] indexBytes = JsonSerializer.SerializeToUtf8Bytes(index, SerializerSettings);
 
-        // Write the final document: header, index, then the pre-built data array.
+        // Write the 
         using FileStream fileWriter = new(_filePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-        using Utf8JsonWriter writer = new(fileWriter, new JsonWriterOptions { Indented = true });
+        fileWriter.Write(Encoding.UTF8.GetBytes(indexBytes.Length.ToString()));
+        fileWriter.WriteByte((byte)'\n');
 
-        writer.WriteStartObject();
+        // Write the dictionary section as the first line of the file
+        fileWriter.Write(indexBytes);
+        fileWriter.WriteByte((byte)'\n');
 
-        writer.WritePropertyName("index");
-        JsonSerializer.Serialize(writer, index);
-
-        writer.WritePropertyName("data");
-        // dataBuffer already contains a syntactically complete, valid JSON array.
-        writer.WriteRawValue(dataBuffer.ToArray(), skipInputValidation: true);
-
-        writer.WriteEndObject();
-        writer.Flush();
+        // Write the data section  as the second line of the file
+        byte[] dataBytes = elements.Aggregate((x, y) => [..x, (byte)',', ..y]);
+        fileWriter.WriteByte((byte)'[');
+        fileWriter.Write(dataBytes);
+        fileWriter.WriteByte((byte)']');
     }
 
     public async Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        if (!_positions.TryGetValue(id, out IndexEntry entry) || !File.Exists(_filePath))
+        if (!_positions.TryGetValue(id, out IndexEntry entry))
         {
             return null;
         }
@@ -188,7 +147,7 @@ public class GW2BaseCache<T> : IGW2BaseCache<T> where T : GW2APIBaseItem
 
         try
         {
-            stream.Position = _dataOffset + entry.Offset;
+            stream.Position = _dataOffset + entry.Offset + 2;
             int totalRead = 0;
 
             while (totalRead < entry.Length)

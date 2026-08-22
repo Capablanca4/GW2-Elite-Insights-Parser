@@ -34,16 +34,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="Content\SkillList.json">
+        <Content Include="Content\SkillList.ndjson">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Content Include="Content\SpecList.json">
+        <Content Include="Content\SpecList.ndjson">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Content Include="Content\MapList.json">
+        <Content Include="Content\MapList.ndjson">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Content Include="Content\TraitList.json">
+        <Content Include="Content\TraitList.ndjson">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
