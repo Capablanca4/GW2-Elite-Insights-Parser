@@ -485,7 +485,6 @@ public class EvtcParser
                 log.LogData.GetPhases(log);
             }
 
-
             return log;
         }
         catch (Exception ex)

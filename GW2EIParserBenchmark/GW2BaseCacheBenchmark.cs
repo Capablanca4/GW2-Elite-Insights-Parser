@@ -18,15 +18,14 @@ public class GW2BaseCacheBenchmark<T> where T : GW2APIBaseItem
     [Benchmark]
     public GW2BaseCache<T> TestConstructorMemory()
     {
-        string cacheName = typeof(T) switch
+        (string, string) cacheName = typeof(T) switch
         {
-            var t when t == typeof(GW2APISkill) => "./Content/SkillList.ndjson",
-            var t when t == typeof(GW2APIMap) => "./Content/MapList.ndjson",
-            _ => throw new NotSupportedException(
-                $"No cache name configured for {typeof(T).Name}")
+            var t when t == typeof(GW2APISkill) => ("./Content/SkillList.index", "./Content/SkillList.json"),
+            var t when t == typeof(GW2APIMap) => ("./Content/MapList.index", "./Content/MapList.json"),
+            _ => throw new NotSupportedException($"No cache name configured for {typeof(T).Name}")
         };
 
-        return new GW2BaseCache<T>(cacheName);
+        return new GW2BaseCache<T>(cacheName.Item1, cacheName.Item2);
     }
 
     [Benchmark]

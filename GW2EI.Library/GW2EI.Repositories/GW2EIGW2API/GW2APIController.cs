@@ -19,19 +19,19 @@ public class GW2APIController
     /// <param name="specLocation"></param>
     /// <param name="traitLocation"></param>
     /// <param name="mapLocation"></param>
-    public GW2APIController(string skillLocation, string specLocation, string traitLocation, string mapLocation)
+    public GW2APIController(string skillFolder, string specLocation, string traitLocation, string mapLocation)
     {
         skillAPIController = new GW2SkillAPIController(
-            new GW2BaseCache<GW2APISkill>(skillLocation), 
+            new GW2BaseCache<GW2APISkill>(Path.Combine(skillFolder, "SkillList.index"), Path.Combine(skillFolder, "SkillList.json")),
             new GW2BaseAPI<GW2APISkill>("/v2/skills"));
         specAPIController = new GW2SpecAPIController(
-            new GW2BaseCache<GW2APISpec>(specLocation), 
+            new GW2BaseCache<GW2APISpec>(Path.Combine(specLocation, "SpecList.index"), Path.Combine(specLocation, "SpecList.json")),
             new GW2BaseAPI<GW2APISpec>("/v2/specializations"));
         mapAPIController = new GW2MapAPIController(
-            new GW2BaseCache<GW2APIMap>(mapLocation), 
+            new GW2BaseCache<GW2APIMap>(Path.Combine(traitLocation, "MapList.index"), Path.Combine(traitLocation, "MapList.json")), 
             new GW2BaseAPI<GW2APIMap>("/v2/maps"));
         traitAPIController = new GW2TraitAPIController(
-            new GW2BaseCache<GW2APITrait>(traitLocation), 
+            new GW2BaseCache<GW2APITrait>(Path.Combine(mapLocation, "TraitList.index"), Path.Combine(mapLocation, "TraitList.json")),
             new GW2BaseAPI<GW2APITrait>("/v2/traits"));
     }
 

@@ -8,16 +8,28 @@
   </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="Content\MapList.ndjson">
+        <Content Include="Content\MapList.index">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Content Include="Content\SkillList.ndjson">
+        <Content Include="Content\MapList.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Content Include="Content\SpecList.ndjson">
+        <Content Include="Content\SkillList.index">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <Content Include="Content\TraitList.ndjson">
+        <Content Include="Content\SkillList.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="Content\SpecList.index">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="Content\SpecList.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="Content\TraitList.index">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+        <Content Include="Content\TraitList.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
