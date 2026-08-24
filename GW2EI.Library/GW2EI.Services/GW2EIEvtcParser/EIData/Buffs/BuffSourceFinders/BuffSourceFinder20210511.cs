@@ -1,4 +1,5 @@
 ﻿using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser.EIData.BuffSourceFinders;
 
@@ -10,12 +11,12 @@ internal class BuffSourceFinder20210511 : BuffSourceFinder20191001
 
     private bool CouldBeUncertainDueToImbuedMelodiesForCappedDuration(long extension, ParsedEvtcLog log)
     {
-        return extension <= ImbuedMelodies + ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(ParserHelper.Spec.Tempest);
+        return extension <= ImbuedMelodies + ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(Spec.Tempest);
     }
 
     private bool CouldBeUncertainDueToImperialImpactForCappedDuration(long extension, ParsedEvtcLog log)
     {
-        return extension <= ImperialImpactExtension + ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(ParserHelper.Spec.Vindicator);
+        return extension <= ImperialImpactExtension + ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(Spec.Vindicator);
     }
 
     // Spec specific checks

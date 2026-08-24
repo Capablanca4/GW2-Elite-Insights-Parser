@@ -4,7 +4,7 @@ using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
-using static GW2EIEvtcParser.ParserHelper;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser;
 

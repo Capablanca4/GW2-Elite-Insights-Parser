@@ -1,4 +1,5 @@
 ﻿using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser.EIData.BuffSourceFinders;
 
@@ -28,12 +29,12 @@ internal abstract class BuffSourceFinder
 
     protected static bool IsSoulbeast(AgentItem agent, long time)
     {
-        return agent.GetSpecAtTime(time) == ParserHelper.Spec.Soulbeast;
+        return agent.GetSpecAtTime(time) == Spec.Soulbeast;
     }
 
     protected static bool IsRanger(AgentItem agent, long time)
     {
-        return agent.GetBaseSpecAtTime(time) == ParserHelper.Spec.Ranger;
+        return agent.GetBaseSpecAtTime(time) == Spec.Ranger;
     }
 
     private IEnumerable<CastEvent> GetExtensionSkills(ParsedEvtcLog log, long time, HashSet<long> idsToKeep)
@@ -52,12 +53,12 @@ internal abstract class BuffSourceFinder
 
     private bool CouldBeUncertainDueToImbuedMelodies(long extension, ParsedEvtcLog log)
     {
-        return Math.Abs(extension - ImbuedMelodies) <= ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(ParserHelper.Spec.Tempest);
+        return Math.Abs(extension - ImbuedMelodies) <= ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(Spec.Tempest);
     }
 
     private bool CouldBeUncertainDueToImperialImpact(long extension, ParsedEvtcLog log)
     {
-        return Math.Abs(extension - ImperialImpactExtension) <= ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(ParserHelper.Spec.Vindicator);
+        return Math.Abs(extension - ImperialImpactExtension) <= ParserHelper.BuffSimulatorStackActiveDelayConstant && log.FriendliesListBySpec.ContainsKey(Spec.Vindicator);
     }
 
     protected virtual Certainty CouldBeRangerTraits(AgentItem dst, long buffID, long time, long extension, ParsedEvtcLog log)
@@ -84,7 +85,7 @@ internal abstract class BuffSourceFinder
 
     protected virtual bool CouldBeImbuedMelodies(AgentItem agent, long buffID, long time, long extension, ParsedEvtcLog log)
     {
-        if (log.FriendliesListBySpec.TryGetValue(ParserHelper.Spec.Tempest, out var tempests) && Math.Abs(extension - ImbuedMelodies) <= ParserHelper.BuffSimulatorStackActiveDelayConstant)
+        if (log.FriendliesListBySpec.TryGetValue(Spec.Tempest, out var tempests) && Math.Abs(extension - ImbuedMelodies) <= ParserHelper.BuffSimulatorStackActiveDelayConstant)
         {
             var magAuraApplications = new HashSet<AgentItem>(log.CombatData.GetBuffData(SkillIDs.MagneticAura).Where(x => x is BuffApplyEvent && Math.Abs(x.Time - time) < ParserHelper.ServerDelayConstant && !x.CreditedBy.Is(agent)).Select(x => x.CreditedBy));
             foreach (SingleActor tempest in tempests)

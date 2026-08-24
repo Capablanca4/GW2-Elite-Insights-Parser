@@ -6,6 +6,7 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
+using GW2EIGW2API.GW2API;
 using Tracing;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.ParserHelper;
@@ -533,24 +534,6 @@ public class EvtcParser
     }
 
     /// <summary>
-    /// Get the Agent Profession as <see cref="string"/>.
-    /// </summary>
-    /// <param name="prof"></param>
-    /// <param name="elite"></param>
-    /// <param name="operation">Operation object bound to the UI.</param>
-    /// <returns></returns>
-    /// <exception cref="EvtcAgentException"></exception>
-    private string GetAgentProfString(uint prof, uint elite, ParserController operation)
-    {
-        string spec = _apiController.GetSpec(prof, elite);
-        if (spec == GW2APIController.UNKNOWN_SPEC)
-        {
-            operation.UpdateProgressWithCancellationCheck("Parsing: Missing or outdated GW2 API Cache or unknown player spec");
-        }
-        return spec;
-    }
-
-    /// <summary>
     /// Parses agent related data.
     /// </summary>
     /// <param name="reader">Reads binary values from the evtc.</param>
@@ -589,7 +572,12 @@ public class EvtcParser
             // 68 bytes: name
             string name = GetString(reader, 68, false);
             //Save
-            Spec agentProf = ProfToSpec(GetAgentProfString(prof, isElite, operation)); //TODO_PERF(Rennorb): Drop the 3 wrappers around what we are actually doing here.
+            Spec agentProf = _apiController.GetSpec(prof, isElite);
+            if (agentProf == Spec.Unknown)
+            {
+                operation.UpdateProgressWithCancellationCheck("Parsing: Missing or outdated GW2 API Cache or unknown player spec");
+            }
+
             AgentItem.AgentType type;
             ushort ID = 0;
             switch (agentProf)

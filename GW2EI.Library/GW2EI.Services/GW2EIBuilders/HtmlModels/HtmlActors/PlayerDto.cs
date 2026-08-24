@@ -1,6 +1,7 @@
 ﻿using GW2EIEvtcParser;
 using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIBuilders.HtmlModels.HTMLActors;
 
@@ -33,28 +34,28 @@ internal class PlayerDto : ActorDto
     public bool IsFake;
     public bool NotInSquad;
 
-    private static (string, string, string) GetSpecGraphColor(ParserHelper.Spec baseSpec)
+    private static (string, string, string) GetSpecGraphColor(Spec baseSpec)
     {
         switch (baseSpec)
         {
 
-            case ParserHelper.Spec.Warrior:
+            case Spec.Warrior:
                 return ("rgb(255,209,102)", "rgb(190,159,84)", "rgb(125,109,66)");
-            case ParserHelper.Spec.Guardian:
+            case Spec.Guardian:
                 return ("rgb(114,193,217)", "rgb(88,147,165)", "rgb(62,101,113)");
-            case ParserHelper.Spec.Revenant:
+            case Spec.Revenant:
                 return ("rgb(209,110,90)", "rgb(159,85,70)", "rgb(110,60,50)");
-            case ParserHelper.Spec.Engineer:
+            case Spec.Engineer:
                 return ("rgb(208,156,89)", "rgb(158,119,68)", "rgb(109,83,48)");
-            case ParserHelper.Spec.Ranger:
+            case Spec.Ranger:
                 return ("rgb(140,220,130)", "rgb(107,167,100)", "rgb(75,115,70)");
-            case ParserHelper.Spec.Thief:
+            case Spec.Thief:
                 return ("rgb(192,143,149)", "rgb(146,109,114)", "rgb(101,76,79)");
-            case ParserHelper.Spec.Elementalist:
+            case Spec.Elementalist:
                 return ("rgb(246,138,135)", "rgb(186,106,103)", "rgb(127,74,72)");
-            case ParserHelper.Spec.Mesmer:
+            case Spec.Mesmer:
                 return ("rgb(182,121,213)", "rgb(139,90,162)", "rgb(96,60,111)");
-            case ParserHelper.Spec.Necromancer:
+            case Spec.Necromancer:
                 return ("rgb(82,167,111)", "rgb(64,127,85)", "rgb(46,88,60)");
             default:
                 return ("", "", "");

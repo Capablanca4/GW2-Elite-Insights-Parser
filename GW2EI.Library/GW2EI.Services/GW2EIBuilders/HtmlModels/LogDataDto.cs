@@ -10,6 +10,7 @@ using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.LogLogic;
 using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 using Tracing;
 using static GW2EIEvtcParser.ParserHelper;
 

@@ -13,6 +13,7 @@ using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
 using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -211,7 +212,7 @@ internal class ConjuredAmalgamate : MythwrightGambit
 
     internal static void CreateCustomSwordAgent(LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
-        var sword = agentData.AddCustomNPCAgent(long.MinValue, long.MinValue, "Conjured Sword\0:Conjured Sword\051", ParserHelper.Spec.NPC, TargetID.ConjuredPlayerSword, true);
+        var sword = agentData.AddCustomNPCAgent(long.MinValue, long.MinValue, "Conjured Sword\0:Conjured Sword\051", Spec.NPC, TargetID.ConjuredPlayerSword, true);
         foreach (CombatItem c in combatData)
         {
             if (c.IsDamageEvent(extensions) && c.SkillID == ConjuredSlashPlayer)

@@ -2,6 +2,7 @@
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
+using GW2EIGW2API.GW2API;
 using Tracing;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.ParserHelper;

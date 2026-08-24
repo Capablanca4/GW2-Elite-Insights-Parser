@@ -1,4 +1,5 @@
 ﻿using GW2EIEvtcParser.ParserHelpers;
+using GW2EIGW2API.GW2API;
 using static GW2EIEvtcParser.DamageModifierIDs;
 using static GW2EIEvtcParser.EIData.Buff;
 using static GW2EIEvtcParser.EIData.DamageModifiersUtils;

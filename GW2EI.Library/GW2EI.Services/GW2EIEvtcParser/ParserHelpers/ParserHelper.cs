@@ -1,6 +1,7 @@
 ﻿using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
+using GW2EIGW2API.GW2API;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.SpeciesIDs;
 
@@ -61,23 +62,6 @@ public static class ParserHelper
         PetSpecific,
         EncounterSpecific,
         FractalInstability,
-        Unknown
-    }
-
-    public enum Spec
-    {
-        // professions, sort alphabetically per base spec then add elite spec per expansion
-        Elementalist, Tempest, Weaver, Catalyst, Evoker,
-        Engineer, Scrapper, Holosmith, Mechanist, Amalgam,
-        Guardian, Dragonhunter, Firebrand, Willbender, Luminary,
-        Mesmer, Chronomancer, Mirage, Virtuoso, Troubadour,
-        Necromancer, Reaper, Scourge, Harbinger, Ritualist,
-        Ranger, Druid, Soulbeast, Untamed, Galeshot,
-        Revenant, Herald, Renegade, Vindicator, Conduit,
-        Thief, Daredevil, Deadeye, Specter, Antiquary,
-        Warrior, Berserker, Spellbreaker, Bladesworn, Paragon,
-        //
-        NPC, Gadget,
         Unknown
     }
 
@@ -259,76 +243,6 @@ public static class ParserHelper
             durationString = "-" + durationString;
         }
         return durationString;
-    }
-
-    /// <summary>
-    /// Dictionary to find the <see cref="Spec"/> Specialization / Profession given a <see cref="string"/> as reference.
-    /// </summary>
-    private static IReadOnlyDictionary<string, Spec> ProfToSpecDictionary = new Dictionary<string, Spec>
-    {
-        { "NPC", Spec.NPC },
-        { "GDG", Spec.Gadget },
-        //
-        { "Galeshot", Spec.Galeshot },
-        { "Untamed", Spec.Untamed },
-        { "Druid", Spec.Druid },
-        { "Soulbeast", Spec.Soulbeast },
-        { "Ranger", Spec.Ranger },
-        //
-        { "Amalgam", Spec.Amalgam },
-        { "Scrapper", Spec.Scrapper },
-        { "Holosmith", Spec.Holosmith },
-        { "Mechanist", Spec.Mechanist },
-        { "Engineer", Spec.Engineer },
-        //
-        { "Antiquary", Spec.Antiquary },
-        { "Specter", Spec.Specter },
-        { "Daredevil", Spec.Daredevil },
-        { "Deadeye", Spec.Deadeye },
-        { "Thief", Spec.Thief },
-        //
-        { "Evoker", Spec.Evoker },
-        { "Catalyst", Spec.Catalyst },
-        { "Weaver", Spec.Weaver },
-        { "Tempest", Spec.Tempest },
-        { "Elementalist", Spec.Elementalist },
-        //
-        { "Troubadour", Spec.Troubadour },
-        { "Virtuoso", Spec.Virtuoso },
-        { "Mirage", Spec.Mirage },
-        { "Chronomancer", Spec.Chronomancer },
-        { "Mesmer", Spec.Mesmer },
-        //
-        { "Ritualist", Spec.Ritualist },
-        { "Harbinger", Spec.Harbinger },
-        { "Scourge", Spec.Scourge },
-        { "Reaper", Spec.Reaper },
-        { "Necromancer", Spec.Necromancer },
-        //
-        { "Paragon", Spec.Paragon },
-        { "Bladesworn", Spec.Bladesworn },
-        { "Spellbreaker", Spec.Spellbreaker },
-        { "Berserker", Spec.Berserker },
-        { "Warrior", Spec.Warrior },
-        //
-        { "Luminary", Spec.Luminary },
-        { "Willbender", Spec.Willbender },
-        { "Firebrand", Spec.Firebrand },
-        { "Dragonhunter", Spec.Dragonhunter },
-        { "Guardian", Spec.Guardian },
-        //
-        { "Conduit", Spec.Conduit },
-        { "Vindicator", Spec.Vindicator },
-        { "Renegade", Spec.Renegade },
-        { "Herald", Spec.Herald },
-        { "Revenant", Spec.Revenant },
-        //
-        { "", Spec.Unknown },
-    };
-
-    internal static Spec ProfToSpec(string prof)
-    {
-        return ProfToSpecDictionary.TryGetValue(prof, out Spec spec) ? spec : Spec.Unknown;
     }
 
     /// <summary>

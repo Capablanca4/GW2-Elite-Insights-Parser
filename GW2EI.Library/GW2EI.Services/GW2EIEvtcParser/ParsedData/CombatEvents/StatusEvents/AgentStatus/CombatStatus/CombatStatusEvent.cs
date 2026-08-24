@@ -1,4 +1,5 @@
-﻿using static GW2EIEvtcParser.ParserHelper;
+﻿using GW2EIGW2API.GW2API;
+using static GW2EIEvtcParser.ParserHelper;
 
 namespace GW2EIEvtcParser.ParsedData;
 
@@ -10,7 +11,7 @@ public class CombatStatusEvent : StatusEvent
     internal CombatStatusEvent(CombatItem evtcItem, AgentData agentData) : base(evtcItem, agentData)
     {
         Subgroup = (int)evtcItem.DstAgent;
-        Spec = ProfToSpec(agentData.GetSpec((uint)evtcItem.Value, (uint)evtcItem.BuffDmg));
+        Spec = agentData.GetSpec((uint)evtcItem.Value, (uint)evtcItem.BuffDmg);
         BaseSpec = SpecToBaseSpec(Spec);
     }
 

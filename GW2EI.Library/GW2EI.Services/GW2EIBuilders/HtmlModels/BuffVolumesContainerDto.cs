@@ -1,6 +1,7 @@
 ﻿using GW2EIBuilders.HtmlModels.HTMLStats;
 using GW2EIEvtcParser;
 using GW2EIEvtcParser.EIData;
+using GW2EIGW2API.GW2API;
 using static GW2EIEvtcParser.ParserHelper;
 
 namespace GW2EIBuilders.HtmlModels;

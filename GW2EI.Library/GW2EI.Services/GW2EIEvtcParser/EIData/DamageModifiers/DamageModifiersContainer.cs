@@ -1,4 +1,5 @@
 ﻿using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 using static GW2EIEvtcParser.ParserHelper;
 
 namespace GW2EIEvtcParser.EIData;
@@ -230,7 +231,7 @@ public class DamageModifiersContainer
         });
     }
 
-    public List<OutgoingDamageModifier> GetPersonalOutgoingModifiersPerSpec(ParserHelper.Spec spec)
+    public List<OutgoingDamageModifier> GetPersonalOutgoingModifiersPerSpec(Spec spec)
     {
         var srcs = ParserHelper.SpecToSources(spec);
         var res = new List<OutgoingDamageModifier>(srcs.Count); //TODO_PERF(Rennorb) @find average complexity
@@ -244,7 +245,7 @@ public class DamageModifiersContainer
         return res;
     }
 
-    public List<IncomingDamageModifier> GetPersonalIncomingModifiersPerSpec(ParserHelper.Spec spec)
+    public List<IncomingDamageModifier> GetPersonalIncomingModifiersPerSpec(Spec spec)
     {
         var srcs = ParserHelper.SpecToSources(spec);
         var res = new List<IncomingDamageModifier>(srcs.Count); //TODO_PERF(Rennorb) @find average complexity

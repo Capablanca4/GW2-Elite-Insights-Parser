@@ -1,4 +1,5 @@
 ﻿using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser.EIData.BuffSourceFinders;
 
@@ -19,10 +20,10 @@ internal class BuffSourceFinder20210921 : BuffSourceFinder20210511
 
         if (_vindicatorDodges == null)
         {
-            _vindicatorDodges = new List<CastEvent>(log.PlayerList.Count(p => p.Spec == ParserHelper.Spec.Vindicator) * 50);
+            _vindicatorDodges = new List<CastEvent>(log.PlayerList.Count(p => p.Spec == Spec.Vindicator) * 50);
             foreach (Player p in log.PlayerList)
             {
-                if (p.Spec == ParserHelper.Spec.Vindicator)
+                if (p.Spec == Spec.Vindicator)
                 {
                     _vindicatorDodges.AddRange(p.GetIntersectingCastEvents(log).Where(x => x.SkillID == SkillIDs.ImperialImpactDodge));
                 }

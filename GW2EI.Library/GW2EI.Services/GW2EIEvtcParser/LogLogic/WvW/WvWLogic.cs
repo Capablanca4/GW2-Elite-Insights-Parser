@@ -12,6 +12,7 @@ using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
 using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -304,7 +305,7 @@ internal class WvWLogic : LogLogic
 
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
-        AgentItem dummyAgent = agentData.AddCustomNPCAgent(logData.LogStart, logData.LogEnd, _detailed ? "Dummy PvP Agent" : "Enemy Players", ParserHelper.Spec.NPC, TargetID.WorldVersusWorld, true);
+        AgentItem dummyAgent = agentData.AddCustomNPCAgent(logData.LogStart, logData.LogEnd, _detailed ? "Dummy PvP Agent" : "Enemy Players", Spec.NPC, TargetID.WorldVersusWorld, true);
         CombatItem? modeEvent = combatData.FirstOrDefault(x => (x.IsBuffApplyEvent() || x.IsBuffRemoveEvent()) && (x.SkillID == GuildHallPvEMode || x.SkillID == GuildHallsPvPMode || x.SkillID == GuildHallWvWMode));
         if (modeEvent != null)
         {

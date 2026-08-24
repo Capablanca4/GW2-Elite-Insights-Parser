@@ -2,6 +2,7 @@
 using GW2EIEvtcParser.EIData.BuffSourceFinders;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
+using GW2EIGW2API.GW2API;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.EIData.Buff;
 
@@ -264,7 +265,7 @@ public class BuffsContainer
     }
 
     // Non shareable buffs
-    public IReadOnlyList<Buff> GetPersonalBuffsList(ParserHelper.Spec spec)
+    public IReadOnlyList<Buff> GetPersonalBuffsList(Spec spec)
     {
         var result = new List<Buff>();
         foreach (ParserHelper.Source src in ParserHelper.SpecToSources(spec))

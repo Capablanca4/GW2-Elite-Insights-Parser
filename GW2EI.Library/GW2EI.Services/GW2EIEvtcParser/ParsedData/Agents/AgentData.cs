@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using static GW2EIEvtcParser.ParserHelper;
+using GW2EIGW2API.GW2API;
 using static GW2EIEvtcParser.SpeciesIDs;
 
 namespace GW2EIEvtcParser.ParsedData;
@@ -41,7 +41,7 @@ public class AgentData
         _apiController = apiController;
         _allAgentsList = allAgentsList;
     }
-    internal string GetSpec(uint prof, uint elite)
+    internal Spec GetSpec(uint prof, uint elite)
     {
         return _apiController.GetSpec(prof, elite);
     }

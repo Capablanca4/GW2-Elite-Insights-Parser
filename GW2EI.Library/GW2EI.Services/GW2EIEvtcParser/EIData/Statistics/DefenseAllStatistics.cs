@@ -1,4 +1,5 @@
 ﻿using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 
 namespace GW2EIEvtcParser.EIData;
 
@@ -20,7 +21,7 @@ public class DefenseAllStatistics : DefensePerTargetStatistics
         // We can't use mechanics due to down event vs down buff desync
         if (actor.AgentItem.Type == AgentItem.AgentType.Player)
         {
-            if (actor.BaseSpec == ParserHelper.Spec.Elementalist)
+            if (actor.BaseSpec == Spec.Elementalist)
             {
                 var vaporFormRemoves = log.CombatData.GetBuffRemoveAllDataByIDByDst(SkillIDs.VaporForm, actor.AgentItem).Where(brae => brae.Time >= start && brae.Time <= end);
                 var downEvents = log.CombatData.GetBuffDataByIDByDst(SkillIDs.Downed, actor.AgentItem).Where(be => be.Time >= start && be.Time <= end && be is BuffApplyEvent);

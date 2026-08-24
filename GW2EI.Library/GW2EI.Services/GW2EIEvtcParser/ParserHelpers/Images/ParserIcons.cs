@@ -1,4 +1,5 @@
-﻿using static GW2EIEvtcParser.ArcDPSEnums;
+﻿using GW2EIGW2API.GW2API;
+using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.SpeciesIDs;
 

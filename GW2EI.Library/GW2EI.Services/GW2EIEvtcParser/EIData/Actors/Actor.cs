@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API.GW2API;
 using static GW2EIEvtcParser.SpeciesIDs;
 
 namespace GW2EIEvtcParser.EIData;
@@ -13,8 +14,8 @@ public abstract class Actor
     public uint Condition => AgentItem.Condition;
     public uint Concentration => AgentItem.Concentration;
     public uint Healing => AgentItem.Healing;
-    public ParserHelper.Spec Spec => AgentItem.Spec;
-    public ParserHelper.Spec BaseSpec => AgentItem.BaseSpec;
+    public Spec Spec => AgentItem.Spec;
+    public Spec BaseSpec => AgentItem.BaseSpec;
     public int ID => AgentItem.ID;
     public uint HitboxHeight => AgentItem.HitboxHeight;
     public uint HitboxWidth => AgentItem.HitboxWidth;
