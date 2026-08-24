@@ -4,6 +4,7 @@ using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
+using static GW2EIEvtcParser.ParserHelper;
 
 namespace GW2EIEvtcParser;
 
@@ -19,7 +20,7 @@ public class ParsedEvtcLog
     public readonly IReadOnlyCollection<AgentItem> PlayerAgents;
     public readonly IReadOnlyCollection<AgentItem> FriendlyAgents;
     public bool IsBenchmarkMode => LogData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.Benchmark;
-    public readonly IReadOnlyDictionary<ParserHelper.Spec, IReadOnlyList<SingleActor>> FriendliesListBySpec;
+    public readonly IReadOnlyDictionary<Spec, IReadOnlyList<SingleActor>> FriendliesListBySpec;
     public readonly DamageModifiersContainer DamageModifiers;
     public readonly BuffsContainer Buffs;
     public readonly EvtcParserSettings ParserSettings;

@@ -15,23 +15,23 @@ public class GW2APIController
     /// If the files are present, the content will be used to initialize the API caches
     /// Otherwise the caches will be built from GW2 API calls
     /// </summary>
-    /// <param name="skillLocation"></param>
-    /// <param name="specLocation"></param>
-    /// <param name="traitLocation"></param>
-    /// <param name="mapLocation"></param>
-    public GW2APIController(string skillFolder, string specLocation, string traitLocation, string mapLocation)
+    /// <param name="skillFolder"></param>
+    /// <param name="specFolder"></param>
+    /// <param name="traitFolder"></param>
+    /// <param name="mapFolder"></param>
+    public GW2APIController(string skillFolder, string specFolder, string traitFolder, string mapFolder)
     {
         skillAPIController = new GW2SkillAPIController(
             new GW2BaseCache<GW2APISkill>(Path.Combine(skillFolder, "SkillList.index"), Path.Combine(skillFolder, "SkillList.json")),
             new GW2BaseAPI<GW2APISkill>("/v2/skills"));
         specAPIController = new GW2SpecAPIController(
-            new GW2BaseCache<GW2APISpec>(Path.Combine(specLocation, "SpecList.index"), Path.Combine(specLocation, "SpecList.json")),
+            new GW2BaseCache<GW2APISpec>(Path.Combine(specFolder, "SpecList.index"), Path.Combine(specFolder, "SpecList.json")),
             new GW2BaseAPI<GW2APISpec>("/v2/specializations"));
         mapAPIController = new GW2MapAPIController(
-            new GW2BaseCache<GW2APIMap>(Path.Combine(traitLocation, "MapList.index"), Path.Combine(traitLocation, "MapList.json")), 
+            new GW2BaseCache<GW2APIMap>(Path.Combine(traitFolder, "MapList.index"), Path.Combine(traitFolder, "MapList.json")), 
             new GW2BaseAPI<GW2APIMap>("/v2/maps"));
         traitAPIController = new GW2TraitAPIController(
-            new GW2BaseCache<GW2APITrait>(Path.Combine(mapLocation, "TraitList.index"), Path.Combine(mapLocation, "TraitList.json")),
+            new GW2BaseCache<GW2APITrait>(Path.Combine(mapFolder, "TraitList.index"), Path.Combine(mapFolder, "TraitList.json")),
             new GW2BaseAPI<GW2APITrait>("/v2/traits"));
     }
 
@@ -59,68 +59,48 @@ public class GW2APIController
     /// Warning: this method is not thread safe, 
     /// Make sure to initialize the cache before hand if you intend to call this method from different threads
     /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-   
     public static readonly string UNKNOWN_SPEC = "Unknown";
     public string GetSpec(uint prof, uint elite)
     {
-        // Non player agents - Gadgets = GDG
-        if (elite == 0xFFFFFFFF)
+        return (elite, prof) switch
         {
-            return (prof & 0xffff0000) == 0xffff0000 ? "GDG" : "NPC";
-        }
-        // Old way - Base Profession
-        else if (elite == 0)
-        {
-            switch (prof)
-            {
-                case 1: return "Guardian";
-                case 2: return "Warrior";
-                case 3: return "Engineer";
-                case 4: return "Ranger";
-                case 5: return "Thief";
-                case 6: return "Elementalist";
-                case 7: return "Mesmer";
-                case 8: return "Necromancer";
-                case 9: return "Revenant";
-                default: return UNKNOWN_SPEC;
-            }
-        }
-        // Old way - Elite Specialization (HoT)
-        else if (elite == 1)
-        {
-            switch (prof)
-            {
-                case 1: return "Dragonhunter";
-                case 2: return "Berserker";
-                case 3: return "Scrapper";
-                case 4: return "Druid";
-                case 5: return "Daredevil";
-                case 6: return "Tempest";
-                case 7: return "Chronomancer";
-                case 8: return "Reaper";
-                case 9: return "Herald";
-                default: return UNKNOWN_SPEC;
-            }
-        }
-        // Current way
-        else
-        {
-            GW2APISpec? spec = specAPIController.GetById((int)elite).GetAwaiter().GetResult();
-            if (spec is null)
-            {
-                return UNKNOWN_SPEC;
-            }
-            return spec.Elite ? spec.Name : spec.Profession;
-        }
-        throw new InvalidOperationException("Unexpected profession pattern in GetSpec");
+            // Non player agents - Gadgets = GDG
+            (0xFFFFFFFF, _) => (prof & 0xffff0000) == 0xffff0000 ? "GDG" : "NPC",
+            // Old way - Base Profession
+            (0, 1) => "Guardian",
+            (0, 2) => "Warrior",
+            (0, 3) => "Engineer",
+            (0, 4) => "Ranger",
+            (0, 5) => "Thief",
+            (0, 6) => "Elementalist",
+            (0, 7) => "Mesmer",
+            (0, 8) => "Necromancer",
+            (0, 9) => "Revenant",
+            // Old way - Elite Specialization (HoT)
+            (1, 1) => "Dragonhunter",
+            (1, 2) => "Berserker",
+            (1, 3) => "Scrapper",
+            (1, 4) => "Druid",
+            (1, 5) => "Daredevil",
+            (1, 6) => "Tempest",
+            (1, 7) => "Chronomancer",
+            (1, 8) => "Reaper",
+            (1, 9) => "Herald",
+            // New way 
+            _ => GetSpecNew(prof)
+        };
     }
 
-    public GW2APISpec? GetAPISpec(int id)
+    private string GetSpecNew(uint id)
     {
-        return specAPIController.GetById(id).GetAwaiter().GetResult();
+        GW2APISpec? spec = specAPIController.GetById(id).GetAwaiter().GetResult();
+        if (spec is null)
+        {
+            return UNKNOWN_SPEC;
+        }
+        return spec.Elite ? spec.Name : spec.Profession;
     }
+
 
     public Task WriteAPISpecsToFile()
     {

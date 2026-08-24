@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using GW2EIEvtcParser.EIData;
 using static GW2EIEvtcParser.ArcDPSEnums;
+using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.SpeciesIDs;
 
 namespace GW2EIEvtcParser.ParsedData;
@@ -62,8 +63,8 @@ public class AgentItem
 
     public long HalfAware => (FirstAware + LastAware) / 2;
     public string Name { get; protected set; } = "UNKNOWN";
-    public ParserHelper.Spec Spec { get; private set; } = ParserHelper.Spec.Unknown;
-    public ParserHelper.Spec BaseSpec { get; private set; } = ParserHelper.Spec.Unknown;
+    public Spec Spec { get; private set; } = Spec.Unknown;
+    public Spec BaseSpec { get; private set; } = Spec.Unknown;
     public ushort Toughness { get; protected set; }
     public readonly ushort Healing;
     public readonly ushort Condition;
@@ -77,7 +78,7 @@ public class AgentItem
     public bool IsNotInSquadFriendlyPlayer { get; private set; }
 
     // Constructors
-    internal AgentItem(ulong agent, string name, ParserHelper.Spec spec, int id, AgentType type, ushort toughness, ushort healing, ushort condition, ushort concentration, uint hbWidth, uint hbHeight)
+    internal AgentItem(ulong agent, string name, Spec spec, int id, AgentType type, ushort toughness, ushort healing, ushort condition, ushort concentration, uint hbWidth, uint hbHeight)
     {
         UniqueID = ++AgentCount;
         Agent = agent;
@@ -113,7 +114,7 @@ public class AgentItem
         Unamed = Name.Contains("ch" + ID + "-") || Name.Contains("gd" + ID + "-");
     }
 
-    internal AgentItem(ulong agent, string name, ParserHelper.Spec spec, int id, AgentType type, ushort instid, ushort toughness, ushort healing, ushort condition, ushort concentration, uint hbWidth, uint hbHeight, long firstAware, long lastAware, bool isFake) : this(agent, name, spec, id, type, toughness, healing, condition, concentration, hbWidth, hbHeight)
+    internal AgentItem(ulong agent, string name, Spec spec, int id, AgentType type, ushort instid, ushort toughness, ushort healing, ushort condition, ushort concentration, uint hbWidth, uint hbHeight, long firstAware, long lastAware, bool isFake) : this(agent, name, spec, id, type, toughness, healing, condition, concentration, hbWidth, hbHeight)
     {
         InstID = instid;
         FirstAware = firstAware;
@@ -162,7 +163,7 @@ public class AgentItem
         InstID = instid;
     }
     #region OVERRIDES
-    internal void OverrideSpec(ParserHelper.Spec spec)
+    internal void OverrideSpec(Spec spec)
     {
         Spec = spec;
         BaseSpec = ParserHelper.SpecToBaseSpec(spec);
@@ -636,12 +637,12 @@ public class AgentItem
         return EnglobedAgentItems.FirstOrDefault(x => x.InAwareTimes(time)) ?? this;
     }
 
-    public ParserHelper.Spec GetSpecAtTime(long time)
+    public Spec GetSpecAtTime(long time)
     {
         return FindEnglobedAgentItem(time).Spec;
     }
 
-    public ParserHelper.Spec GetBaseSpecAtTime(long time)
+    public Spec GetBaseSpecAtTime(long time)
     {
         return FindEnglobedAgentItem(time).BaseSpec;
     }

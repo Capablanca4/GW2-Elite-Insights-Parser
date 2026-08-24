@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.SpeciesIDs;
 
 namespace GW2EIEvtcParser.ParsedData;
@@ -45,7 +46,7 @@ public class AgentData
         return _apiController.GetSpec(prof, elite);
     }
 
-    internal AgentItem AddCustomNPCAgent(long start, long end, string name, ParserHelper.Spec spec, int ID, bool isFake, ushort toughness = 0, ushort healing = 0, ushort condition = 0, ushort concentration = 0, uint hitboxWidth = 0, uint hitboxHeight = 0)
+    internal AgentItem AddCustomNPCAgent(long start, long end, string name, Spec spec, int ID, bool isFake, ushort toughness = 0, ushort healing = 0, ushort condition = 0, ushort concentration = 0, uint hitboxWidth = 0, uint hitboxHeight = 0)
     {
         var rnd = new Random();
         ulong agentValue = 0;
@@ -64,12 +65,12 @@ public class AgentData
         return agent;
     }
 
-    internal AgentItem AddCustomNPCAgent(long start, long end, string name, ParserHelper.Spec spec, TargetID ID, bool isFake, ushort toughness = 0, ushort healing = 0, ushort condition = 0, ushort concentration = 0, uint hitboxWidth = 0, uint hitboxHeight = 0)
+    internal AgentItem AddCustomNPCAgent(long start, long end, string name, Spec spec, TargetID ID, bool isFake, ushort toughness = 0, ushort healing = 0, ushort condition = 0, ushort concentration = 0, uint hitboxWidth = 0, uint hitboxHeight = 0)
     {
         return AddCustomNPCAgent(start, end, name, spec, (int)ID, isFake, toughness, healing, condition, concentration, hitboxWidth, hitboxHeight);
     }
 
-    internal AgentItem AddCustomAgentFrom(AgentItem from, long start, long end, ParserHelper.Spec spec)
+    internal AgentItem AddCustomAgentFrom(AgentItem from, long start, long end, Spec spec)
     {
         var rnd = new Random();
         ulong agentValue = 0;

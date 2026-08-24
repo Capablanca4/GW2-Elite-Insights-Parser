@@ -1,4 +1,8 @@
 ﻿using System.Buffers;
+using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using GW2EIGW2API.GW2API;
 using GW2EIGW2API.Interfaces;
@@ -8,7 +12,7 @@ namespace GW2EIGW2API;
 
 public sealed class GW2BaseCache<T> : IDisposable, IGW2BaseCache<T> where T : GW2APIBaseItem
 {
-    private readonly Dictionary<long, IndexEntry> _indexes;
+    private readonly Dictionary<long, IndexRecord> _indexes;
     private readonly string _filePositions;
     private readonly string _fileIndex;
     private readonly SafeFileHandle _fileHandle;
@@ -24,21 +28,72 @@ public sealed class GW2BaseCache<T> : IDisposable, IGW2BaseCache<T> where T : GW
     public GW2BaseCache(string fileIndex, string filePositions)
     {
         _fileIndex = fileIndex;
-        _indexes = IndexFileHelper.Load(fileIndex);
         _filePositions = filePositions;
+        _indexes = ReadIndexes();
         _fileHandle = File.OpenHandle(filePositions, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.Asynchronous | FileOptions.RandomAccess);
     }
 
+    public async Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        if (!_indexes.TryGetValue(id, out IndexRecord entry))
+        {
+            return null;
+        }
+
+        return await ReadPosition(entry, cancellationToken);
+    }
+
+    public void Dispose()
+    {
+        _fileHandle.Dispose();
+    }
+
+    #region Write to cache
+
     public void WriteItemsToCache(IList<T> items)
     {
-        //Serialize every element on its own so we know its exact byte length.
-        byte[][] elements = items.Select(i => JsonSerializer.SerializeToUtf8Bytes(i, SerializerSettings)).ToArray();
+        // Builds positions and index
+        byte[][] positions = items.Select(i => JsonSerializer.SerializeToUtf8Bytes(i, SerializerSettings)).ToArray();
+        Dictionary<long, IndexRecord> index = new(items.Count);
+        long offset = 0;
+        for (var i = 0; i < items.Count; i++)
+        {
+            var length = positions[i].Length;
+            index.Add(items[i].Id, new IndexRecord(items[i].Id, offset, length));
+            offset += length + (i < items.Count - 1 ? 1 : 0);
+        }
 
-        // Write the index
-        Dictionary<long, IndexEntry> index = ToDictionnary(items, elements);
-        IndexFileHelper.Save(index, _fileIndex);
+        // Write the index and the positions
+        WriteIndexes(index);
+        WritePositions(positions);
+    }
 
-        // Write the data section  as the second line of the file
+    private void WriteIndexes(Dictionary<long, IndexRecord> dict)
+    {
+        var records = new IndexRecord[dict.Count];
+        for (int i = 0; i < dict.Count; i++)
+        {
+            KeyValuePair<long, IndexRecord> kvp = dict.ElementAt(i);
+            records[i] = new IndexRecord(kvp.Key, kvp.Value.Offset, kvp.Value.Length);
+        }
+
+        using FileStream stream = new(
+            _fileIndex,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 1 << 16);
+        using BinaryWriter writer = new(stream);
+
+        writer.Write(records.Length);
+
+        // Reinterpret the whole array as bytes and write it in one call
+        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes<IndexRecord>(records);
+        stream.Write(bytes);
+    }
+
+    private void WritePositions(byte[][] elements)
+    {
         using FileStream fileWriter = new(_filePositions, FileMode.Create, FileAccess.Write, FileShare.Read);
         byte[] dataBytes = elements.Aggregate((x, y) => [.. x, (byte)',', .. y]);
         fileWriter.WriteByte((byte)'[');
@@ -46,33 +101,48 @@ public sealed class GW2BaseCache<T> : IDisposable, IGW2BaseCache<T> where T : GW
         fileWriter.WriteByte((byte)']');
     }
 
-    private Dictionary<long, IndexEntry> ToDictionnary(IList<T> items, byte[][] elements)
+    #endregion
+
+    #region Read from cache
+
+    public Dictionary<long, IndexRecord> ReadIndexes()
     {
-        // Build the index section  
-        Dictionary<long, IndexEntry> index = new(items.Count);
-        long currentOffset = 0;
-        for (int i = 0; i < items.Count; i++)
+        using SafeFileHandle handle = File.OpenHandle(
+            _fileIndex, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        Span<byte> countBytes = stackalloc byte[sizeof(int)];
+        RandomAccess.Read(handle, countBytes, fileOffset: 0);
+        int count = BinaryPrimitives.ReadInt32LittleEndian(countBytes);
+
+        int recordSize = Unsafe.SizeOf<IndexRecord>();
+        int dataSize = count * recordSize;
+
+        byte[] rented = ArrayPool<byte>.Shared.Rent(dataSize);
+        try
         {
-            index.Add(items[i].Id, new IndexEntry(currentOffset, elements[i].Length));
-            currentOffset += elements[i].Length;
+            RandomAccess.Read(handle, rented.AsSpan(0, dataSize), fileOffset: sizeof(int));
 
-            // comma
-            if (i < items.Count - 1)
+            Dictionary<long, IndexRecord> dict = new(count);
+            Span<IndexRecord> records = MemoryMarshal.Cast<byte, IndexRecord>(rented.AsSpan(0, dataSize));
+            foreach (IndexRecord r in records)
             {
-                currentOffset++;
+                dict[r.Key] = r;
             }
-        }
 
-        return index;
+            return dict;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
     }
 
-    public async Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
-    {
-        if (!_indexes.TryGetValue(id, out IndexEntry entry))
-        {
-            return null;
-        }
+    #endregion
 
+    #region Read from positions
+
+    private async Task<T?> ReadPosition(IndexRecord entry, CancellationToken cancellationToken)
+    {
         byte[] buffer = ArrayPool<byte>.Shared.Rent((int)entry.Length);
 
         try
@@ -94,6 +164,7 @@ public sealed class GW2BaseCache<T> : IDisposable, IGW2BaseCache<T> where T : GW
                 totalRead += read;
             }
 
+            var test = Encoding.UTF8.GetString(buffer.AsSpan(0, (int)entry.Length));
             return JsonSerializer.Deserialize<T>(buffer.AsSpan(0, (int)entry.Length), SerializerSettings);
         }
         finally
@@ -102,8 +173,5 @@ public sealed class GW2BaseCache<T> : IDisposable, IGW2BaseCache<T> where T : GW
         }
     }
 
-    public void Dispose()
-    {
-        _fileHandle.Dispose();
-    }
+    #endregion
 }
