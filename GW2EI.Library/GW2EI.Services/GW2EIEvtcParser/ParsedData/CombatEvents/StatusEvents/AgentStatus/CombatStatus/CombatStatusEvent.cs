@@ -14,5 +14,4 @@ public class CombatStatusEvent : StatusEvent
         Spec = agentData.GetSpec((uint)evtcItem.Value, (uint)evtcItem.BuffDmg);
         BaseSpec = SpecToBaseSpec(Spec);
     }
-
 }

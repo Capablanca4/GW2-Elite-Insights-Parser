@@ -41,6 +41,7 @@ public class AgentData
         _apiController = apiController;
         _allAgentsList = allAgentsList;
     }
+
     internal Spec GetSpec(uint prof, uint elite)
     {
         return _apiController.GetSpec(prof, elite);
