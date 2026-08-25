@@ -1,40 +1,15 @@
 ﻿using GW2EIGW2API.GW2API;
+using GW2EIGW2API.Interfaces;
 
 [assembly: CLSCompliant(false)]
 namespace GW2EIGW2API;
 
-public class GW2APIController
+public class GW2APIController(
+    IGW2SkillAPIController skillAPIController, 
+    IGW2SpecAPIController specAPIController, 
+    IGW2TraitAPIController traitAPIController, 
+    IGW2MapAPIController mapAPIController)
 {
-    private readonly GW2SkillAPIController skillAPIController;
-    private readonly GW2SpecAPIController specAPIController;
-    private readonly GW2TraitAPIController traitAPIController;
-    private readonly GW2MapAPIController mapAPIController;
-
-    /// <summary>
-    /// API Cache init with a cache file locations, 
-    /// If the files are present, the content will be used to initialize the API caches
-    /// Otherwise the caches will be built from GW2 API calls
-    /// </summary>
-    /// <param name="skillFolder"></param>
-    /// <param name="specFolder"></param>
-    /// <param name="traitFolder"></param>
-    /// <param name="mapFolder"></param>
-    public GW2APIController(string skillFolder, string specFolder, string traitFolder, string mapFolder)
-    {
-        skillAPIController = new GW2SkillAPIController(
-            new GW2BaseCache<GW2APISkill>(Path.Combine(skillFolder, "SkillList.index"), Path.Combine(skillFolder, "SkillList.json")),
-            new GW2BaseAPI<GW2APISkill>("/v2/skills"));
-        specAPIController = new GW2SpecAPIController(
-            new GW2BaseCache<GW2APISpec>(Path.Combine(specFolder, "SpecList.index"), Path.Combine(specFolder, "SpecList.json")),
-            new GW2BaseAPI<GW2APISpec>("/v2/specializations"));
-        mapAPIController = new GW2MapAPIController(
-            new GW2BaseCache<GW2APIMap>(Path.Combine(traitFolder, "MapList.index"), Path.Combine(traitFolder, "MapList.json")), 
-            new GW2BaseAPI<GW2APIMap>("/v2/maps"));
-        traitAPIController = new GW2TraitAPIController(
-            new GW2BaseCache<GW2APITrait>(Path.Combine(mapFolder, "TraitList.index"), Path.Combine(mapFolder, "TraitList.json")),
-            new GW2BaseAPI<GW2APITrait>("/v2/traits"));
-    }
-
     //----------------------------------------------------------------------------- SKILLS
     /// <summary>
     /// Returns GW2APISkill item

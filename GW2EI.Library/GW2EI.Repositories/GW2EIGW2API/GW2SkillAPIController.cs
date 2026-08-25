@@ -3,7 +3,10 @@ using GW2EIGW2API.Interfaces;
 
 namespace GW2EIGW2API;
 
-internal class GW2SkillAPIController(IGW2BaseCache<GW2APISkill> _skillCache, IGW2BaseAPI<GW2APISkill> _skillAPI)
+public sealed class GW2SkillAPIController(
+    IGW2BaseCache<GW2APISkill> _skillCache, 
+    IGW2BaseAPI<GW2APISkill> _skillAPI) : 
+    IGW2SkillAPIController
 {
     public Task<GW2APISkill?> GetById(long ID)
     {
@@ -13,6 +16,6 @@ internal class GW2SkillAPIController(IGW2BaseCache<GW2APISkill> _skillCache, IGW
     public async Task WriteAPISkillsToFile()
     {
         IEnumerable<GW2APISkill> skills = await _skillAPI.GetGW2APIItems();
-         _skillCache.WriteItemsToCache(skills.ToList());
+        _skillCache.WriteItemsToCache(skills.ToList());
     }
 }

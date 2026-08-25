@@ -3,7 +3,10 @@ using GW2EIGW2API.Interfaces;
 
 namespace GW2EIGW2API;
 
-internal class GW2MapAPIController(IGW2BaseCache<GW2APIMap> _mapCache, IGW2BaseAPI<GW2APIMap> _mapAPI)
+public sealed class GW2MapAPIController(
+    IGW2BaseCache<GW2APIMap> _mapCache,
+    IGW2BaseAPI<GW2APIMap> _mapAPI) : 
+    IGW2MapAPIController
 {
     public Task<GW2APIMap?> GetById(long ID)
     {
