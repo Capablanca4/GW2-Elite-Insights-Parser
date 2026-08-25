@@ -3,7 +3,10 @@ using GW2EIGW2API.Interfaces;
 
 namespace GW2EIGW2API;
 
-internal class GW2TraitAPIController(IGW2BaseCache<GW2APITrait> _traitCache, IGW2BaseAPI<GW2APITrait> _traitAPI)
+public sealed class GW2TraitAPIController(
+    IGW2BaseCache<GW2APITrait> _traitCache, 
+    IGW2BaseAPI<GW2APITrait> _traitAPI) : 
+    IGW2TraitAPIController
 {
     public Task<GW2APITrait?> GetById(long ID)
     {
