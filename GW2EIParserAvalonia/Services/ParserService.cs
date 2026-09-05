@@ -7,7 +7,7 @@ using static GW2EIParserCommons.ProgramHelper;
 
 namespace GW2EIParserAvalonia.Services;
 
-public sealed class ParserService
+public sealed class ParserService : IDisposable
 {
     private readonly ProgramHelper _programHelper;
     public ProgramSettings Settings { get; }
@@ -62,5 +62,10 @@ public sealed class ParserService
     public string HandleBatchedDiscordEmbed(List<ulong> ids, List<OperationController> operations, BatchedDiscordTraceHandler traceHandler)
     {
         return _programHelper.HandleBatchedDiscordEmbed(ids, operations, traceHandler);
+    }
+
+    public void Dispose()
+    {
+        _programHelper.Dispose();
     }
 }

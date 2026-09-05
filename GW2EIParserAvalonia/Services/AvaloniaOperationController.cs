@@ -6,6 +6,7 @@ using GW2EIParserCommons;
 
 namespace GW2EIParserAvalonia.Services;
 
+#pragma warning disable CA1001
 public sealed class AvaloniaOperationController : OperationController
 {
     public string ButtonText { get; private set; } = "Parse";
@@ -166,3 +167,5 @@ public sealed class AvaloniaOperationController : OperationController
         ProgressUpdated?.Invoke(this, EventArgs.Empty);
     }
 }
+
+#pragma warning restore CA1001

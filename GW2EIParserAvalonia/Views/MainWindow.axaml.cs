@@ -19,7 +19,7 @@ using GW2EIUpdater;
 
 namespace GW2EIParserAvalonia.Views;
 
-public partial class MainWindow : Window
+public sealed partial class MainWindow : Window, IDisposable
 {
     private FileSystemWatcher? _logFileWatcher;
     private readonly IApplicationTrace _trace = null!;
@@ -341,5 +341,10 @@ public partial class MainWindow : Window
         var message = await viewModel.SendAllToDiscordAsync();
         var messageWindow = new MessageWindow(message, _trace);
         await messageWindow.ShowDialog(this);
+    }
+
+    public void Dispose()
+    {
+        _logFileWatcher?.Dispose();
     }
 }

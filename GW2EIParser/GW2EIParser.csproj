@@ -64,7 +64,7 @@
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <Authors>EliphasNUIT, Baaron</Authors>
         <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
-        <PackageId>GuildWars2EliteInsights.GW2EIParser</PackageId>
+        <PackageId>GuildWars2EliteInsights.GW2EIParserWinForms</PackageId>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
     </PropertyGroup>
 

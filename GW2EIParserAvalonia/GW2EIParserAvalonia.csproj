@@ -14,6 +14,19 @@
 
   </PropertyGroup>
 
+
+    <PropertyGroup>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <Authors>EliphasNUIT, Linkaaaa</Authors>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
+        <PackageId>GuildWars2EliteInsights.GW2EIParser</PackageId>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
   <ItemGroup>
     <Content Include="Content\ArenaNet\LI.ico" />
   </ItemGroup>
