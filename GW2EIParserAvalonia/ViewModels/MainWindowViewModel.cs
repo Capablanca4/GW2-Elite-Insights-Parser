@@ -14,7 +14,7 @@ using GW2EIParserCommons.Exceptions;
 
 namespace GW2EIParserAvalonia.ViewModels;
 
-public partial class MainWindowViewModel : ObservableObject
+public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     [ObservableProperty]
     private ObservableCollection<LogFileViewModel> logFiles = [];
@@ -482,5 +482,10 @@ public partial class MainWindowViewModel : ObservableObject
         operation.UpdateProgress("Program: " + finalException.StackTrace);
         operation.UpdateProgress("Program: " + finalException.TargetSite);
         operation.UpdateProgress("Program: " + finalException.Message);
+    }
+
+    public void Dispose()
+    {
+        _parserService.Dispose();
     }
 }
