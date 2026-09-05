@@ -564,7 +564,7 @@ public sealed class ProgramHelper : IDisposable
     {
         //save location
         DirectoryInfo? saveDirectory;
-        if (Settings.SaveAtOut || Settings.OutLocation == null)
+        if (Settings.SaveAtOut || string.IsNullOrWhiteSpace(Settings.OutLocation) || string.IsNullOrEmpty(Settings.OutLocation))
         {
             //Default save directory
             saveDirectory = fInfo.Directory;
@@ -598,11 +598,8 @@ public sealed class ProgramHelper : IDisposable
 
             DirectoryInfo saveDirectory = GetSaveDirectory(fInfo);
 
-            string outputFile = Path.Combine(
-            saveDirectory.FullName,
-            $"{fName}.log"
-            );
-            operation.AddFile(outputFile);
+            string outputFile = Path.Combine(saveDirectory.FullName, $"{fName}.log");
+            operation.AddOpenableLogTraceFile(outputFile);
             using (var fs = new FileStream(outputFile, FileMode.Create, FileAccess.Write))
             using (var sw = new StreamWriter(fs))
             {

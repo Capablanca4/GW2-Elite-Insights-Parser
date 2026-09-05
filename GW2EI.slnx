@@ -33,6 +33,10 @@
   <Folder Name="/GW2EI.Executables/" />
   <Folder Name="/GW2EI.Executables/GW2EI.Applications/">
     <Project Path="GW2EI.Executables/GW2EI.Applications/GW2EIParser/GW2EIParser.csproj" />
+    <Project Path="GW2EI.Executables/GW2EI.Applications/GW2EIParserAvalonia/GW2EIParserAvalonia.csproj">
+      <BuildType Solution="NoRewards|*" Project="Debug" />
+      <BuildType Solution="Trace|*" Project="Debug" />
+    </Project>
     <Project Path="GW2EI.Executables/GW2EI.Applications/GW2EIParserCLI/GW2EIParserCLI.csproj" />
   </Folder>
   <Folder Name="/GW2EI.Executables/GW2EI.Tests/">
