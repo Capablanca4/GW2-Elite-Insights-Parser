@@ -105,6 +105,11 @@ public abstract class OperationController : ParserController
     /// Location of the openable files
     /// </summary>
     public IReadOnlyList<string> OpenableFiles => _OpenableFiles;
+    private readonly List<string> _OpenableLogTracesFiles;
+    /// <summary>
+    /// Location of the openable log trace files
+    /// </summary>
+    public IReadOnlyList<string> OpenableLogTracesFiles => _OpenableLogTracesFiles;
     /// <summary>
     /// Link to dps.report
     /// </summary>
@@ -134,6 +139,7 @@ public abstract class OperationController : ParserController
         InputFile = location;
         _GeneratedFiles = [];
         _OpenableFiles = [];
+        _OpenableLogTracesFiles = [];
     }
     public override void ResetContent()
     {
@@ -148,6 +154,7 @@ public abstract class OperationController : ParserController
         WingmanUploadRefused = false;
         _GeneratedFiles.Clear();
         _OpenableFiles.Clear();
+        _OpenableLogTracesFiles.Clear();
     }
 
     public override void ResetState()
@@ -178,12 +185,18 @@ public abstract class OperationController : ParserController
         _OpenableFiles.Add(path);
     }
 
+    public void AddOpenableLogTraceFile(string path)
+    {
+        _GeneratedFiles.Add(path);
+        _OpenableLogTracesFiles.Add(path);
+    }
+
     public void AddFile(string path)
     {
         _GeneratedFiles.Add(path);
     }
 
-    public void FinalizeStatus(bool parsed, FailureReason reason)
+    public virtual void FinalizeStatus(bool parsed, FailureReason reason)
     {
         StatusList.Insert(0, ("Elapsed " + Elapsed + " ms"));
         Status = StatusList.LastOrDefault() ?? "";

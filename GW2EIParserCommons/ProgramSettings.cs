@@ -63,7 +63,6 @@ public class ProgramSettings
 
     public void FromSettings(Settings settings)
     {
-
         SendEmbedToWebhook = settings.SendEmbedToWebhook;
         SendSimpleMessageToWebhook = settings.SendSimpleMessageToWebhook;
         WebhookURL = settings.WebhookURL;
@@ -103,6 +102,7 @@ public class ProgramSettings
         IndentJSON = settings.IndentJSON;
         MemoryLimit = settings.MemoryLimit;
     }
+    
 
     public int GetMaxParallelRunning()
     {
