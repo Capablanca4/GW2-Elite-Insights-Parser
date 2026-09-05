@@ -19,7 +19,6 @@
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIDiscord/GW2EIDiscord.csproj" />
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIDPSReport/GW2EIDPSReport.csproj" />
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIGW2API/GW2EIGW2API.csproj" />
-    <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIMistWarrior/GW2EIMistWarrior.csproj" />
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIUpdater/GW2EIUpdater.csproj">
       <BuildType Solution="NoRewards|*" Project="Debug" />
       <BuildType Solution="Trace|*" Project="Debug" />

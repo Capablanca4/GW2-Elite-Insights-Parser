@@ -153,6 +153,8 @@ public static class SkillItemOverrides
         { FlusteringFluteAfterimage, "Flustering Flute (Afterimage)" },
         { LivelyLuteAfterimage, "Lively Lute (Afterimage)" },
         { HarmoniousHarpAfterimage, "Harmonious Harp (Afterimage)" },
+        { MindWrackOrMindWrackAmmo, "Mind Wrack" },
+        { SplitSecondOrSplitSecondAmmo, "Split Second" },
         #endregion Mesmer
         #region Necromancer
         { DesertEmpowerment, "Desert Empowerment" },
@@ -786,6 +788,8 @@ public static class SkillItemOverrides
             { FlusteringFluteAfterimage, SkillImages.FlusteringFlute },
             { LivelyLuteAfterimage, SkillImages.LivelyLute },
             { HarmoniousHarpAfterimage, SkillImages.HarmoniousHarp },
+            { MindWrackOrMindWrackAmmo, SkillImages.MindWrack },
+            { SplitSecondOrSplitSecondAmmo, SkillImages.SplitSecond },
             #endregion  MesmerIcons
             #region NecromancerIcons
             { LifeFromDeath, TraitImages.LifeFromDeath },

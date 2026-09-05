@@ -160,5 +160,6 @@ internal static class Program
         Console.WriteLine("-populate_from [path] [duration] : evtcs inside and under path will be added to the list of logs to be parsed. Duration, in hours, is used to limit the age of the logs, 0 for infinite");
         Console.WriteLine("-discord_batch : will upload logs uploaded to dps.report to the provided discord webhook. Will do nothing without a webhook or no dps.report urls");
         Console.WriteLine("-cache : will update the API caches");
+        Console.WriteLine("-update : will check for the latest update available on GitHub and restart the application");
     }
 }

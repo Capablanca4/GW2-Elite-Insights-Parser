@@ -6,6 +6,12 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <Configurations>Debug;Release;NoRewards;Trace</Configurations>
+        <Version>7.0.3</Version>
+        <PackageId>GuildWars2EliteInsights.GW2EIDPSReport</PackageId>
+        <Authors>EliphasNUIT</Authors>
+        <Company>GW2 Elite Insights</Company>
+        <Product>GW2 Elite Insights</Product>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -15,17 +21,17 @@
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Trace|AnyCPU'">
         <DefineConstants>TRACING</DefineConstants>
     </PropertyGroup>
-    
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NoRewards|AnyCPU'">
         <DefineConstants>DEBUG</DefineConstants>
     </PropertyGroup>
 
     <PropertyGroup>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-        <Version>7.0.2</Version>
-        <Authors>EliphasNUIT</Authors>
-        <Company>GW2 Elite Insights</Company>
-        <Product>GW2 Elite Insights</Product>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
     </PropertyGroup>
 

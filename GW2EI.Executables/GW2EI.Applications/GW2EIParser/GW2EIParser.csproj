@@ -63,8 +63,13 @@
     <PropertyGroup>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <Authors>EliphasNUIT, Baaron</Authors>
-        <PackageId>GW2EIParser</PackageId>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
+        <PackageId>GuildWars2EliteInsights.GW2EIParser</PackageId>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -76,6 +81,7 @@
     <ItemGroup>
         <PackageReference Include="System.Resources.Extensions" Version="8.0.0" />
         <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Services\GW2EIParserCommons\GW2EIParserCommons.csproj" />
+        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
     </ItemGroup>
 
     <ItemGroup>

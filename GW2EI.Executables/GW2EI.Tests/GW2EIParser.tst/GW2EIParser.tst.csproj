@@ -12,6 +12,7 @@
         <AssemblyTitle>EliteInsights</AssemblyTitle>
         <OutputPath>..\..\..\GW2EI.bin\$(Configuration).tst\</OutputPath>
         <Product>GW2 Elite Insights</Product>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
         <Copyright>Copyright ©  2020</Copyright>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <Configurations>Debug;Release;NoRewards;Trace</Configurations>
@@ -36,6 +37,9 @@
         <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
     <PropertyGroup>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <PropertyGroup>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <Company>GW2 Elite Insights</Company>
         <Authors>EliphasNUIT</Authors>
@@ -49,6 +53,8 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Services\GW2EIParserCommons\GW2EIParserCommons.csproj" />
+        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
+        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Models\GW2EIJSON\GW2EIJSON.csproj" />
     </ItemGroup>
     <ItemGroup>
         <None Include="TestInput\**" CopyToOutputDirectory="PreserveNewest" />
