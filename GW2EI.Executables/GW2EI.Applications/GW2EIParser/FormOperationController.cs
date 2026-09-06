@@ -1,8 +1,8 @@
 ﻿using GW2EIParserCommons;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIParser.MainForm;
+using static GW2EIParserWinForms.MainForm;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 internal enum OperationState
 {

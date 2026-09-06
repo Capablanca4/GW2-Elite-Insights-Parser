@@ -1,6 +1,6 @@
 ﻿using GW2EIEvtcParser;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 partial class SettingsForm
 {

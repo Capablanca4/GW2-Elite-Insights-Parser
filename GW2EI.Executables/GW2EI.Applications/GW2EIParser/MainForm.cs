@@ -7,7 +7,7 @@ using GW2EIParserCommons.Exceptions;
 using GW2EIParserCommons.Properties;
 using GW2EIUpdater;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 internal sealed partial class MainForm : Form
 {

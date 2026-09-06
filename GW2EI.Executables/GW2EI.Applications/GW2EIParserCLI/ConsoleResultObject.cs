@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GW2EIParserCommons;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 internal class ConsoleResultObject
 {
     public static readonly JsonSerializerOptions Serializer = new()

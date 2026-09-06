@@ -3,7 +3,7 @@ using System.Windows.Forms.VisualStyles;
 using System.Windows.Forms;
 using System;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 partial class MainForm
 {
