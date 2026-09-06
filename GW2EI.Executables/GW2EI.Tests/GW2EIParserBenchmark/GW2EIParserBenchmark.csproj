@@ -17,6 +17,9 @@
     <Content Include="Content\SpecList.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+      <Content Include="TestFiles\**">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -29,9 +32,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="TestFiles\20241207-011501.zevtc">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <Folder Include="TestFiles\" />
   </ItemGroup>
-
 </Project>

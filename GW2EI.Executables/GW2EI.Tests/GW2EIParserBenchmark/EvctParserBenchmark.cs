@@ -8,8 +8,21 @@ namespace GW2EIParserBenchmark;
 [MemoryDiagnoser]
 public class EvctParserBenchmark
 {
-    [Params("./TestFiles/20241207-011501.zevtc")]
-    public string _testFile;
+    [ParamsSource(nameof(Files))]
+    public string _filePath { get; set; } = null!;
+
+    public static IEnumerable<string> Files()
+    {
+        string testFilesPath = Path.Combine(AppContext.BaseDirectory, "TestFiles");
+        if (Directory.Exists(testFilesPath))
+        {
+            return Directory.EnumerateFiles(testFilesPath, "*.zevtc", SearchOption.TopDirectoryOnly);
+
+        }
+
+        throw new Exception($"No files are present in {testFilesPath}");
+    }
+
     public EvtcParser parser;
     ParserController parserController = new TestOperationController();
 
@@ -24,7 +37,7 @@ public class EvctParserBenchmark
     [Benchmark]
     public ParsedEvtcLog? ParseLog()
     {
-        FileInfo fileInfo = new(_testFile);
+        FileInfo fileInfo = new(_filePath);
         ParsedEvtcLog? test = parser.ParseLog(parserController, fileInfo, out ParsingFailureReason? parsingFailureReasure);
         return test;
     }
