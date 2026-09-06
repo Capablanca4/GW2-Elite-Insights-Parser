@@ -16,35 +16,35 @@ public class GW2APIControllerBenchmark
     }
 
     [Benchmark]
-    public object TestConstructorMemory()
+    public GW2APIController TestConstructorMemory()
     {
         GW2APIController controller = new("./Content/SkillList.json", "./Content/SpecList.json", "./Content/TraitList.json", "./Content/MapList.json");
         return controller;
     }
 
     [Benchmark]
-    public object GetAPISkill()
+    public GW2APISkill GetAPISkill()
     {
         GW2APISkill skill = _apiController.GetAPISkill(0);
         return skill;
     }
 
     [Benchmark]
-    public object GetAPISpec()
+    public GW2APISpec GetAPISpec()
     {
         GW2APISpec spec = _apiController.GetAPISpec(0);
         return spec;
     }
 
     [Benchmark]
-    public object GetAPIMap()
+    public GW2APIMap GetAPIMap()
     {
         GW2APIMap map = _apiController.GetAPIMap(0);
         return map;
     }
 
     [Benchmark]
-    public object GetAPITrait()
+    public GW2APITrait GetAPITrait()
     {
         GW2APITrait trait = _apiController.GetAPITrait(0);
         return trait;
