@@ -117,6 +117,7 @@ public static class SkillIDs
     internal const long ArcDPSGenericLockOut = 23306;
     internal const long ArcDPSGenericFear = 23307;
     internal const long ArcDPSGenericPickUp = 23308;
+    internal const long ArcDPSGenericFallDown = 23309;
     #endregion
     #region Core
     public const long Protection = 717;

@@ -6,7 +6,7 @@ using GW2EIParserCommons;
 using GW2EIParserCommons.Exceptions;
 using Tracing;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 public class ConsoleProgram
 {

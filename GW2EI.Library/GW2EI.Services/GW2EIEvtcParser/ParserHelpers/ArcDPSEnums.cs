@@ -164,6 +164,8 @@ public static class ArcDPSEnums
         Despawn = 21,
         ReturnControl = 22,
         Ready = 23,
+        Invisible = 24,
+        PickUp = 25,
 
         Unknown
     };

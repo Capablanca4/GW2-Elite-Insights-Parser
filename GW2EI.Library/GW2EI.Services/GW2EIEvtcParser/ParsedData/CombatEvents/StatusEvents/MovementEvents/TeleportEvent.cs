@@ -4,10 +4,12 @@ namespace GW2EIEvtcParser.ParsedData;
 
 public class TeleportEvent : MovementEvent
 {
-    private readonly uint SomethingBehaviorRelated;
+    private readonly uint SomethingBehaviorRelated1;
+    private readonly byte SomethingBehaviorRelated2;
     internal TeleportEvent(CombatItem evtcItem, AgentData agentData) : base(evtcItem, agentData)
     {
-        SomethingBehaviorRelated = evtcItem.OverstackValue;
+        SomethingBehaviorRelated1 = evtcItem.OverstackValue;
+        SomethingBehaviorRelated2 = evtcItem.IsOffcycle;
     }
 
     internal override void AddPoint3D(CombatReplay replay)

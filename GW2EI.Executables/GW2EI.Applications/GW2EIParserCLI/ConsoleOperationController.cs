@@ -1,6 +1,6 @@
 ﻿using GW2EIParserCommons;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 internal class ConsoleOperationController : OperationController
 {

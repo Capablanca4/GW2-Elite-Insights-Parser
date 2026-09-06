@@ -52,9 +52,9 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Models\GW2EIJSON\GW2EIJSON.csproj" />
-        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
         <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Services\GW2EIParserCommons\GW2EIParserCommons.csproj" />
+        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
+        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Models\GW2EIJSON\GW2EIJSON.csproj" />
     </ItemGroup>
     <ItemGroup>
         <None Include="TestInput\**" CopyToOutputDirectory="PreserveNewest" />
