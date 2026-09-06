@@ -7,16 +7,22 @@
     <Nullable>enable</Nullable>
     <AssemblyName>GuildWars2EliteInsightsUpdater</AssemblyName>
     <ApplicationIcon>Content\ArenaNet\LI.ico</ApplicationIcon>
-    <PackageId>GW2EIUpdater</PackageId>
-    <Authors>EliphasNUIT, Baaron</Authors>
-    <Product>EliteInsights</Product>
+    <PackageId>GuildWars2EliteInsights.GW2EIUpdater</PackageId>
+    <Company>GW2 Elite Insights</Company>
+    <Product>GW2 Elite Insights</Product>
+    <Authors>EliphasNUIT, Linka</Authors>
     <Copyright>Copyright ©  2025</Copyright>
+      <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
   </PropertyGroup>
 
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
   </PropertyGroup>

@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GW2EIParserCommons;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 internal class ConsoleResultObject
 {
     public static readonly JsonSerializerOptions Serializer = new()
@@ -19,6 +19,7 @@ internal class ConsoleResultObject
     public string FileName => Controller.InputFile;
 
     public bool Parsed => Controller.Parsed;
+    public string Reason => Controller.Reason.ToString();
     public string Status => Controller.Status;
     public IReadOnlyList<string> GeneratedFiles => Controller.GeneratedFiles;
     public bool DPSReportUploadTentative => Controller.DPSReportUploadTentative;
@@ -27,8 +28,6 @@ internal class ConsoleResultObject
     public bool WingmanUploadTentative => Controller.WingmanUploadTentative;
     public bool WingmanUploadFailed => Controller.WingmanUploadFailed;
     public bool WingmanUploadRefused => Controller.WingmanUploadRefused;
-    public bool MistWarriorUploadTentative  => Controller.MistWarriorUploadTentative;
-    public bool MistWarriorUploadFailed => Controller.MistWarriorUploadFailed;
 
     public long Elapsed => Controller.Elapsed;
 

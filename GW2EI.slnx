@@ -19,7 +19,6 @@
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIDiscord/GW2EIDiscord.csproj" />
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIDPSReport/GW2EIDPSReport.csproj" />
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIGW2API/GW2EIGW2API.csproj" />
-    <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIMistWarrior/GW2EIMistWarrior.csproj" />
     <Project Path="GW2EI.Library/GW2EI.Repositories/GW2EIUpdater/GW2EIUpdater.csproj">
       <BuildType Solution="NoRewards|*" Project="Debug" />
       <BuildType Solution="Trace|*" Project="Debug" />
@@ -33,14 +32,23 @@
   </Folder>
   <Folder Name="/GW2EI.Executables/" />
   <Folder Name="/GW2EI.Executables/GW2EI.Applications/">
-    <Project Path="GW2EI.Executables/GW2EI.Applications/GW2EIParser/GW2EIParser.csproj" />
+    <Project Path="GW2EI.Executables/GW2EI.Applications/GW2EIParser/GW2EIParserWinForms.csproj">
+      <Build Solution="Release|*" Project="false" />
+    </Project>
+    <Project Path="GW2EI.Executables/GW2EI.Applications/GW2EIParserAvalonia/GW2EIParserAvalonia.csproj">
+      <BuildType Solution="NoRewards|*" Project="Debug" />
+      <BuildType Solution="Trace|*" Project="Debug" />
+      <Build Solution="Release|*" Project="false" />
+    </Project>
     <Project Path="GW2EI.Executables/GW2EI.Applications/GW2EIParserCLI/GW2EIParserCLI.csproj" />
   </Folder>
   <Folder Name="/GW2EI.Executables/GW2EI.Tests/">
     <Project Path="GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/GW2EIParser.tst.csproj" />
-    <Project Path="GW2EIParserBenchmark/GW2EIParserBenchmark.csproj" Id="efd15265-46f9-4b3b-94ab-8e864c72caae">
+    <Project Path="GW2EI.Executables/GW2EI.Tests/GW2EIParserBenchmark/GW2EIParserBenchmark.csproj">
       <BuildType Solution="NoRewards|*" Project="Debug" />
       <BuildType Solution="Trace|*" Project="Debug" />
+      <Build Solution="Release|x64" Project="false" />
+      <Build Solution="Release|x86" Project="false" />
     </Project>
   </Folder>
 </Solution>

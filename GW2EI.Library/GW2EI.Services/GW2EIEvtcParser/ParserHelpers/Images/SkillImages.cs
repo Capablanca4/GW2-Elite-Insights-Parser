@@ -332,6 +332,8 @@ internal static class SkillImages
     public const string SignetOfMidnight = "https://render.guildwars2.com/file/6F03529059F71F0CCEC9046F1932619ECB245EC4/57900.png";
     public const string SignetOfHumility = "https://render.guildwars2.com/file/A8B2B2403BF7A920040EB6E0E534920DA8D27B32/1012893.png";
     public const string ContinuumSplit = "https://render.guildwars2.com/file/9E7CE10D0E447973F2D9175CF16A103BD076D04B/1012882.png";
+    public const string SplitSecond = "https://render.guildwars2.com/file/14090D7A6472AB06125662EB12E6EC51EDE2EEBB/2175059.png";
+    public const string MindWrack = "https://render.guildwars2.com/file/52619C5D4F9A61C8F37A0705AE36602F19E164C2/103732.png";
     public const string DejaVu = "https://render.guildwars2.com/file/1D7202A8359923DDF74119BFB663AF077DBC7CCD/1012896.png";
     public const string Distortion = "https://render.guildwars2.com/file/D0969802A76808ACD65A56A6D54F2A40E355F7C3/103284.png";
     public const string Mirror = "https://render.guildwars2.com/file/CED3F1AE9294F9C5045DA8017F25170CE87C0AE2/103726.png";

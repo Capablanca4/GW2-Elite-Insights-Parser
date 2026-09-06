@@ -2,7 +2,7 @@
 using GW2EIParserCommons.Properties;
 using GW2EIUpdater;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 partial class UpdaterForm : Form
 {

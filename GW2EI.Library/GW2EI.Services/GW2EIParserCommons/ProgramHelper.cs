@@ -12,7 +12,6 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
-using GW2EIMistWarrior;
 using GW2EIParserCommons.Exceptions;
 using GW2EIWingman;
 using Tracing;
@@ -26,11 +25,6 @@ public sealed class ProgramHelper : IDisposable
     public ProgramHelper(Version parserVersion, ProgramSettings settings)
     {
         ParserVersion = parserVersion;
-        Settings = settings;
-    }
-
-    public void ApplySettings(ProgramSettings settings)
-    {
         Settings = settings;
     }
     #region FORMATS
@@ -86,9 +80,9 @@ public sealed class ProgramHelper : IDisposable
     }
     #endregion FORMATS
 
-    internal readonly static HTMLAssets htmlAssets = new();
+    internal static readonly HTMLAssets htmlAssets = new();
 
-    public ProgramSettings Settings { get; private set; }
+    public readonly ProgramSettings Settings;
     private readonly Version ParserVersion;
 
 #pragma warning disable CA1823 // Avoid unused private fields
@@ -487,15 +481,6 @@ public sealed class ProgramHelper : IDisposable
             originalController.UpdateProgressWithCancellationCheck("Wingman: Operation completed");
 
         }
-        if (Settings.UploadToMistWarrior)
-        {
-            originalController.MistWarriorUploadTentative = true;
-            originalController.UpdateProgressWithCancellationCheck("MistWarrior: Uploading");
-            bool mwResponse = MistWarriorController.Upload(fInfo, str => originalController.UpdateProgress("MistWarrior: " + str), Settings.MistWarriorUserToken);
-            string mwMessage = mwResponse ? "Upload process success" : "Upload process failed";
-            originalController.MistWarriorUploadFailed = !mwResponse;
-            originalController.UpdateProgressWithCancellationCheck("MistWarrior: " + mwMessage);
-        }
         return uploadresult;
     }
     #endregion UPLOAD
@@ -589,7 +574,7 @@ public sealed class ProgramHelper : IDisposable
     {
         //save location
         DirectoryInfo? saveDirectory;
-        if (Settings.SaveAtOut || Settings.OutLocation == null)
+        if (Settings.SaveAtOut || string.IsNullOrWhiteSpace(Settings.OutLocation) || string.IsNullOrEmpty(Settings.OutLocation))
         {
             //Default save directory
             saveDirectory = fInfo.Directory;
@@ -623,11 +608,8 @@ public sealed class ProgramHelper : IDisposable
 
             DirectoryInfo saveDirectory = GetSaveDirectory(fInfo);
 
-            string outputFile = Path.Combine(
-            saveDirectory.FullName,
-            $"{fName}.log"
-            );
-            operation.AddFile(outputFile);
+            string outputFile = Path.Combine(saveDirectory.FullName, $"{fName}.log");
+            operation.AddOpenableLogTraceFile(outputFile);
             using (var fs = new FileStream(outputFile, FileMode.Create, FileAccess.Write))
             using (var sw = new StreamWriter(fs))
             {

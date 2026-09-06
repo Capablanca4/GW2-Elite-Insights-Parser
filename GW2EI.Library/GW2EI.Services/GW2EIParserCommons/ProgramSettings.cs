@@ -1,4 +1,5 @@
 ﻿using GW2EIEvtcParser;
+using GW2EIParserCommons.Properties;
 
 namespace GW2EIParserCommons;
 
@@ -7,12 +8,10 @@ public class ProgramSettings
     // Upload
     public bool SendEmbedToWebhook { get; set; } = false;
     public bool SendSimpleMessageToWebhook { get; set; } = false;
-    public string WebhookURL { get; set; }
+    public string? WebhookURL { get; set; }
     public bool UploadToDPSReports { get; set; } = false;
-    public string DPSReportUserToken { get; set; }
+    public string? DPSReportUserToken { get; set; }
     public bool UploadToWingman { get; set; } = false;
-    public bool UploadToMistWarrior { get; set; } = false;
-    public string MistWarriorUserToken { get; set; }
     // Format
     public bool SaveOutCSV { get; set; } = false;
     public bool SaveOutHTML { get; set; } = true;
@@ -37,15 +36,15 @@ public class ProgramSettings
     public bool ComputeMechanics { get; set; } = true;
     // Save Location
     public bool SaveAtOut { get; set; }
-    public string OutLocation { get; set; }
+    public string? OutLocation { get; set; }
     // Output
     public bool AddDuration { get; set; } = false;
     public bool AddPoVProf { get; set; } = false;
     // HTML
     public bool LightTheme { get; set; } = false;
     public bool HtmlExternalScripts { get; set; } = false;
-    public string HtmlExternalScriptsPath { get; set; }
-    public string HtmlExternalScriptsCdn { get; set; }
+    public string? HtmlExternalScriptsPath { get; set; }
+    public string? HtmlExternalScriptsCdn { get; set; }
     public bool HtmlCompressJson { get; set; } = false;
     // JSON
     public bool RawTimelineArrays { get; set; } = true;
@@ -53,15 +52,62 @@ public class ProgramSettings
     public bool IndentJSON { get; set; } = false;
     // Other
     public int MemoryLimit { get; set; } = 0;
-
     public ProgramSettings()
     {
+
     }
+    public ProgramSettings(Settings settings)
+    {
+        FromSettings(settings);
+    }
+
+    public void FromSettings(Settings settings)
+    {
+        SendEmbedToWebhook = settings.SendEmbedToWebhook;
+        SendSimpleMessageToWebhook = settings.SendSimpleMessageToWebhook;
+        WebhookURL = settings.WebhookURL;
+        UploadToDPSReports = settings.UploadToDPSReports;
+        DPSReportUserToken = settings.DPSReportUserToken;
+        UploadToWingman = settings.UploadToWingman;
+        SaveOutCSV = settings.SaveOutCSV;
+        SaveOutHTML = settings.SaveOutHTML;
+        SaveOutJSON = settings.SaveOutJSON;
+        SaveOutTrace = settings.SaveOutTrace;
+        ParseMultipleLogs = settings.ParseMultipleLogs;
+        SingleThreaded = settings.SingleThreaded;
+        Anonymous = settings.Anonymous;
+        SkipFailedTries = settings.SkipFailedTries;
+        CustomTooShort = settings.CustomTooShort;
+        CustomTooBig = settings.CustomTooBig;
+        DetailledWvW = settings.DetailledWvW;
+        ComputePhases = settings.ParsePhases;
+        ComputeCombatReplay = settings.ParseCombatReplay;
+        ComputeDamageModifiers = settings.ComputeDamageModifiers;
+        ParseExtensions = settings.ParseExtensions;
+        ComputeBuff = settings.ComputeBuff;
+        ComputeCast = settings.ComputeCast;
+        ComputeDamage = settings.ComputeDamage;
+        ComputeMechanics = settings.ComputeMechanics;
+        SaveAtOut = settings.SaveAtOut;
+        OutLocation = settings.OutLocation;
+        AddDuration = settings.AddDuration;
+        AddPoVProf = settings.AddPoVProf;
+        LightTheme = settings.LightTheme;
+        HtmlExternalScripts = settings.HtmlExternalScripts;
+        HtmlExternalScriptsPath = settings.HtmlExternalScriptsPath;
+        HtmlExternalScriptsCdn = settings.HtmlExternalScriptsCdn;
+        HtmlCompressJson = settings.HtmlCompressJson;
+        RawTimelineArrays = settings.RawTimelineArrays;
+        CompressRaw = settings.CompressRaw;
+        IndentJSON = settings.IndentJSON;
+        MemoryLimit = settings.MemoryLimit;
+    }
+    
 
     public int GetMaxParallelRunning()
     {
         int count;
-        if (SendEmbedToWebhook || UploadToDPSReports || UploadToWingman || UploadToMistWarrior)
+        if (SendEmbedToWebhook || UploadToDPSReports || UploadToWingman)
         {
             count = Math.Max(Environment.ProcessorCount / 2, 1);
         }
