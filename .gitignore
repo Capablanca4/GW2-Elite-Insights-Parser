@@ -277,4 +277,4 @@ __pycache__/
 /GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/Crashes/**/*.evtc
 
 # Ignore benchmarks logs
-/GW2EI.Executables/GW2EI.Tests/GW2EIParserBenchmark/TestFiles*.zevtc
+/GW2EI.Executables/GW2EI.Tests/GW2EIParserBenchmark/TestFiles/*.zevtc
