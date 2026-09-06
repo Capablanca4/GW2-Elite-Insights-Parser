@@ -5,7 +5,7 @@ using GW2EIGW2API.GW2API;
 namespace GW2EIParserBenchmark;
 
 [MemoryDiagnoser]
-public  class GW2APIControllerBenchmark
+public class GW2APIControllerBenchmark
 {
     GW2APIController _apiController;
 
@@ -16,35 +16,35 @@ public  class GW2APIControllerBenchmark
     }
 
     [Benchmark]
-    public GW2APIController TestConstructorMemory()
+    public object TestConstructorMemory()
     {
         GW2APIController controller = new("./Content/SkillList.json", "./Content/SpecList.json", "./Content/TraitList.json", "./Content/MapList.json");
         return controller;
     }
 
     [Benchmark]
-    public GW2APISkill GetAPISkill()
+    public object GetAPISkill()
     {
         GW2APISkill skill = _apiController.GetAPISkill(0);
         return skill;
     }
 
     [Benchmark]
-    public GW2APISpec GetAPISpec()
+    public object GetAPISpec()
     {
         GW2APISpec spec = _apiController.GetAPISpec(0);
         return spec;
     }
 
     [Benchmark]
-    public GW2APIMap GetAPIMap()
+    public object GetAPIMap()
     {
         GW2APIMap map = _apiController.GetAPIMap(0);
         return map;
     }
 
     [Benchmark]
-    public GW2APITrait GetAPITrait()
+    public object GetAPITrait()
     {
         GW2APITrait trait = _apiController.GetAPITrait(0);
         return trait;

@@ -5,8 +5,15 @@
         <LangVersion>12.0</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <Version>0.82.1</Version>
         <Configurations>Debug;Release;NoRewards;Trace</Configurations>
+        <Version>0.83.0</Version>
+        <IsPackable>true</IsPackable>
+        <PackageId>GuildWars2EliteInsights.GW2EIBuilders</PackageId>
+        <Company>GW2 Elite Insights</Company>
+        <Product>GW2 Elite Insights</Product>
+        <Authors>EliphasNUIT</Authors>
+        <Description>Generates HTML reports and JSON for parsed evtc files</Description>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -29,10 +36,6 @@
 
     <PropertyGroup>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-        <Company>GW2 Elite Insights</Company>
-        <Product>GW2 Elite Insights</Product>
-        <Authors>EliphasNUIT</Authors>
-        <Description></Description>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
         <UserSecretsId>deaea9ef-69e9-4b48-ba82-b2294277674f</UserSecretsId>
     </PropertyGroup>

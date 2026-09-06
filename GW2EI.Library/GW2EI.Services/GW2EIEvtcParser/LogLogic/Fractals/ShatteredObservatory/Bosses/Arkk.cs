@@ -1,8 +1,9 @@
-﻿using GW2EIEvtcParser.EIData;
+﻿using System.Numerics;
+using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Exceptions;
+using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
-using static GW2EIEvtcParser.EIData.Mechanic;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
@@ -11,6 +12,7 @@ using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
 using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
+using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -19,51 +21,52 @@ internal class Arkk : ShatteredObservatory
     internal readonly MechanicGroup Mechanics = new([
             new MechanicGroup(
                 [
-                    new PlayerDstHealthDamageHitMechanic([ HorizonStrikeArkk1, HorizonStrikeArkk2 ], new MechanicPlotlySetting(Symbols.Circle, Colors.LightOrange), "Horizon Strike.A", "Horizon Strike (turning pizza slices during Arkk)","Horizon Strike (Arkk)", Sev1, 0),
-                    new PlayerDstHealthDamageHitMechanic(HorizonStrikeNormal, new MechanicPlotlySetting(Symbols.Circle,Colors.DarkRed), "Horizon Strike norm", "Horizon Strike (normal during Arkk)","Horizon Strike (normal, Arkk)", Sev1, 0),
+                    new PlayerDstHealthDamageHitMechanic([ HorizonStrikeArkk1, HorizonStrikeArkk2 ], Mech_HorizonStrikeArkk, new (Symbols.Circle, Colors.LightOrange), new("Horizon Strike.A", "Horizon Strike (turning pizza slices during Arkk)","Horizon Strike (Arkk)"), Sev1),
+                    new PlayerDstHealthDamageHitMechanic(HorizonStrikeNormal, Mech_HorizonStrikeArkkNormal, new (Symbols.Circle,Colors.DarkRed), new("Horizon Strike norm", "Horizon Strike (normal during Arkk)","Horizon Strike (normal, Arkk)"), Sev1),
                 ]
             ),
             new MechanicGroup(
                 [
-                    new PlayerDstHealthDamageHitMechanic(SolarFury, new MechanicPlotlySetting(Symbols.Circle,Colors.LightRed), "Ball", "Stood in Red Overhead Ball Field","Red Ball Aoe", Sev0, 0),
-                    new PlayerDstHealthDamageHitMechanic(SolarDischarge, new MechanicPlotlySetting(Symbols.CircleOpen,Colors.Red), "Shockwave", "Knockback shockwave after Overhead Balls","Shockwave", Sev0, 0),
-                    new PlayerDstHealthDamageHitMechanic(SolarStomp, new MechanicPlotlySetting(Symbols.TriangleUp,Colors.Magenta), "Stomp", "Solar Stomp (Evading Stomp)","Evading Jump", Sev1, 0),
+                    new PlayerDstHealthDamageHitMechanic(SolarFury, Mech_SolarFury, new (Symbols.Circle,Colors.LightRed), new("Ball", "Stood in Red Overhead Ball Field","Red Ball Aoe"), Sev0),
+                    new PlayerDstHealthDamageHitMechanic(SolarDischarge, Mech_SolarDischarge, new (Symbols.CircleOpen,Colors.Red), new("Shockwave", "Knockback shockwave after Overhead Balls","Shockwave"), Sev0),
+                    new PlayerDstHealthDamageHitMechanic(SolarStomp, Mech_SolarStomp, new (Symbols.TriangleUp,Colors.Magenta), new("Stomp", "Solar Stomp (Evading Stomp)","Evading Jump"), Sev1),
                 ]
             ),
             new MechanicGroup([
-                new PlayerDstHealthDamageHitMechanic([ DiffractiveEdge1, DiffractiveEdge2 ], new MechanicPlotlySetting(Symbols.Star,Colors.Yellow), "5 Cone", "Diffractive Edge (5 Cone Knockback)","Five Cones", Sev1, 0),
-                new PlayerDstHealthDamageHitMechanic(FocusedRage, new MechanicPlotlySetting(Symbols.TriangleDown,Colors.Orange), "Cone KB", "Knockback in Cone with overhead crosshair","Knockback Cone", Sev1, 0),
+                new PlayerDstHealthDamageHitMechanic([ DiffractiveEdge1, DiffractiveEdge2 ], Mech_DiffractiveEdge, new (Symbols.Star,Colors.Yellow), new("5 Cone", "Diffractive Edge (5 Cone Knockback)","Five Cones"), Sev1),
+                new PlayerDstHealthDamageHitMechanic(FocusedRage, Mech_FocusedRage, new (Symbols.TriangleDown,Colors.Orange), new("Cone KB", "Knockback in Cone with overhead crosshair","Knockback Cone"), Sev1),
             ]),
-            new PlayerDstHealthDamageHitMechanic([ StarbustCascade1, StarbustCascade2 ], new MechanicPlotlySetting(Symbols.CircleOpen,Colors.LightOrange), "Float Ring", "Starburst Cascade (Expanding/Retracting Lifting Ring)","Float Ring", Sev0, 500),
-            new PlayerDstHealthDamageHitMechanic(OverheadSmash, new MechanicPlotlySetting(Symbols.TriangleLeft,Colors.LightRed), "Smash", "Overhead Smash","Overhead Smash", Sev1,0),
-            new PlayerDstHealthDamageHitMechanic(ExplodeArkk, new MechanicPlotlySetting(Symbols.Circle,Colors.Yellow), "Bloom Explode", "Hit by Solar Bloom explosion","Bloom Explosion", Sev1, 0),
-            new PlayerDstBuffApplyMechanic(CosmicMeteor, new MechanicPlotlySetting(Symbols.CircleOpen,Colors.Green), "Green", "Temporal Realignment (Green) application","Green", Sev0, 0),
+            new PlayerDstHealthDamageHitMechanic([ StarburstCascade1, StarburstCascade2 ], Mech_StarburstCascade, new (Symbols.CircleOpen,Colors.LightOrange), new("Float Ring", "Starburst Cascade (Expanding/Retracting Lifting Ring)","Float Ring"), Sev0, 500),
+            new PlayerDstHealthDamageHitMechanic(OverheadSmash, Mech_OverheadSmashArkk, new (Symbols.TriangleLeft,Colors.LightRed), new("Smash", "Overhead Smash","Overhead Smash"), Sev1),
+            new PlayerDstHealthDamageHitMechanic(ExplodeArkk, Mech_ExplodeArkk, new (Symbols.Circle,Colors.Yellow), new("Bloom Explode", "Hit by Solar Bloom explosion","Bloom Explosion"), Sev1),
+            new PlayerDstBuffApplyMechanic(CosmicMeteor, Mech_CosmicMeteor, new (Symbols.CircleOpen,Colors.Green), new("Green", "Temporal Realignment (Green) application","Green"), Sev0),
             new MechanicGroup(
                 [
-                    new EnemyCastStartMechanic(ArkkBreakbarCast, new MechanicPlotlySetting(Symbols.DiamondTall,Colors.DarkTeal), "Breakbar", "Start Breakbar","CC", Sev3, 0),
-                    new EnemyDstBuffApplyMechanic(Exposed31589, new MechanicPlotlySetting(Symbols.DiamondTall,Colors.Red), "CC.Fail", "Breakbar (Failed CC)","CC Fail", Sev0, 0)
+                    new EnemyCastStartMechanic(ArkkBreakbarCast, Mech_ArkkBreakbarStart, new (Symbols.DiamondTall,Colors.DarkTeal), new("Breakbar", "Start Breakbar","CC"), Sev3),
+                    new EnemyDstBuffApplyMechanic(Exposed31589, Mech_ArkkBreakbarFail, new (Symbols.DiamondTall,Colors.Red), new("CC.Fail", "Breakbar (Failed CC)","CC Fail"), Sev0)
                         .UsingChecker((bae,log) => bae.To.IsSpecies(TargetID.Arkk) && !log.CombatData.GetAnimatedCastData(ArkkBreakbarCast).Any(x => bae.To.Is(x.Caster) && x.Time < bae.Time && bae.Time < x.ExpectedEndTime + ServerDelayConstant)),
-                    new EnemyDstBuffApplyMechanic(Exposed31589, new MechanicPlotlySetting(Symbols.DiamondTall,Colors.DarkGreen), "CCed", "Breakbar broken","CCed", Sev0, 0)
+                    new EnemyDstBuffApplyMechanic(Exposed31589, Mech_ArkkBreakbarSuccess, new (Symbols.DiamondTall,Colors.DarkGreen), new("CCed", "Breakbar broken","CCed"), Sev0)
                         .UsingChecker((bae,log) => bae.To.IsSpecies(TargetID.Arkk) && log.CombatData.GetAnimatedCastData(ArkkBreakbarCast).Any(x => bae.To.Is(x.Caster) && x.Time < bae.Time && bae.Time < x.ExpectedEndTime + ServerDelayConstant)),
                 ]
             ),
-            new PlayerDstHealthDamageHitMechanic(OverheadSmashArchdiviner, new MechanicPlotlySetting(Symbols.TriangleLeftOpen,Colors.LightRed), "A.Smsh", "Overhead Smash (Arcdiviner)","Smash (Add)", Sev2, 0),
-            new PlayerDstHealthDamageHitMechanic(RollingChaos, new MechanicPlotlySetting(Symbols.CircleOpen,Colors.LightRed), "KD Marble", "Rolling Chaos (Arrow marble)","KD Marble", Sev1, 0),
-            new EnemyCastStartMechanic(CosmicStreaks, new MechanicPlotlySetting(Symbols.DiamondOpen,Colors.Pink), "DDR Beam", "Triple Death Ray Cast (last phase)","Death Ray Cast", Sev0, 0),
+            new PlayerDstHealthDamageHitMechanic(OverheadSmashArchdiviner, Mech_OverheadSmashArkkArchDiviner, new (Symbols.TriangleLeftOpen,Colors.LightRed), new("A.Smsh", "Overhead Smash (Arcdiviner)","Smash (Add)"), Sev2),
+            new PlayerDstHealthDamageHitMechanic(RollingChaos, Mech_RollingChaos, new (Symbols.CircleOpen,Colors.LightRed), new("KD Marble", "Rolling Chaos (Arrow marble)","KD Marble"), Sev1),
+            new EnemyCastStartMechanic(CosmicStreaks, Mech_CosmicStreaks, new (Symbols.DiamondOpen,Colors.Pink), new("DDR Beam", "Triple Death Ray Cast (last phase)","Death Ray Cast"), Sev0),
             new MechanicGroup([
-                new PlayerDstHealthDamageHitMechanic(WhirlingDevastation, new MechanicPlotlySetting(Symbols.StarDiamondOpen,Colors.DarkPink), "Whirl", "Whirling Devastation (Gladiator Spin)","Gladiator Spin", Sev2, 300),
+                new PlayerDstHealthDamageHitMechanic(WhirlingDevastation, Mech_WhirlingDevastation, new (Symbols.StarDiamondOpen,Colors.DarkPink), new("Whirl", "Whirling Devastation (Gladiator Spin)","Gladiator Spin"), Sev2, 300),
                 new MechanicGroup(
                     [
-                        new EnemyCastStartMechanic(PullCharge, new MechanicPlotlySetting(Symbols.Bowtie,Colors.DarkTeal), "Pull", "Pull Charge (Gladiator Pull)","Gladiator Pull", Sev1, 0), //
-                        new EnemyCastEndMechanic(PullCharge, new MechanicPlotlySetting(Symbols.Bowtie,Colors.Red), "Pull CC Fail", "Pull Charge CC failed","CC fail (Gladiator)", Sev1, 0)
+                        new EnemyCastStartMechanic(PullCharge, Mech_PullArkkGladiatorStart, new (Symbols.Bowtie,Colors.DarkTeal), new("Pull", "Pull Charge (Gladiator Pull)","Gladiator Pull"), Sev1), //
+                        new EnemyCastEndMechanic(PullCharge, Mech_PullArkkGladiatorFail, new (Symbols.Bowtie,Colors.Red), new("Pull CC Fail", "Pull Charge CC failed","CC fail (Gladiator)"), Sev1)
                             .UsingChecker((ce,log) => ce.ActualDuration > 3200), //
-                        new EnemyCastEndMechanic(PullCharge, new MechanicPlotlySetting(Symbols.Bowtie,Colors.DarkGreen), "Pull CCed", "Pull Charge CCed","CCed (Gladiator)", Sev1, 0)
+                        new EnemyCastEndMechanic(PullCharge, Mech_PullArkkGladiatorSuccess, new (Symbols.Bowtie,Colors.DarkGreen), new("Pull CCed", "Pull Charge CCed","CCed (Gladiator)"), Sev1)
                             .UsingChecker((ce, log) => ce.ActualDuration < 3200), //
                     ]
                 ),
-                new PlayerDstHealthDamageHitMechanic(SpinningCut, new MechanicPlotlySetting(Symbols.StarSquareOpen,Colors.LightPurple), "Daze", "Spinning Cut (3rd Gladiator Auto->Daze)","Gladiator Daze", Sev1, 0), //
+                new PlayerDstHealthDamageHitMechanic(SpinningCut, Mech_SpinningCut, new (Symbols.StarSquareOpen,Colors.LightPurple), new("Daze", "Spinning Cut (3rd Gladiator Auto->Daze)","Gladiator Daze"), Sev1), //
             ]),
         ]);
+
     public Arkk(int triggerID) : base(triggerID)
     {
         MechanicList.Add(Mechanics);
@@ -77,16 +80,20 @@ internal class Arkk : ShatteredObservatory
     {
         var crMap = new CombatReplayMap(
                         (914, 914),
-                        (-19231, -18137, -16591, -15677)/*,
-                        (-6144, -6144, 9216, 9216),
-                        (11804, 4414, 12444, 5054)*/);
+                        (-19291, -18274, -16571, -15554));
         AddArenaDecorationsPerEncounter(log, arenaDecorations, LogID, CombatReplayArkk, crMap, parentMap);
         return crMap;
     }
 
+    internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
+    {
+        IdentifyGadgets(agentData, combatData);
+        base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
+    }
+
     internal override IReadOnlyList<TargetID> GetTrashMobsIDs()
     {
-        var trashIDs = new List<TargetID>(9 + base.GetTrashMobsIDs().Count);
+        var trashIDs = new List<TargetID>(10 + base.GetTrashMobsIDs().Count);
         trashIDs.AddRange(base.GetTrashMobsIDs());
         trashIDs.Add(TargetID.FanaticDagger2);
         trashIDs.Add(TargetID.FanaticDagger1);
@@ -97,6 +104,7 @@ internal class Arkk : ShatteredObservatory
         trashIDs.Add(TargetID.DOC);
         trashIDs.Add(TargetID.CHOP);
         trashIDs.Add(TargetID.ProjectionArkk);
+        trashIDs.Add(TargetID.ReactorActiveArkk);
         return trashIDs;
     }
 
@@ -105,7 +113,7 @@ internal class Arkk : ShatteredObservatory
         return LogData.Mode.CMNoName;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -256,6 +264,45 @@ internal class Arkk : ShatteredObservatory
 
     }
 
+    internal static void IdentifyGadgets(AgentData agentData, List<CombatItem> combatData)
+    {
+        var electrocutedPositions = new[] {
+            // sides
+            new Vector2(-17905.2f, -15904.8f),
+            new Vector2(-18931.2f, -16899.7f),
+            new Vector2(-17945.8f, -17921.5f),
+            new Vector2(-16921.2f, -16908.7f),
+            // corners
+            // new Vector2(-16914.3f, -15900.4f),
+            // new Vector2(-18927.5f, -15900.4f),
+            // new Vector2(-18927.5f, -17935.9f),
+            // new Vector2(-16914.3f, -17935.9f),
+        }; // sides is enough for replay
+        foreach (var agent in agentData.GetAgentByType(AgentItem.AgentType.VolatileSpecies).Where(x => x.IsUnamedSpecies()))
+        {
+            switch (agent.HitboxWidth)
+            {
+                case 16:
+                    var posEvent = combatData.FirstOrDefault(x => x.IsPosition && x.SrcMatchesAgent(agent));
+                    if (posEvent != null)
+                    {
+                        var pos = MovementEvent.GetPoint3D(posEvent).XY();
+                        if (electrocutedPositions.Any(x => (x - pos).LengthSquared() < InchDistanceThresholdSquared))
+                        {
+                            agent.OverrideID(TargetID.ElectrocutedAreaArkk, agentData); // animations "zeropose", "areas" (beware collisions)
+                        }
+                    }
+                    break;
+                case 284:
+                    agent.OverrideID(TargetID.ReactorArkk, agentData); // animations "rebuild", "demolish"
+                    break;
+                case 472:
+                    agent.OverrideID(TargetID.TileArkk, agentData); // animations "on", "warning", "off"
+                    break;
+            }
+        }
+    }
+
     internal override void ComputePlayerCombatReplayActors(PlayerActor p, ParsedEvtcLog log, CombatReplay replay)
     {
         if (!log.LogData.IgnoreBaseCallsForCRAndInstanceBuffs)
@@ -350,22 +397,29 @@ internal class Arkk : ShatteredObservatory
                     }
                 }
                 break;
-                // case (int)TargetID.TemporalAnomalyArkk:
-                //     if (!log.CombatData.HasEffectData)
-                //     {
-                //         foreach (ExitCombatEvent exitCombat in log.CombatData.GetExitCombatEvents(target.AgentItem))
-                //         {
-                //             int start = (int)exitCombat.Time;
-                //             BuffRemoveAllEvent skullRemove = log.CombatData.GetBuffRemoveAllData(CorporealReassignmentBuff).FirstOrDefault(x => x.Time >= exitCombat.Time + ServerDelayConstant);
-                //             int end = Math.Min((int?)skullRemove?.Time ?? int.MaxValue, start + 11000); // cap at 11s spawn to explosion
-                //             ParametricPoint3D anomalyPos = replay.PolledPositions.LastOrDefault(x => x.Time <= exitCombat.Time + ServerDelayConstant);
-                //             if (anomalyPos != null)
-                //             {
-                //                 replay.Decorations.Add(new CircleDecoration(false, 0, 220, (start, end), Colors.LightBlue, 0.4, new PositionConnector(anomalyPos)));
-                //             }
-                //         }
-                //     }
-                //     break;
+            // case (int)TargetID.TemporalAnomalyArkk:
+            //     if (!log.CombatData.HasEffectData)
+            //     {
+            //         foreach (ExitCombatEvent exitCombat in log.CombatData.GetExitCombatEvents(target.AgentItem))
+            //         {
+            //             int start = (int)exitCombat.Time;
+            //             BuffRemoveAllEvent skullRemove = log.CombatData.GetBuffRemoveAllData(CorporealReassignmentBuff).FirstOrDefault(x => x.Time >= exitCombat.Time + ServerDelayConstant);
+            //             int end = Math.Min((int?)skullRemove?.Time ?? int.MaxValue, start + 11000); // cap at 11s spawn to explosion
+            //             ParametricPoint3D anomalyPos = replay.PolledPositions.LastOrDefault(x => x.Time <= exitCombat.Time + ServerDelayConstant);
+            //             if (anomalyPos != null)
+            //             {
+            //                 replay.Decorations.Add(new CircleDecoration(false, 0, 220, (start, end), Colors.LightBlue, 0.4, new PositionConnector(anomalyPos)));
+            //             }
+            //         }
+            //     }
+            //     break;
+            case (int)TargetID.ReactorActiveArkk:
+                {
+                    // reactor beams
+                    var beamEvents = GetBuffApplyRemoveSequence(log.CombatData, ReactorBeamArkk, target, true, true);
+                    replay.Decorations.AddTethers(beamEvents, Colors.SkyBlue, 0.5);
+                    break;
+                }
         }
     }
 
@@ -388,6 +442,60 @@ internal class Arkk : ShatteredObservatory
                 environmentDecorations.Add(new PieDecoration(1400, 30, (end, end + 300), Colors.Red, 0.2, new PositionConnector(effect.Position)).UsingRotationConnector(rotation));
             }
         }
+
+        // electrocuted areas
+        foreach (var reactor in log.AgentData.GetStableSpeciesByID(TargetID.ElectrocutedAreaArkk))
+        {
+            const uint length = 2050;
+            const uint width = 650;
+            const float offset = 325f;
+            var center = new Vector2(-17931, -16914);
+            var areas = new Token("areas");
+            if (reactor.TryGetCurrentPosition(log, reactor.LastAware, out var position))
+            {
+                var isWest = position.Value.X < center.X;
+                var isNorthSouth = Math.Abs(position.Value.Y - center.Y) > 100f;
+                var connector = new PositionConnector(position.Value).WithOffset((isWest ? -1f : 1f) * offset * Vector3.UnitY, true);
+                var rotation = new AngleConnector(isNorthSouth ? 90f : 0f);
+                foreach (var anim in log.CombatData.GetGadgetAnimationData(reactor))
+                {
+                    if (anim.AnimationToken == areas)
+                    {
+                        var lifespan = (anim.Time, anim.LoopEnd ?? log.LogData.LogEnd);
+                        environmentDecorations.Add(new RectangleDecoration(width, length, lifespan, Colors.Orange, 0.2, connector).UsingRotationConnector(rotation));
+                    }
+                }
+            }
+        }
+
+        // disappearing tiles
+        foreach (var tile in log.AgentData.GetStableSpeciesByID(TargetID.TileArkk))
+        {
+            const uint size = 330;
+            var warning = new Token("warning");
+            var off = new Token("off");
+            if (tile.TryGetCurrentPosition(log, tile.LastAware, out var position))
+            {
+                foreach (var anim in log.CombatData.GetGadgetAnimationData(tile))
+                {
+                    var lifespan = (anim.Time, anim.LoopEnd ?? log.LogData.LogEnd);
+                    Color color;
+                    if (anim.AnimationToken == warning)
+                    {
+                        color = Colors.Orange;
+                    }
+                    else if (anim.AnimationToken == off)
+                    {
+                        color = Colors.Red;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                    environmentDecorations.Add(new RectangleDecoration(size, size, lifespan, color, 0.15, new PositionConnector(position.Value)));
+                }
+            }
+        }
     }
 
     internal override List<CastEvent> SpecialCastEventProcess(CombatData combatData, AgentData agentData, SkillData skillData, Dictionary<long, List<AnimatedCastEvent>> animatedCastDataByID)
@@ -396,6 +504,7 @@ internal class Arkk : ShatteredObservatory
         res.AddRange(ProfHelper.ComputeUnderBuffCastEvents(combatData, skillData, HypernovaLaunchSAK, HypernovaLaunchBuff));
         return res;
     }
+
     internal override void ComputeAchievementEligibilityEvents(ParsedEvtcLog log, Player p, List<AchievementEligibilityEvent> achievementEligibilityEvents)
     {
         if (!log.LogData.IgnoreBaseCallsForCRAndInstanceBuffs)

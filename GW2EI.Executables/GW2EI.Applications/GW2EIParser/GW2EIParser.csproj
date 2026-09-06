@@ -35,9 +35,9 @@
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 
-        <AssemblyName>GuildWars2EliteInsights</AssemblyName>
+        <AssemblyName>GuildWars2EliteInsights-Win</AssemblyName>
         <OutputType>WinExe</OutputType>
-        <OutputPath>..\..\..\GW2EI.bin\$(Configuration)\UI\</OutputPath>
+        <OutputPath>..\GW2EI.bin\$(Configuration)\UI-Win\</OutputPath>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 
@@ -63,8 +63,13 @@
     <PropertyGroup>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <Authors>EliphasNUIT, Baaron</Authors>
-        <PackageId>GW2EIParser</PackageId>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
+        <PackageId>GuildWars2EliteInsights.GW2EIParserWinForms</PackageId>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -75,6 +80,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="System.Resources.Extensions" Version="8.0.0" />
+        <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
         <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Services\GW2EIParserCommons\GW2EIParserCommons.csproj" />
     </ItemGroup>
 

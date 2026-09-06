@@ -74,6 +74,8 @@ For every input, CLI will consistently output a JSON like object, preceded by "P
 
 -__parsed__: boolean, set to true if parsing was successful.
 
+-__reason__: string, only relevant when "parsed" is false. Indicates the reason why the parsing has failed. In "Setting", "User", "FileContent" and "Fatal".
+
 -__status__: string, as displayed on the application on UI mode once processing is done.
 
 -__generatedFiles__: array of string, full name of all created files.
@@ -89,10 +91,6 @@ For every input, CLI will consistently output a JSON like object, preceded by "P
 -__wingmanUploadRefused__: boolean, if true, wingman refused to accept the file.
 
 -__wingmanUploadFailed__: boolean, if true, wingman accepted the file but the upload failed.
-
--__mistWarriorUploadTentative__: boolean, if true, the application tried to upload to mist warrior.
-
--__mistWarriorUploadFailed__: boolean, if true, the application could not upload to mist warrior.
 
 
 ### For UI
@@ -196,10 +194,6 @@ Note it may take some time for each file to parse and they will not be ready to 
 -__DPSReportUserToken__: dps.report user token.
 
 -__UploadToWingman__: if true, the log will be uploaded to Wingman via the "uploadProcessed" endpoint.
-
--__UploadToMistWarrior__: if true, the log will be uploaded to Mist Warrior, user token is mandatory.
-
--__MistWarriorUserToken__: Mist Warrior user token.
 
 -__WebhookURL__: Webhook URL to send an embed or simple message to.
 

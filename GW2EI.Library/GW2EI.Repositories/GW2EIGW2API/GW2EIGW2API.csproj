@@ -6,9 +6,16 @@
         <Nullable>disable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>GW2EIGW2API</RootNamespace>
-        <Version>4.0.3</Version>
+        <Version>4.0.4</Version>
         <Configurations>Debug;Release;NoRewards;Trace</Configurations>
         <DebugSymbols>true</DebugSymbols>
+        <IsPackable>true</IsPackable>
+        <PackageId>GuildWars2EliteInsights.GW2EIGW2API</PackageId>
+        <Company>GW2 Elite Insights</Company>
+        <Product>GW2 Elite Insights</Product>
+        <Authors>EliphasNUIT</Authors>
+        <Description>GW2 API integration for Elite Insights</Description>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -25,9 +32,6 @@
 
     <PropertyGroup>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-        <Product>GW2 Elite Insights</Product>
-        <Company>GW2 Elite Insights</Company>
-        <Authors>EliphasNUIT</Authors>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
     </PropertyGroup>
 

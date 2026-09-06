@@ -7,6 +7,12 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Configurations>Debug;Release;NoRewards;Trace</Configurations>
         <DebugSymbols>true</DebugSymbols>
+        <Version>4.0.2</Version>
+        <PackageId>GuildWars2EliteInsights.GW2EIDiscord</PackageId>
+        <Product>GW2 Elite Insights</Product>
+        <Company>GW2 Elite Insights</Company>
+        <Authors>EliphasNUIT</Authors>
+        <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -21,11 +27,11 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    
+    <PropertyGroup>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-        <Version>4.0.1</Version>
-        <Product>GW2 Elite Insights</Product>
-        <Company>GW2 Elite Insights</Company>
-        <Authors>EliphasNUIT</Authors>
         <EnableNETAnalyzers>true</EnableNETAnalyzers>
         <AnalysisLevel>latest</AnalysisLevel>
     </PropertyGroup>
