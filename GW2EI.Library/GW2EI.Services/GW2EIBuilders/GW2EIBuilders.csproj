@@ -46,8 +46,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\GW2EIEvtcParser\GW2EIEvtcParser.csproj" />
-        <ProjectReference Include="..\GW2EIGW2API\GW2EIGW2API.csproj" />
-        <ProjectReference Include="..\GW2EIJSON\GW2EIJSON.csproj" />
+        <ProjectReference Include="..\..\GW2EI.Models\GW2EIJSON\GW2EIJSON.csproj" />
+        <ProjectReference Include="..\..\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
     </ItemGroup>
 
     <ItemGroup>
