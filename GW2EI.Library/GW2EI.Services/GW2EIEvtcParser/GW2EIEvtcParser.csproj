@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <LangVersion>12.0</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -40,7 +40,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
+      <ProjectReference Include="..\..\GW2EI.Repositories\GW2EIGW2API\GW2EIGW2API.csproj" />
     </ItemGroup>
 
 </Project>
