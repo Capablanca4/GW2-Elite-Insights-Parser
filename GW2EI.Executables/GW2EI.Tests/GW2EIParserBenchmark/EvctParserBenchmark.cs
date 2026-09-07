@@ -18,7 +18,6 @@ public class EvctParserBenchmark
         if (Directory.Exists(testFilesPath))
         {
             return Directory.EnumerateFiles(testFilesPath, "*.zevtc", SearchOption.TopDirectoryOnly);
-
         }
 
         throw new Exception($"No files are present in {testFilesPath}");
