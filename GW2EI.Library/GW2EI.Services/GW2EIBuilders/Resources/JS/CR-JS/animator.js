@@ -125,7 +125,7 @@ function standardDraw(drawable) {
 function selectableDraw(drawable) {
     if (!drawable.isSelected()) {
         drawable.draw();
-        animator._drawActorOrientation(drawable.id);
+        animator.actorOrientationData.get(drawable.id)?.draw();
     }
 }
 
@@ -187,6 +187,10 @@ class RenderablesBranch {
         if (this.right) {
             this.right.forEach(cb);
         }
+    }
+
+    every(cb) {
+        return this.renderables.every(cb) && this.left?.forEach(cb) && this.right?.forEach(cb);
     }
 
     draw(drawFunction) {
@@ -758,35 +762,20 @@ class Animator {
         }
     }
     
-    _reselectIfEnglobed() {     
-        if (this.selectedActor && this.selectedActor.parentID >= 0) {
-            const perParentArray = this.agentDataPerParentID.get(this.selectedActor.parentID);
-            if (perParentArray) {
-                let actor = perParentArray.filter(x => x.getPosition() != null)[0];
-                if (!actor) {
-                    const time = this.reactiveDataStatus.time;
-                    // check for first in interval
-                    let candidates = perParentArray.filter(x => x.start <= time && x.end >= time);
-                    if (candidates.length) {
-                        actor = candidates[0];
-                    } else {
-                        // first
-                        candidates = perParentArray.filter(x => x.start >= time);
-                        if (candidates.length) {
-                            actor = candidates[0];
-                        } else {
-                            // last
-                            candidates = perParentArray.filter(x => x.end <= time);
-                            if (candidates.length) {
-                                actor = candidates[candidates.length - 1];
-                            }
-                        }
-                    }
-                }
-                this.selectedActor = actor || this.selectedActor;
-                this.reactiveDataStatus.selectedActorID = this.selectedActor.id;             
-            }
+    _reselectIfEnglobed() { 
+        const perParentArray = this.agentDataPerParentID.get(this.selectedActor?.parentID);
+        if (!this.selectedActor || !(this.selectedActor.parentID >= 0) || !perParentArray) {
+            return;
         }
+
+        const time = this.reactiveDataStatus.time;
+        let actor = perParentArray.filter(x => x.getPosition() != null)?.[0];
+        actor ??= perParentArray.filter(x => x.start <= time && x.end >= time)?.[0];
+        actor ??= perParentArray.filter(x => x.start >= time)?.[0];
+        actor ??= perParentArray.filter(x => x.end <= time)?.[perParentArray.length - 1];
+
+        this.selectedActor = actor || this.selectedActor;
+        this.reactiveDataStatus.selectedActorID = this.selectedActor.id;
     }
 
     getSelectableActorData(actorId) {
@@ -1125,197 +1114,153 @@ class Animator {
             return pt.matrixTransform(xform.inverse());
         };
     }
-    // animation
+
     _drawBGCanvas() {
-        const _this = this;
-        if (!this.needBGUpdate) {
-            this.backgroundImages.forEach(x => {
-                if (x.needsUpdate()) {
-                    _this.needBGUpdate = true;
-                }
-            });
+        if (!this.needBGUpdate && this.backgroundImages.every(x => !x.needsUpdate()) && !!this._mustMoveToSelected()) {
+            return;
         }
-        if (this.needBGUpdate || this._mustMoveToSelected()) {
-            this.needBGUpdate = false;
-            const ctx = this.bgContext;
-            const canvas = this.bgCanvas;
-            const p1 = ctx.transformedPoint(0, 0);
-            const p2 = ctx.transformedPoint(canvas.width, canvas.height);
-            ctx.clearRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
+        this.needBGUpdate = false;
 
-            ctx.save();
-            {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-            ctx.restore();
+        // Clear the canvas
+        const ctx = this.bgContext;
+        this._clearCanvas(ctx);
 
-            //ctx.save();
-            {
+        // Move to the selected item and draw the background images
+        this._moveToSelected(ctx);
+        this.backgroundImages.draw(standardDraw);
 
-                this._moveToSelected(ctx);
-                this.backgroundImages.draw(standardDraw);
-                //ctx.globalCompositeOperation = "color-burn";
-                ctx.save();
-                {
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    // draw scale
-                    ctx.lineWidth = 3 * resolutionMultiplier;
-                    ctx.strokeStyle = "#CC2200";
-                    const pos = resolutionMultiplier * 70;
-                    const width = resolutionMultiplier * 50;
-                    const height = resolutionMultiplier * 6;
-                    // main line
-                    ctx.beginPath();
-                    ctx.moveTo(pos, pos);
-                    ctx.lineTo(pos + width, pos);
-                    ctx.stroke();
-                    ctx.lineWidth = 2 * resolutionMultiplier;
-                    // right border
-                    ctx.beginPath();
-                    ctx.moveTo(pos - resolutionMultiplier, pos + height);
-                    ctx.lineTo(pos - resolutionMultiplier, pos - height);
-                    ctx.stroke();
-                    // left border
-                    ctx.beginPath();
-                    ctx.moveTo(pos + width + resolutionMultiplier, pos + height);
-                    ctx.lineTo(pos + width + resolutionMultiplier, pos - height);
-                    ctx.stroke();
-                    // text
-                    const fontSize = 13 * resolutionMultiplier;
-                    ctx.font = "bold " + fontSize + "px Comic Sans MS";
-                    ctx.fillStyle = "#CC2200";
-                    ctx.textAlign = "center";
-                    ctx.fillText((50 / (InchToPixel * this.scale)).toFixed(1) + " units", resolutionMultiplier * 95, resolutionMultiplier * 60);
-                }
-                ctx.restore();
-            }
-            //ctx.restore();
-            //ctx.globalCompositeOperation = 'normal';
-        }
+        this._drawScale(ctx);
     }
 
-    _drawActorOrientation(key) {
-        if (this.actorOrientationData.has(key)) {
-            this.actorOrientationData.get(key).draw();
-        }
+    _clearCanvas(ctx) {
+        const canvas = this.bgCanvas;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+
+    _drawScale(ctx) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        const pos = 70 * resolutionMultiplier;
+        const width = 120 * resolutionMultiplier;
+        const height = 6 * resolutionMultiplier;
+
+        ctx.strokeStyle = "#CC2200";
+        ctx.fillStyle = "#CC2200";
+
+        // Main line
+        ctx.lineWidth = 3 * resolutionMultiplier;
+        this._drawLine(ctx, pos, pos, width, pos);
+
+        // Borders
+        ctx.lineWidth = 2 * resolutionMultiplier;
+        this._drawLine(ctx, pos - resolutionMultiplier, pos - height, pos - resolutionMultiplier, pos + height);
+        this._drawLine(ctx, width + resolutionMultiplier, pos - height, width + resolutionMultiplier, pos + height);
+
+        // Label
+        const fontSize = 13 * resolutionMultiplier;
+        ctx.font = `bold ${fontSize}px Comic Sans MS`;
+        ctx.textAlign = "center";
+        const units = (50 / (InchToPixel * this.scale)).toFixed(1);
+        ctx.fillText(`${units} units`, 95 * resolutionMultiplier, 60 * resolutionMultiplier);
+
+        ctx.restore();
+    }
+
+    _drawLine(ctx, x1, y1, x2, y2) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
     }
 
     _drawPickCanvas() {
-        const _this = this;
         const mainCtx = this.mainContext;
         const mainTransform = mainCtx.getTransform();
+
         const ctx = this.pickContext;
-        const canvas = this.pickCanvas;
-        const p1 = ctx.transformedPoint(0, 0);
-        const p2 = ctx.transformedPoint(canvas.width, canvas.height);
-        ctx.clearRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
-        ctx.save();
-        {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-        ctx.restore();
+        this._clearCanvas(ctx);
 
-        //ctx.save();
-        {
-            ctx.setTransform(mainTransform.a, mainTransform.b, mainTransform.c, mainTransform.d, mainTransform.e, mainTransform.f);
-
-
-            if (!this.displaySettings.useActorHitboxWidth) {
-                this.friendlyMobData.draw(selectablePickingDraw);
-                this.friendlyPlayerData.draw(selectablePickingDraw);
-                this.playerData.draw(selectablePickingDraw);
-            }
-
-            if (this.displaySettings.displayTrashMobs) {
-                this.trashMobData.draw(selectablePickingDraw);
-            }
-
-            this.targetData.draw(selectablePickingDraw);
-            this.targetPlayerData.draw(selectablePickingDraw);
-            if (this.displaySettings.useActorHitboxWidth) {
-                this.friendlyMobData.draw(selectablePickingDraw);
-                this.friendlyPlayerData.draw(selectablePickingDraw);
-                this.playerData.draw(selectablePickingDraw);
-            }
-            if (this.selectedActor !== null) {
-                this.selectedActor.drawPicking();
-            }
+        ctx.setTransform(mainTransform.a, mainTransform.b, mainTransform.c, mainTransform.d, mainTransform.e, mainTransform.f);
+        if (!this.displaySettings.useActorHitboxWidth) {
+            this.friendlyMobData.draw(selectablePickingDraw);
+            this.friendlyPlayerData.draw(selectablePickingDraw);
+            this.playerData.draw(selectablePickingDraw);
         }
 
-        //ctx.restore();
+        if (this.displaySettings.displayTrashMobs) {
+            this.trashMobData.draw(selectablePickingDraw);
+        }
+
+        this.targetData.draw(selectablePickingDraw);
+        this.targetPlayerData.draw(selectablePickingDraw);
+        if (this.displaySettings.useActorHitboxWidth) {
+            this.friendlyMobData.draw(selectablePickingDraw);
+            this.friendlyPlayerData.draw(selectablePickingDraw);
+            this.playerData.draw(selectablePickingDraw);
+        }
+        if (this.selectedActor !== null) {
+            this.selectedActor.drawPicking();
+        }
     }
 
     _drawMainCanvas() {
-        const _this = this;
         const ctx = this.mainContext;
-        const canvas = this.mainCanvas;
-        const p1 = ctx.transformedPoint(0, 0);
-        const p2 = ctx.transformedPoint(canvas.width, canvas.height);
-        ctx.clearRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
+        this._clearCanvas(ctx);
+
+        this._moveToSelected(ctx);
+        // Background items commonly overlap so they need to be drawn in the correct order by height
+        // This is sorted in reverse order because the z axis is inverted
+        animator.backgroundActorData.sort((x, y) => y.getHeight() - x.getHeight());
+        for (let i = 0; i < animator.backgroundActorData.length; i++) {
+            animator.backgroundActorData[i].draw();
+        }
+        if (this.displaySettings.displayMechanics) {
+            this.mechanicActorData.draw(standardDraw);
+        }
+
+        if (this.displaySettings.displaySkillMechanics) {
+            this.skillMechanicActorData.draw(standardDraw);
+        }
+
+        if (!this.displaySettings.useActorHitboxWidth) {
+            this.friendlyMobData.draw(selectableDraw);
+            this.friendlyPlayerData.draw(selectableDraw);
+            this.playerData.draw(selectableDraw);
+        }
+
+        if (this.displaySettings.displayTrashMobs) {
+            this.trashMobData.draw(selectableDraw);
+        }
+
+        this.targetData.draw(selectableDraw);
+        this.targetPlayerData.draw(selectableDraw);
+        if (this.displaySettings.useActorHitboxWidth) {
+            this.friendlyMobData.draw(selectableDraw);
+            this.friendlyPlayerData.draw(selectableDraw);
+            this.playerData.draw(selectableDraw);
+        }
+        if (this.selectedActor !== null) {
+            this.selectedActor.draw();
+            this.actorOrientationData.get(this.selectedActor.id)?.draw();
+        }
+        if (this.displaySettings.displayMechanics) {
+            this.overheadActorData.draw(standardDraw);
+        }
+        if (this.displaySettings.displaySquadMarkers) {
+            this.squadMarkerData.draw(standardDraw);
+            this.overheadSquadMarkerData.draw(standardDraw);
+        }
         ctx.save();
         {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Screen space actors
+            this.screenSpaceActorData.draw(standardDraw);
         }
         ctx.restore();
-        //ctx.save();
-        {
-
-            this._moveToSelected(ctx);
-            // Background items commonly overlap so they need to be drawn in the correct order by height
-            // This is sorted in reverse order because the z axis is inverted
-            animator.backgroundActorData.sort((x, y) => y.getHeight() - x.getHeight());
-            for (let i = 0; i < animator.backgroundActorData.length; i++) {
-                animator.backgroundActorData[i].draw();
-            }
-            if (this.displaySettings.displayMechanics) {
-                this.mechanicActorData.draw(standardDraw);
-            }
-
-            if (this.displaySettings.displaySkillMechanics) {
-                this.skillMechanicActorData.draw(standardDraw);
-            }
-
-
-            if (!this.displaySettings.useActorHitboxWidth) {
-                this.friendlyMobData.draw(selectableDraw);
-                this.friendlyPlayerData.draw(selectableDraw);
-                this.playerData.draw(selectableDraw);
-            }
-
-            if (this.displaySettings.displayTrashMobs) {
-                this.trashMobData.draw(selectableDraw);
-            }
-
-            this.targetData.draw(selectableDraw);
-            this.targetPlayerData.draw(selectableDraw);
-            if (this.displaySettings.useActorHitboxWidth) {
-                this.friendlyMobData.draw(selectableDraw);
-                this.friendlyPlayerData.draw(selectableDraw);
-                this.playerData.draw(selectableDraw);
-            }
-            if (this.selectedActor !== null) {
-                this.selectedActor.draw();
-                this._drawActorOrientation(this.selectedActor.id);
-            }
-            if (this.displaySettings.displayMechanics) {
-                this.overheadActorData.draw(standardDraw);
-            }
-            if (this.displaySettings.displaySquadMarkers) {
-                this.squadMarkerData.draw(standardDraw);
-                this.overheadSquadMarkerData.draw(standardDraw);
-            }
-            ctx.save();
-            {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                // Screen space actors
-                this.screenSpaceActorData.draw(standardDraw);
-            }
-            ctx.restore()
-        }
-        //ctx.restore();  
     }
 
     _mustMoveToSelected() {
@@ -1323,24 +1268,22 @@ class Animator {
     }
 
     _moveToSelected(ctx) {
-
-        if (this._mustMoveToSelected()) {
-            const pos = this.selectedActor.getPosition();
-            if (pos !== null) {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.scale(this.scale * resolutionMultiplier, this.scale * resolutionMultiplier);
-                const translateScale = 0.5 / resolutionMultiplier / this.scale
-                ctx.translate(-pos.x + this.mainCanvas.width * translateScale, -pos.y + this.mainCanvas.height * translateScale);
-            }
+        const pos = this.selectedActor?.getPosition();
+        if (!this._mustMoveToSelected() || !pos) {
+            return;
         }
+
+        // Restore zoom and reposition the area centered at the selected actor
+        const zoom = resolutionMultiplier * this.scale
+        ctx.setTransform(zoom, 0, 0, zoom, 0, 0);
+        ctx.translate(-pos.x + this.mainCanvas.width / (2 * zoom), -pos.y + this.mainCanvas.height / (2 * zoom));
     }
+
     draw() {
         if (!this.mainCanvas) {
             return;
         }    
         this._reselectIfEnglobed();
-        //
-        //this._drawPickCanvas();
         this._drawBGCanvas();
         this._drawMainCanvas();
         if (overheadAnimationFrame === maxOverheadAnimationFrame || overheadAnimationFrame === 0) {
