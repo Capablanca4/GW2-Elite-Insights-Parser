@@ -41,21 +41,15 @@ public partial class UpdaterWindow : Window
         {
             Settings.Default.UpdateAvailable = false;
 
-            foreach (var trace in traces)
-            {
-                _trace.Add("Updater: " + trace);
-            }
+            traces.ForEach(x => _trace.Add("Updater: " + x));
 
             UpdateStarted?.Invoke(this, EventArgs.Empty);
         }
         else
         {
-            foreach (var trace in traces)
-            {
-                _trace.Add("Updater: " + trace);
-            }
+            traces.ForEach(x => _trace.Add("Updater: " + x));
 
-            var messageWindow = new MessageWindow("Update Failed.", _trace);
+            var messageWindow = new MessageWindow("Update Failed. Please update manually.", _trace);
 
             await messageWindow.ShowDialog(this);
         }

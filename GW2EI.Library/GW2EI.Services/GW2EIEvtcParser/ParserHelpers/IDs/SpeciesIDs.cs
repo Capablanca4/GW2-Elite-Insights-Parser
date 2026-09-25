@@ -164,6 +164,8 @@ public static class SpeciesIDs
         // - Mursaat Overseer
         MursaatOverseer = 17172,
         Jade = 17181,
+        MursaatOverseerSpikes = SpeciesIDs.MursaatOverseerSpikes,
+        MursaatOverseerClaimArea = SpeciesIDs.MursaatOverseerClaimArea,
         // - Samarog
         Samarog = 17188,
         Guldhem = 17208,
@@ -578,6 +580,17 @@ public static class SpeciesIDs
         GuardiansGladeTornado = 27654,
         EliteCrocodilianRazortooth = 27655,
         CursedArtifact_NPC = 27663,
+        // - Nexus of Eternity
+        Vloxx = 28106,
+        EliteCosmicPiercer = 27929, // Also in convergence
+        ChampionCosmicPiercer = 27958, // Also in convergence
+        SomethingCosmicPiercer = 28056, // Also in convergence - Spawned for 2 seconds in one raid encounter log, might be challenge/legendary mode npc
+        ChampionAspectOfTheStaff = 28017,
+        ChampionAspectOfTheSpear = 28033,
+        EliteCosmicBulwark = 28065, // Also in convergence
+        ChampionCosmicBulwark = 27934, // Also in convergence
+        ChampionCosmicSunderer = 27933,
+        AscensionOrb = SpeciesIDs.AscensionOrb,
         #endregion RAID ENCOUNTERS
         #region FRACTALS
         FractalVindicator = 19684,
@@ -776,11 +789,94 @@ public static class SpeciesIDs
         ZojjaNayos = 25874,
         ZojjasAstralProjection = 26112,
         // - Mount Balrior
-        GreerTheBlightbringerConv = 26889,
-        GreeTheBingerConv = 26881,
-        ReegTheBlighterConv = 26842,
-        DecimaTheStormsingerConv = 26720,
-        UraTheSteamshriekerConv = 27017,
+        GreerConv = 26889,
+        GreeConv = 26881,
+        ReegConv = 26842,
+        DecimaConv = 26720,
+        UraConv = 27017,
+        // - Nexus of Eternity
+        VloxxConv = 28077,
+        // Center
+        CosmicBulwark1 = 27897,
+        CosmicPiercer1 = 27900,
+        CosmicSunderer1 = 28011,
+        CosmicSunderer2 = 28075,
+        CosmicBulwark4 = 28093,
+        CosmicSunderer3 = 28095,
+        CosmicPiercer5 = 28097,
+        // Underworld
+        FleshReaver = 28044,
+        ShadowImp = 28102,
+        ChampionAatxe = 27884,
+        Aatxe = 28050,
+        ShadeConv = 27969,
+        // TODO
+        // Water
+        ChampionWaterElemental = 27894,
+        // Ice
+        IceElemental2 = 26066,
+        IceElemental3 = 26514,
+        ChampionIceElemental = 27991,
+        // Scarab Plague
+        ScarabQueen = 27924,
+        ScarabSwarmConv = 28014,
+        // Dominion
+        DominionEngineer = 22835,
+        DominionIgniter = 22869,
+        DominionDuelist = 22879,
+        DominionSentinel = 22880,
+        BloodLegionBlademaster2 = 22887,
+        DominionBlademaster2 = 22890,
+        DominionSentinel2 = 22891,
+        DominionEngineer2 = 22893,
+        DominionSolider = 22899,
+        DominionFireSHamar = 22904,
+        DominionSoldier2 = 22907,
+        DominionDuelist2 = 22908,
+        BloodLegionDuelist = 22913,
+        DominionShadow = 22943,
+        DominionScout = 22946,
+        DominionBlademaster3 = 22964,
+        DominionSoldier3 = 22988,
+        DominionMarksman = 22998,
+        BloodLegionSoldier = 23031,
+        BloodLegionDuelist3 = 23032,
+        DominionSentinel3 = 23039,
+        DominionSmokeShaman = 23058,
+        DominionSpy = 23061,
+        DominionSoldier = 23074,
+        DominionMarksman2 = 23096,
+        DominionBladestorm2 = 23102,
+        DominionBlademaster = 23104,
+        FrostLegionShaman = 23228,
+        // Destroyers
+        Megadestroyer = 27976,
+        DetroyerTroll = 23121,
+        DetroyerHarpy = 23123,
+        DestroyerCrab = 23125,
+        DestroyerTroll2 = 23132,
+        DestroyerCrabling = 23160,
+        DestroyerHarpy2 = 23173,
+        DestroyerCrab2 = 23178,
+        // Titans
+        RotStrider = 26290,
+        SentientConduit = 26297,
+        LucidBoulder = 26327,
+        RotStrider2 = 26459,
+        BlightedBeast = 26466,
+        RotStrider3 = 26483,
+        LucidBoulder2 = 26536,
+        SentientConduit2 = 26543,
+        RotStrider4 = 26563,
+        BlightedBeast2 = 26583,
+        LucidBoulder3 = 26595,
+        BlightedBeast3 = 26636,
+        LiminalConduit = 26649,
+        Ventshot = 26697,
+        Fumaroller = 26729,
+        // Kryptis TODO
+
+
         #endregion CONVERGENCES
     };
 
@@ -896,6 +992,7 @@ public static class SpeciesIDs
         StormSpirit = 6371,
         WaterSpirit = 12778,
         SpiritOfNatureRenewal = 6649,
+        SpiritOfNatureTBC = 27947,
         // Ranger Pets
         JuvenileJungleStalker = 3827,
         JuvenileKrytanDrakehound = 4425,
@@ -963,6 +1060,7 @@ public static class SpeciesIDs
         JuvenileJanthiriBee = 26851,
         JuvenileRaptorSwiftwing = 27259,
         JuvenileRiverOtter = 27687,
+        JuvenileLeyVampireBat = 28082,
         // Guardian Weapon Summons
         BowOfTruth = 6383,
         HammerOfWisdom = 5791,
@@ -1094,6 +1192,7 @@ public static class SpeciesIDs
     internal static readonly Vector3 UrasChestPosition = new(4925.35f, 10724.1f, -10632.8f);
     internal static readonly Vector3 GrandStrikeChestHarvestTemplePosition = new(605.31f, -20400.5f, -15420.1f);
     internal static readonly Vector3 GrandRaidChestKelaPosition = new(-20832.9f, 12552.2f, -1698.32f);
+    internal static readonly Vector3 GrandRaidChestVloxxPosition = new(12235.8f, 15330.4f, -12399.7f);
 
     public enum ChestID : int
     {
@@ -1125,6 +1224,7 @@ public static class SpeciesIDs
         UrasChest = SpeciesIDs.UrasChest,
         GrandStrikeHarvestTempleChest = SpeciesIDs.GrandStrikeHarvestTempleChest,
         GrandRaidKelaChest = SpeciesIDs.GrandRaidKelaChest,
+        GrandRaidVloxxChest = SpeciesIDs.GrandRaidVloxxChest,
 
         None = int.MaxValue,
     };
@@ -1274,6 +1374,10 @@ public static class SpeciesIDs
     private const int ReactorArkk = -126;
     private const int ElectrocutedAreaArkk = -127;
     private const int TileArkk = -128;
+    private const int GrandRaidVloxxChest = -129;
+    private const int AscensionOrb = -130;
+    private const int MursaatOverseerSpikes = -131;
+    private const int MursaatOverseerClaimArea = -132;
 
     public const int IgnoredSpecies = int.MinValue;
     public const int NonIdentifiedSpecies = 0;

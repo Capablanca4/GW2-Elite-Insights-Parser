@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using GW2EIEvtcParser.Extensions;
+﻿using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
@@ -98,8 +97,8 @@ internal static class RangerHelper
         (int)MinionID.JuvenileCarrionDevourer,
         (int)MinionID.JuvenileLashtailDevourer,
         (int)MinionID.JuvenileWhiptailDevourer,
-    ]; 
-    
+    ];
+
     private static readonly HashSet<int> JuvenileCaninePetIDs =
     [
         (int)MinionID.JuvenileAlpineWolf,
@@ -122,7 +121,7 @@ internal static class RangerHelper
         (int)MinionID.JuvenileFireWywern,
     ];
 
-    private static readonly HashSet<int> JuvenilePetIDs = new HashSet<int> { 
+    private static readonly HashSet<int> JuvenilePetIDs = new HashSet<int> {
         (int)MinionID.JuvenileArmorFish,
         (int)MinionID.JuvenileBristleback,
         (int)MinionID.JuvenileFangedIboga,
@@ -137,6 +136,7 @@ internal static class RangerHelper
         (int)MinionID.JuvenileSpinegazer,
         (int)MinionID.JuvenileJanthiriBee,
         (int)MinionID.JuvenileRiverOtter,
+        (int)MinionID.JuvenileLeyVampireBat,
     }
     .Union(JuvenileFelinePetIDs)
     .Union(JuvenileAvianPetIDs)
@@ -374,6 +374,7 @@ internal static class RangerHelper
         new MinionCommandCastFinder(BloodthirstyCharge, MinionID.JuvenileWallow),
         new MinionCommandCastFinder(HeadToss, MinionID.JuvenileRockGazelle),
         new MinionCommandCastFinder(InnocentDisplayJuvenileRiverOtter, MinionID.JuvenileRiverOtter),
+        new MinionCommandCastFinder(EchoingOutburst, MinionID.JuvenileLeyVampireBat),
         new MinionCommandCastFinder(FeedingFrenzy, MinionID.JuvenileShark),
         new MinionCommandCastFinder(HunkerDown_Turtle, MinionID.JuvenileSiegeTurtle),
         new MinionCommandCastFinder(SmokeCloud, MinionID.JuvenileSmokescale),

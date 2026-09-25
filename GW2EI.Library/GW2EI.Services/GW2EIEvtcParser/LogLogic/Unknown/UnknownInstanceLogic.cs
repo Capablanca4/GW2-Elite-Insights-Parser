@@ -4,8 +4,8 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
-using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.MapIDs;
+using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SpeciesIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
@@ -23,7 +23,7 @@ internal class UnknownInstanceLogic : UnknownEncounterLogic
 
     private void FindGenericTargetIDs(AgentData agentData, IReadOnlyList<CombatItem> combatData)
     {
-        var allTargetIDs = Enum.GetValues(typeof(TargetID));
+        var allTargetIDs = Enum.GetValues<TargetID>();
         var maxHPUpdates = combatData.Where(x => x.IsStateChange == StateChange.MaxHealthUpdate && agentData.GetAgent(x.SrcAgent, x.Time).Type == AgentItem.AgentType.StableSpecies && MaxHealthUpdateEvent.GetMaxHealth(x) > 1).GroupBy(x => agentData.GetAgent(x.SrcAgent, x.Time).ID).ToDictionary(x => x.Key, x => x.ToList());
         var blackList = new HashSet<TargetID>()
         {
@@ -47,7 +47,8 @@ internal class UnknownInstanceLogic : UnknownEncounterLogic
                 if (maxHPs.Any(x => MaxHealthUpdateEvent.GetMaxHealth(x) > 1e6))
                 {
                     _targetIDs.Add(targetID);
-                } else
+                }
+                else
                 {
                     _trashIDs.Add(targetID);
                 }
@@ -112,6 +113,9 @@ internal class UnknownInstanceLogic : UnknownEncounterLogic
                 case MountBalriorPublicConvergence:
                 case MountBalriorPrivateConvergence:
                     return new MountBalriorConvergenceInstance(GenericTriggerID);
+                case NexusOfEternityPublicConvergence:
+                case NexusOfEternityPrivateConvergence:
+                    return new NexusOfEternityConvergenceInstance(GenericTriggerID);
             }
         }
         return base.AdjustLogic(agentData, combatData, parserSettings);
@@ -154,7 +158,10 @@ internal class UnknownInstanceLogic : UnknownEncounterLogic
             return phases;
         }
         phases = GetInitialPhase(log);
-        AddEncounterPhasesPerTarget(log, phases, Targets.Where(x => x.GetHealth(log.CombatData) > 3e6 && x.LastAware - x.FirstAware > ParserHelper.MinimumInCombatDuration));
+        var instancePhase = (InstancePhaseData)phases[0];
+        var targets = Targets.Where(x => x.GetHealth(log.CombatData) > 3e6 && x.LastAware - x.FirstAware > ParserHelper.MinimumInCombatDuration).ToList();
+        instancePhase.AddTargets(targets, log);
+        AddEncounterPhasesPerTarget(log, phases, targets, (InstancePhaseData)phases[0]);
         return phases;
     }
 

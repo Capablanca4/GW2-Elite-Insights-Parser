@@ -178,7 +178,7 @@ partial class CombatData
                 }
                 else
                 {
-                    buffInfoEvent = new BuffInfoEvent(stateChangeEvent, evtcVersion);
+                    buffInfoEvent = new BuffInfoEvent(stateChangeEvent, skillData, evtcVersion);
                     metaDataEvents.BuffInfoEvents[stateChangeEvent.SkillID] = buffInfoEvent;
                 }
                 if (stateChangeEvent.IsStateChange == StateChange.BuffInfo)
@@ -201,7 +201,7 @@ partial class CombatData
                 }
                 else
                 {
-                    skillInfoEvent = new SkillInfoEvent(stateChangeEvent);
+                    skillInfoEvent = new SkillInfoEvent(stateChangeEvent, skillData);
                     metaDataEvents.SkillInfoEvents[stateChangeEvent.SkillID] = skillInfoEvent;
                 }
                 break;
@@ -446,6 +446,15 @@ partial class CombatData
                 break;
             case StateChange.Glider:
                 var gliderEvent = new GliderEvent(stateChangeEvent, agentData);
+
+                if (!gliderEvent.GliderDeployed && statusEvents.GliderEventsBySrc.TryGetValue(gliderEvent.Src, out var glidings))
+                {
+                    var last = glidings[^1];
+                    if (last.GliderDeployed && last.SetGliderClosed(gliderEvent))
+                    {
+                        break;
+                    }
+                }
                 Add(statusEvents.GliderEventsBySrc, gliderEvent.Src, gliderEvent);
                 break;
             case StateChange.StunBreak:
@@ -592,13 +601,13 @@ partial class CombatData
                 break;
             case StateChange.GadgetAnimation:
                 var gadgetAnimation = new GadgetAnimationEvent(stateChangeEvent, agentData);
-                if (_gadgetAnimationEventsByGadget.TryGetValue(gadgetAnimation.Gadget, out var animations))
+                if (_gadgetAnimationEventsByGadget.TryGetValue(gadgetAnimation.Src, out var animations))
                 {
                     var last = animations[^1];
                     last.SetNext(gadgetAnimation);
                 }
                 Add(_gadgetAnimationEventsByToken, gadgetAnimation.AnimationToken, gadgetAnimation);
-                Add(_gadgetAnimationEventsByGadget, gadgetAnimation.Gadget, gadgetAnimation);
+                Add(_gadgetAnimationEventsByGadget, gadgetAnimation.Src, gadgetAnimation);
                 break;
             case StateChange.EffectMissileCreate:
                 // Ignore for now
@@ -643,6 +652,36 @@ partial class CombatData
                 break;
             case StateChange.Tick:
                 metaDataEvents.TickEvents.Add(new TickEvent(stateChangeEvent));
+                break;
+            case StateChange.Jump:
+                var jumpEvent = new JumpEvent(stateChangeEvent, agentData);
+                if (jumpEvent.OnLanding && statusEvents.JumpEventsBySrc.TryGetValue(jumpEvent.Src, out var jumps))
+                {
+                    var last = jumps[^1];
+                    if (!last.OnLanding && last.SetLanding(jumpEvent))
+                    {
+                        break;
+                    }
+                }
+                Add(statusEvents.JumpEventsBySrc, jumpEvent.Src, jumpEvent);
+                break;
+            case StateChange.GadgetModelInfo:
+                var gadgetModelInfoEvent = new GadgetModelInfoEvent(stateChangeEvent, agentData);
+                Add(statusEvents.GadgetModelInfoEventsBySrc, gadgetModelInfoEvent.Src, gadgetModelInfoEvent);
+                Add(statusEvents.GadgetModelInfoEventsByModel, gadgetModelInfoEvent.Model, gadgetModelInfoEvent);
+                Add(statusEvents.GadgetModelInfoEventsByPropID, gadgetModelInfoEvent.PropID, gadgetModelInfoEvent);
+                break;
+            case StateChange.FlyTo:
+                var flyToEvent = new FlyToEvent(stateChangeEvent, agentData);
+                if (flyToEvent.OnLanding && statusEvents.FlyToEventsBySrc.TryGetValue(flyToEvent.Src, out var flyTos))
+                {
+                    var last = flyTos[^1];
+                    if (!last.OnLanding && last.SetLanding(flyToEvent))
+                    {
+                        break;
+                    }
+                }
+                Add(statusEvents.FlyToEventsBySrc, flyToEvent.Src, flyToEvent);
                 break;
             default:
                 break;
@@ -721,14 +760,14 @@ partial class CombatData
     {
         if (evtcVersion.Build < ArcDPSBuilds.EmoteAndGadgetInteractionAdded)
         {
-            return new AnimatedCastEvent(startItem, agentData, skillData, endItem, logData.EvtcLogEnd);
+            return new AnimatedSkillCastEvent(startItem, agentData, skillData, endItem, logData.EvtcLogEnd);
         }
         return id switch
         {
             SkillIDs.ArcDPSGenericEmote => new EmoteEvent(startItem, agentData, skillData, endItem, logData.EvtcLogEnd, emoteGUIDict),
             SkillIDs.ArcDPSGenericGadgetInteract => new GadgetInteractEvent(startItem, agentData, skillData, endItem, logData.EvtcLogEnd),
             SkillIDs.ArcDPSGenericPickUp => new BundlePickUpEvent(startItem, agentData, skillData, endItem, logData.EvtcLogEnd),
-            _ => new AnimatedCastEvent(startItem, agentData, skillData, endItem, logData.EvtcLogEnd),
+            _ => new AnimatedSkillCastEvent(startItem, agentData, skillData, endItem, logData.EvtcLogEnd),
         };
     }
 

@@ -6,16 +6,15 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -373,7 +372,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         {
             return LogData.StartStatus.Late;
         }
-        var firstNonZeroVelocity = combatData.GetMovementData(pushableOrb).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 1e-6);
+        var firstNonZeroVelocity = combatData.GetMovementData(pushableOrb).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 1e-6);
         if (firstNonZeroVelocity == null)
         {
             return LogData.StartStatus.Late;
@@ -383,7 +382,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         {
             return LogData.StartStatus.Late;
         }
-        var position = firstPositionAfterVelocity.GetPoint3D();
+        var position = firstPositionAfterVelocity.Point3D;
         if ((position - new Vector3(610.87994f, -20372.885f, -15189.2f)).Length() > 50)
         {
             return LogData.StartStatus.Late;
@@ -557,11 +556,11 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
     {
         if (effect.IsAroundDst)
         {
-            res.Add(new AnimatedCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur, effect.Dst));
+            res.Add(new CustomAnimatedGadgetCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur, effect.Dst));
         }
         else
         {
-            res.Add(new AnimatedCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur));
+            res.Add(new CustomAnimatedGadgetCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur));
         }
     }
 
@@ -577,7 +576,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     long curNorthBeamTime = int.MinValue;
                     foreach (var northBeam in agentData.GetStableSpeciesByID(TargetID.JormagMovingFrostBeamNorth))
                     {
-                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(northBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(northBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                         if (frostBeamMoveStartVelocity != null && frostBeamMoveStartVelocity.Time - curNorthBeamTime > 1000)
                         {
                             curNorthBeamTime = frostBeamMoveStartVelocity.Time;
@@ -588,7 +587,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     long curCenterBeamTime = int.MinValue;
                     foreach (var centerBeam in agentData.GetStableSpeciesByID(TargetID.JormagMovingFrostBeamCenter))
                     {
-                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(centerBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(centerBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                         if (frostBeamMoveStartVelocity != null && frostBeamMoveStartVelocity.Time - curCenterBeamTime > 1000)
                         {
                             curCenterBeamTime = frostBeamMoveStartVelocity.Time;
@@ -879,7 +878,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             PutridDeluge
         ];
         var usefulMissileEvents = combatData.Where(x => x.IsStateChange == StateChange.MissileCreate && usefulMissileIDs.Contains(x.SkillID)).GroupBy(x => x.SkillID).ToDictionary(x => (long)x.Key, x => x.ToList());
-        HashSet<GUID> usefulEffectGUIDs =
+        HashSet<Guid> usefulEffectGUIDs =
         [
             EffectGUIDs.HarvestTemplePrimordusLavaSlamHitIndicator,
             EffectGUIDs.HarvestTemplePrimordusJawsOfDestructionIndicator,
@@ -899,7 +898,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         var usefulEffectEvents = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Effect &&
-                usefulEffectGUIDs.Any(y => y.Equals(x.SrcAgent, x.DstAgent)))
+                usefulEffectGUIDs.Any(y => y.Equals(x.SrcAgent, x.DstAgent, true)))
             .Select(x => new EffectGUIDEvent(x, evtcVersion))
             .DistinctBy(x => x.EffectID)
             .Select(x => (x, combatData.Where(y => y.IsEffect && y.SkillID == x.EffectID)))
@@ -1195,7 +1194,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         var greenFailSuccGUIDs = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Effect &&
-                (EffectGUIDs.HarvestTempleFailedGreen.Equals(x.SrcAgent, x.DstAgent) || EffectGUIDs.HarvestTempleSuccessGreen.Equals(x.SrcAgent, x.DstAgent) || EffectGUIDs.HarvestTempleGreen.Equals(x.SrcAgent, x.DstAgent)))
+                (EffectGUIDs.HarvestTempleFailedGreen.Equals(x.SrcAgent, x.DstAgent, true) || EffectGUIDs.HarvestTempleSuccessGreen.Equals(x.SrcAgent, x.DstAgent, true) || EffectGUIDs.HarvestTempleGreen.Equals(x.SrcAgent, x.DstAgent, true)))
             .Select(x => new EffectGUIDEvent(x, evtcVersion));
         Dictionary<TargetID, AgentItem> greenAgents = new(16);
         Dictionary<long, EffectGUIDEvent> dummyEffectGUIDs = [];
@@ -1786,7 +1785,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     {
                         var beamAoE = new CircleDecoration(160, lifespan, Colors.LightBlue, 0.1, connector);
                         replay.Decorations.AddWithBorder(beamAoE, Colors.Red, 0.5);
-                    }, Math.Min(log.LogData.LogEnd, target.LastAware));
+                    });
                 }
                 // Frost Beam - Non-NPC sets
                 var breathOfJormag = log.CombatData.GetMissileEventsBySkillID(BreathOfJormagSouth);
@@ -1798,7 +1797,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     foreach (AgentItem agent in beamAgents)
                     {
                         // Find the closest velocity change event
-                        VelocityEvent? frostBeamVelocity = log.CombatData.GetMovementData(agent).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                        VelocityEvent? frostBeamVelocity = log.CombatData.GetMovementData(agent).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                         if (frostBeamVelocity != null && frostBeamVelocity.Time > breath.Time)
                         {
                             beamAgentSpawnTime = Math.Min(beamAgentSpawnTime, frostBeamVelocity.Time);
@@ -1813,13 +1812,13 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     {
                         var beamAoE = new CircleDecoration(300, lifespan, Colors.LightBlue, 0.1, connector);
                         replay.Decorations.AddWithBorder(beamAoE, Colors.Red, 0.5);
-                    }, end);
+                    });
                 }
                 break;
             case (int)TargetID.JormagMovingFrostBeam:
             case (int)TargetID.JormagMovingFrostBeamNorth:
             case (int)TargetID.JormagMovingFrostBeamCenter:
-                VelocityEvent? frostBeamMoveStartVelocity = log.CombatData.GetMovementData(target.AgentItem).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                VelocityEvent? frostBeamMoveStartVelocity = log.CombatData.GetMovementData(target.AgentItem).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                 // Beams are immobile at spawn for around 3 seconds
                 if (frostBeamMoveStartVelocity != null)
                 {
@@ -3030,7 +3029,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             damageData.SortByTime();
             foreach (var evt in damageData)
             {
-                if (evt.HasHit && evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.HasHit && evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(harvestTemplePhases, nopeRopesEligibilityEvents, evt.Time, Ach_NopeRopes, p);
                 }

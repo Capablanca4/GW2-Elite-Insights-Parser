@@ -5,15 +5,14 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -30,7 +29,7 @@ internal class Slothasor : SalvationPass
             new PlayerDstBuffApplyMechanic(MagicTransformation, Mech_MagicTransformation, new (Symbols.Hexagram,Colors.Teal), new("Slub", "Magic Transformation (Ate Magic Mushroom)","Slub Transform"), Sev1)
                     .UsingTimeClamper((time, log, encounterPhase) => Math.Max(encounterPhase.Start, time)), 
             //new Mechanic(Nauseated, "Nauseated", ParseEnum.BossIDS.Slothasor, new ("diamond-tall-open",Colors.LightPurple), new("Slub CD",0), //can be skipped imho, identical person and timestamp as Slub Transform
-            new PlayerDstBuffApplyMechanic(FixatedSlothasor, Mech_SlothFixated, new (Symbols.Star,Colors.Magenta), new("Fixate", "Fixated by Slothasor","Fixated"), Sev1),
+            new PlayerDstBuffApplyMechanic(FixatedTimed, Mech_SlothFixated, new (Symbols.Star,Colors.Magenta), new("Fixate", "Fixated by Slothasor","Fixated"), Sev1),
             new PlayerDstHealthDamageHitMechanic([ToxicCloud1, ToxicCloud2], Mech_ToxicCloud, new (Symbols.PentagonOpen,Colors.DarkGreen), new("Floor", "Toxic Cloud (stood in green floor poison)","Toxic Floor"), Sev3),
             new MechanicGroup([
                 new PlayerDstBuffApplyMechanic(Fear, Mech_BreakbarFear, new (Symbols.SquareOpen,Colors.Red), new("Fear", "Hit by fear after breakbar","Feared"), Sev3)
@@ -193,7 +192,7 @@ internal class Slothasor : SalvationPass
         var mushroomAgents = combatData
             .Where(x => MaxHealthUpdateEvent.GetMaxHealth(x) == 14940 && x.IsStateChange == StateChange.MaxHealthUpdate)
             .Select(x => agentData.GetAgent(x.SrcAgent, x.Time))
-            .Where(x => x.Type == AgentItem.AgentType.VolatileSpecies && (x.HitboxWidth == 146 || x.HitboxWidth == 210) && positionsDict.TryGetValue(x, out var agentPositions) && agentPositions.Any(x => (x.GetPointXY() - center).LengthSquared() < 6250000)) // 2500 squared
+            .Where(x => x.Type == AgentItem.AgentType.VolatileSpecies && (x.HitboxWidth == 146 || x.HitboxWidth == 210) && positionsDict.TryGetValue(x, out var agentPositions) && agentPositions.Any(x => (x.Point2D - center).LengthSquared() < 6250000)) // 2500 squared
             .ToList();
         if (mushroomAgents.Count > 0)
         {
@@ -376,7 +375,7 @@ internal class Slothasor : SalvationPass
             replay.Decorations.Add(new CircleDecoration(180, seg, "rgba(0, 80, 255, 0.3)", new AgentConnector(p)));
         }
         // Fixated
-        var fixatedSloth = p.GetBuffStatus(log, FixatedSlothasor).Where(x => x.Value > 0);
+        var fixatedSloth = p.GetBuffStatus(log, FixatedTimed).Where(x => x.Value > 0);
         foreach (Segment seg in fixatedSloth)
         {
             replay.Decorations.Add(new CircleDecoration(120, seg, Colors.FixationPurple.WithAlpha(0.3).ToString(), new AgentConnector(p)));
@@ -409,8 +408,8 @@ internal class Slothasor : SalvationPass
                     // Compute life span not reliable, has a dynamic end, which cuts the AoE short when encounter ends, use the expected durations
                     environmentDecorations.Add(new CircleDecoration(900, 180, (growingVolatilePoison.Time, volatilePoisonApply.Time + 90000), Colors.GreenishYellow, 0.3, new PositionConnector(growingVolatilePoison.Position)).UsingGrowingEnd(growingVolatilePoison.Time + 82000));
                 }
-                
-            }       
+
+            }
         }
     }
     internal override void ComputeAchievementEligibilityEvents(ParsedEvtcLog log, Player p, List<AchievementEligibilityEvent> achievementEligibilityEvents)

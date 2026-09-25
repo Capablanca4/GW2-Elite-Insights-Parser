@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using GW2EIDiscord;
 using GW2EIParserCommons;
 using static GW2EIParserCommons.ProgramHelper;
 
@@ -21,17 +22,48 @@ public sealed class ParserService : IDisposable
 
     public delegate void OnTaskRun();
 
-    public async Task ParseAsync(AvaloniaOperationController operation, OnTaskRun onTaskRun )
+    public async Task ParseAsync(AvaloniaOperationController operation, OnTaskRun onTaskRun)
     {
         var cancellationTokenSource = new CancellationTokenSource();
 
         try
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 operation.ToRunState(cancellationTokenSource);
                 onTaskRun();
                 _programHelper.DoWork(operation);
             }, cancellationTokenSource.Token);
+        }
+        finally
+        {
+            cancellationTokenSource.Dispose();
+        }
+    }
+
+    public async Task InspectParseAsync(InspectorOperationController operation, OnTaskRun onTaskRun)
+    {
+        if (operation.InspectLog != null || operation.Errored)
+        {
+            return;
+        }
+        var cancellationTokenSource = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                onTaskRun();
+                operation.InspectLog = _programHelper.ParseLogForInspection(operation, InspectionMode.RawWithEIPreProcess);
+            }, cancellationTokenSource.Token)
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        operation.InspectLog = null;
+                        operation.Errored = true;
+                    }
+                }, TaskScheduler.FromCurrentSynchronizationContext());
         }
         finally
         {
@@ -61,6 +93,20 @@ public sealed class ParserService : IDisposable
 
     public string HandleBatchedDiscordEmbed(List<ulong> ids, List<OperationController> operations, BatchedDiscordTraceHandler traceHandler)
     {
+        foreach (ulong id in ids)
+        {
+            traceHandler("Discord: deleting existing message " + id);
+            try
+            {
+                WebhookController.DeleteMessage(_programHelper.Settings.WebhookURL, id, out string message);
+                traceHandler("Discord: deleted existing message " + message);
+            }
+            catch (Exception ex)
+            {
+                traceHandler("Discord: couldn't deleted existing message " + ex.Message);
+            }
+        }
+        ids.Clear();
         return _programHelper.HandleBatchedDiscordEmbed(ids, operations, traceHandler);
     }
 

@@ -139,14 +139,10 @@ public abstract partial class SingleActor : Actor
         {
             _minions = [];
             // npcs, species id based
-            var combatMinion = log.AgentData.GetAgentByType(AgentItem.AgentType.StableSpecies).Where(x => AgentItem.IsMasterOf(x));
+            var combatMinion = log.AgentData.GetAgentByType(AgentItem.AgentType.StableSpecies).Where(x => AgentItem.IsMasterOfAtTime(x, FirstAware));
             var auxMinions = new Dictionary<long, Minions>();
             foreach (AgentItem agent in combatMinion)
             {
-                if (!agent.InAwareTimes(AgentItem))
-                {
-                    continue;
-                }
                 long id = agent.ID;
                 var singleActor = log.FindActor(agent);
                 if (singleActor is NPC npc)
@@ -169,14 +165,10 @@ public abstract partial class SingleActor : Actor
                 }
             }
             // gadget, string based
-            var combatGadgetMinion = log.AgentData.GetAgentByType(AgentItem.AgentType.VolatileSpecies).Where(x => AgentItem.IsMasterOf(x));
+            var combatGadgetMinion = log.AgentData.GetAgentByType(AgentItem.AgentType.VolatileSpecies).Where(x => AgentItem.IsMasterOfAtTime(x, FirstAware));
             var auxGadgetMinions = new Dictionary<string, Minions>();
             foreach (AgentItem agent in combatGadgetMinion)
             {
-                if (!agent.InAwareTimes(AgentItem))
-                {
-                    continue;
-                }
                 string id = agent.Name;
                 var singleActor = log.FindActor(agent);
                 if (singleActor is NPC npc)
@@ -376,6 +368,20 @@ public abstract partial class SingleActor : Actor
             else if (i > 0)
             {
                 replay.Hidden.Add(new(invisibleStart, Math.Min(visibilityEvent.Time, LastAware)));
+            }
+        }
+        var gadgetAnimationEvents = log.CombatData.GetGadgetAnimationData(AgentItem);
+        if (gadgetAnimationEvents.Count > 0)
+        {
+            // TODO find more hide related tokens
+            var offToken = new Token("off");
+            var offngoneToken = new Token("offngone");
+            foreach (var gadgetAnimationEvent in gadgetAnimationEvents)
+            {
+                if (gadgetAnimationEvent.AnimationToken == offToken || gadgetAnimationEvent.AnimationToken == offngoneToken)
+                {
+                    replay.Hidden.Add(new(gadgetAnimationEvent.Time, gadgetAnimationEvent.LoopEnd));
+                }
             }
         }
     }
@@ -605,6 +611,14 @@ public abstract partial class SingleActor : Actor
         {
             CastEvents.AddRange(animationCastData);
             CastEvents.AddRange(instantCastData);
+            {
+                var jumpEvents = log.CombatData.GetJumpEvents(AgentItem);
+                CastEvents.AddRange(jumpEvents.Select(x => new CustomAnimatedCastEvent(AgentItem, log.SkillData.Get(Jumping), x.Time, x.LandingTime - x.Time)).Where(x => x.ActualDuration > 0));
+                var flyToEvents = log.CombatData.GetFlyToEvents(AgentItem);
+                CastEvents.AddRange(flyToEvents.Select(x => new CustomAnimatedCastEvent(AgentItem, log.SkillData.Get(FlyTo), x.Time, x.LandingTime - x.Time)).Where(x => x.ActualDuration > 0));
+                var gliderEvents = log.CombatData.GetGliderEvents(AgentItem);
+                CastEvents.AddRange(gliderEvents.Select(x => new CustomAnimatedCastEvent(AgentItem, log.SkillData.Get(Gliding), x.Time, x.GliderClosedTime - x.Time)).Where(x => x.ActualDuration > 0));
+            }
             foreach (WeaponSwapEvent wepSwap in log.CombatData.GetWeaponSwapData(AgentItem))
             {
                 if (CastEvents.Count > 0 && (wepSwap.Time - CastEvents.Last().Time) < ServerDelayConstant && CastEvents.Last().SkillID == WeaponSwap)

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +8,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GW2EIEvtcParser;
 using GW2EIParserAvalonia.Services;
+using GW2EIParserAvalonia.Views;
 using GW2EIParserCommons;
 using GW2EIParserCommons.Exceptions;
 
@@ -31,8 +31,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool discordBatchEnabled = true;
     [ObservableProperty]
-    private bool autoDiscordBatchEnabled = true;
-    [ObservableProperty]
     private bool checkUpdatesEnabled = true;
     [ObservableProperty]
     private bool settingsEnabled = true;
@@ -46,6 +44,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private bool logTracesVisible;
     [ObservableProperty]
     private string version = string.Empty;
+    private readonly List<ulong> _currentDiscordMessageIDs = [];
     private readonly ParserService _parserService;
     private readonly Queue<LogFileViewModel> _logQueue = new();
     private readonly IApplicationTrace _trace;
@@ -104,6 +103,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         logFileViewModel.ReParseRequested += LogFile_ParseRequested;
         logFileViewModel.PendingCancellationRequested += LogFile_PendingCancellationRequested;
         logFileViewModel.RemoveRequested += LogFile_RemoveRequested;
+        logFileViewModel.InspectLogRequested += LogFile_InspectLogRequested;
 
         LogFiles.Add(logFileViewModel);
         UpdateQueueStatus();
@@ -272,7 +272,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void QueueOrRunOperation(LogFileViewModel logFile)
     {
-
         if (!AnyRunning || (_parserService.ParseMultipleLogs() && _runningCount < _parserService.GetMaxParallelRunning()))
         {
             _ = RunOperationAsync(logFile);
@@ -361,6 +360,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         UpdateButtonStates();
+        if (!AnyRunning)
+        {
+            AutoUpdateDiscordBatch();
+        }
     }
 
     private void LogFile_PendingCancellationRequested(object? sender, EventArgs e)
@@ -397,6 +400,39 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         ParseEnabled = !AnyRunning && LogFiles.Count > 0;
     }
 
+    private void LogFile_InspectLogRequested(object? sender, EventArgs e)
+    {
+        if (sender is LogFileViewModel logFile)
+        {
+            InspectorParse(logFile);
+        }
+    }
+
+    private async void InspectorParse(LogFileViewModel logFile)
+    {
+        try
+        {
+            await _parserService.InspectParseAsync(logFile.InspectorOperation, () =>
+            {
+                _trace.Add("Operation: Inspecting " + logFile.InputFilePath);
+            });
+        }
+        finally
+        {
+            if (logFile.InspectorOperation.InspectLog != null)
+            {
+                var inspectorWindow = new InspectorWindow(logFile.InspectorOperation.InspectLog, _trace);
+                inspectorWindow.Show();
+            }
+            else
+            {
+                var errorMessageWindow = new MessageWindow("Inspection not possible", _trace);
+                errorMessageWindow.Show();
+            }
+        }
+
+    }
+
     public async Task<string> SendAllToDiscordAsync()
     {
         _trace.Add("UI: Manual Discord Batch");
@@ -405,15 +441,32 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
-            var ids = new List<ulong>();
             var operations = LogFiles.Select(x => (OperationController)x.Operation).ToList();
 
             return await Task.Run(() =>
-                _parserService.HandleBatchedDiscordEmbed(ids, operations, _trace.Add));
+                _parserService.HandleBatchedDiscordEmbed([], operations, _trace.Add));
         }
         finally
         {
             DiscordBatchEnabled = !AnyRunning;
+        }
+    }
+
+    private void AutoUpdateDiscordBatch()
+    {
+        if (!AutoDiscordBatch)
+        {
+            return;
+        }
+        try
+        {
+            _trace.Add("Discord: Auto update Discord Batch");
+            var operations = LogFiles.Select(x => (OperationController)x.Operation).ToList();
+            _parserService.HandleBatchedDiscordEmbed(_currentDiscordMessageIDs, operations, _trace.Add);
+        }
+        catch (Exception ex)
+        {
+            _trace.Add("Discord: Auto update Discord Batch failed " + ex.Message);
         }
     }
 
@@ -459,7 +512,6 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         ClearUncompletedEnabled = hasUncompleted;
 
         DiscordBatchEnabled = !running;
-        AutoDiscordBatchEnabled = !running;
         CheckUpdatesEnabled = !running;
     }
 

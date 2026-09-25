@@ -1,9 +1,11 @@
 ﻿namespace GW2EIEvtcParser.ParsedData;
+
 using static GW2EIEvtcParser.ArcDPSEnums;
 
 public class SkillInfoEvent : MetaDataEvent
 {
-    public readonly uint SkillID;
+    public readonly SkillItem Skill;
+    public long SkillID => Skill.ID;
 
     public float Recharge { get; protected set; }
 
@@ -16,9 +18,9 @@ public class SkillInfoEvent : MetaDataEvent
 
     private readonly List<SkillTiming> _SkillTimings = [];
 
-    internal SkillInfoEvent(CombatItem evtcItem) : base(evtcItem)
+    internal SkillInfoEvent(CombatItem evtcItem, SkillData skillData) : base(evtcItem)
     {
-        SkillID = evtcItem.SkillID;
+        Skill = skillData.Get(evtcItem.SkillID);
         CompleteSkillInfoEvent(evtcItem);
     }
 
@@ -48,9 +50,9 @@ public class SkillInfoEvent : MetaDataEvent
         // 2
         var srcAgent = evtcItem.SrcAgent;
 
-        Recharge    = *(float*)&time;
-        Range0      = *((float*)&time + 1);
-        Range1      = *(float*)&srcAgent;
+        Recharge = *(float*)&time;
+        Range0 = *((float*)&time + 1);
+        Range1 = *(float*)&srcAgent;
         TooltipTime = *((float*)&srcAgent + 1);
     }
 

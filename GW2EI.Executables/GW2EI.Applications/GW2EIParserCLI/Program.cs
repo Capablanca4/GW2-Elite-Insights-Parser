@@ -40,7 +40,7 @@ internal static class Program
                 Updater.UpdateInfo? _info = Updater.CheckForUpdate("GW2EICLI.zip", traces).GetAwaiter().GetResult();
                 if (_info == null)
                 {
-                    Console.WriteLine("Update check has failed");
+                    Console.WriteLine("Update tentative has failed, please try again later or update manually.");
                     traces.ForEach(x => Console.WriteLine(x));
                     return 0;
                 }
@@ -88,7 +88,7 @@ internal static class Program
                 {
                     var duration = long.Parse(args[argPos + 2]);
                     logFiles.AddRange(ProgramHelper.FetchSupportedFormatsFrom(addPath, duration, DateTime.Now));
-                } 
+                }
                 catch (Exception)
                 {
                     PrintHelp();

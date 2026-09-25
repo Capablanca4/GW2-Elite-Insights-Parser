@@ -1,6 +1,6 @@
 ﻿using System.Net;
-using GW2EIDPSReport.DPSReportJsons;
 using System.Text.Json;
+using GW2EIDPSReport.DPSReportJsons;
 
 [assembly: CLSCompliant(false)]
 namespace GW2EIDPSReport;
@@ -31,7 +31,7 @@ public static class DPSReportController
 
     private class DPSReportUserTokenResponse
     {
-        public string UserToken { get; set; }
+        public string? UserToken { get; set; }
     }
     public class GetUploadsParameters
     {
@@ -208,7 +208,7 @@ public static class DPSReportController
     public static string GenerateUserToken(TraceHandler traceHandler)
     {
         DPSReportUserTokenResponse? responseItem = GetDPSReportResponse<DPSReportUserTokenResponse>("GenerateUserToken", GetUserTokenURLs(), traceHandler);
-        return responseItem != null ? responseItem.UserToken : "";
+        return responseItem != null ? responseItem.UserToken ?? "" : "";
     }
     public static DPSReportUploadObject? GetUploadMetaDataWithID(string id, TraceHandler traceHandler)
     {
@@ -283,7 +283,7 @@ public static class DPSReportController
                 catch (AggregateException agg)
                 {
                     traceHandler(requestName + " tentative failed");
-                    traceHandler("Main reason: " + agg.Message);             
+                    traceHandler("Main reason: " + agg.Message);
                     foreach (Exception e in agg.InnerExceptions)
                     {
                         traceHandler("Sub reason: " + e.Message);

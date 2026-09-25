@@ -455,4 +455,7 @@ public static class DamageModifierIDs
     public const int Mod_Heartpiercer = 442;
     public const int Mod_Meltdown = 443;
     public const int Mod_ShadowRefuge = 444;
+    public const int Mod_VloxxsVision = 445;
+    public const int Mod_RelicOfTheCurator = 446;
+    public const int Mod_EmpoweredNexusOfEternity = 447;
 }

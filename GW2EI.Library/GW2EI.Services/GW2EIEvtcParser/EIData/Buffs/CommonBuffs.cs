@@ -75,6 +75,7 @@ internal static class CommonBuffs
         new Buff("Determined (3892)", Determined3892, Source.Common, BuffClassification.Other, BuffImages.Determined),
         new Buff("Determined (31450)", Determined31450, Source.Common, BuffClassification.Other, BuffImages.Determined),
         new Buff("Determined (52271)", Determined52271, Source.Common, BuffClassification.Other, BuffImages.Determined),
+        new Buff("Determined (80356)", Determined80356, Source.Common, BuffClassification.Other, BuffImages.Determined),
         new Buff("Invulnerability (757)", Invulnerability757, Source.Common, BuffClassification.Other, BuffImages.Determined),
         new Buff("Invulnerability (56227)", Invulnerability56227, Source.Common, BuffClassification.Other, BuffImages.Determined),
         new Buff("Invulnerability (801)", Invulnerability801, Source.Common, BuffStackType.Queue, 25, BuffClassification.Other, BuffImages.Determined),
@@ -230,6 +231,9 @@ internal static class CommonBuffs
         new Buff("Relic of the Director", RelicOfTheDirector, Source.Gear, BuffClassification.Gear, ItemImages.RelicOfTheDirector),
         new Buff("Kuda's Cruelty (Stacks)", KudasCrueltyStacksBuff, Source.Gear, BuffStackType.StackingConditionalLoss, 10, BuffClassification.Gear, ItemImages.RelicOfTheCruelOverseer),
         new Buff("Kuda's Cruelty (Modifier)", KudasCrueltyModifierBuff, Source.Gear, BuffClassification.Gear, ItemImages.RelicOfTheCruelOverseer),
+        new Buff("Vloxx's Vision (Stacks)", VloxxsVisionStackBuff, Source.Gear, BuffStackType.StackingConditionalLoss, 8, BuffClassification.Gear, ItemImages.RelicOfTheVisionary),
+        new Buff("Vloxx's Vision (Modifier)", VloxxsVisionDamageModBuff, Source.Gear, BuffClassification.Gear, ItemImages.RelicOfTheVisionary),
+        new Buff("Tyrant's Fury", TyrantsFuryBuff, Source.Gear, BuffStackType.StackingConditionalLoss, 5, BuffClassification.Gear, ItemImages.RelicOfTheLastTyrant),
     ];
 
 }

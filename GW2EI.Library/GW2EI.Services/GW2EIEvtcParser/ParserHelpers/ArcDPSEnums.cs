@@ -327,7 +327,7 @@ public static class ArcDPSEnums
         MapChange = 65,
         EarlyExit = 66,
         AnimationStart = 67,
-        AnimationStop = 68, 
+        AnimationStop = 68,
         BuffApply = 69,
         BuffChange = 70, // Extension
         BuffRemoveSingle = 71, // Single or Manual
@@ -345,7 +345,9 @@ public static class ArcDPSEnums
         GadgetCaptureOutlinePoint = 83,
         Tick = 84,
         Teleport = 85,
-        Jump = 86, // Ignore for now
+        Jump = 86,
+        GadgetModelInfo = 87,
+        FlyTo = 88,
         Unknown
     };
 
@@ -652,7 +654,7 @@ public static class ArcDPSEnums
     }
 
 
-    public static string LanguageToString(LanguageEnum language) 
+    public static string LanguageToString(LanguageEnum language)
     {
         return language switch
         {

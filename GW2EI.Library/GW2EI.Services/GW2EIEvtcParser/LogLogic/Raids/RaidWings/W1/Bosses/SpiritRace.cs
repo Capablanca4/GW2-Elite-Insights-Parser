@@ -5,15 +5,14 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -45,7 +44,7 @@ internal class SpiritRace : SpiritVale
         AddArenaDecorationsPerEncounter(log, arenaDecorations, LogID, CombatReplaySpiritRun, crMap, parentMap);
         return crMap;
     }
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -107,7 +106,7 @@ internal class SpiritRace : SpiritVale
         if (position != null)
         {
             var initialPosition = new Vector3(-5669.139f, -7814.589f, -1138.749f);
-            return (position.GetPoint3D() - initialPosition).Length() > 10 ? LogData.StartStatus.Late : LogData.StartStatus.Normal;
+            return (position.Point3D - initialPosition).Length() > 10 ? LogData.StartStatus.Late : LogData.StartStatus.Normal;
         }
         // To investigate
         return LogData.StartStatus.Late;
@@ -118,9 +117,9 @@ internal class SpiritRace : SpiritVale
         AgentItem? wallOfGhosts = agentData.GetStableSpeciesByID(TargetID.WallOfGhosts).FirstOrDefault();
         if (wallOfGhosts != null)
         {
-            foreach(var velocityEvent in combatData.Where(x => x.IsStateChange == StateChange.Velocity && x.SrcMatchesAgent(wallOfGhosts)))
+            foreach (var velocityEvent in combatData.Where(x => x.IsStateChange == StateChange.Velocity && x.SrcMatchesAgent(wallOfGhosts)))
             {
-                if(MovementEvent.GetPointXY(velocityEvent) != default)
+                if (MovementEvent.GetPointXY(velocityEvent) != default)
                 {
                     //first velocity
                     return velocityEvent.Time;
@@ -263,7 +262,7 @@ internal class SpiritRace : SpiritVale
         {
             case (int)TargetID.EtherealBarrier:
                 long encounterOffset = 0;
-                while(encounterOffset != long.MaxValue)
+                while (encounterOffset != long.MaxValue)
                 {
                     encounterOffset = AddHideForBarrier(target, log, replay, encounterOffset);
                 }

@@ -1,8 +1,6 @@
 ﻿using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
-using GW2EIGW2API.GW2API;
-using GW2EIParserBenchmark;
+using GW2EIParserBenchmark.GW2EIGWAPI;
 
-BenchmarkRunner.Run<EvctParserBenchmark>();
-//BenchmarkRunner.Run<GW2SkillCacheBenchmark>();
-//BenchmarkRunner.Run<GW2MapCacheBenchmark>();
+//BenchmarkRunner.Run<EvctParserBenchmark>();
+BenchmarkRunner.Run<GW2APIControllerBenchmark>();

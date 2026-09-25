@@ -55,7 +55,7 @@ partial class CombatData
             .Any();
     }
 
-    public bool HasRelatedEffect(GUID effectGUID, AgentItem agent, long time, long epsilon = ServerDelayConstant)
+    public bool HasRelatedEffect(Guid effectGUID, AgentItem agent, long time, long epsilon = ServerDelayConstant)
     {
         if (TryGetEffectEventsBySrcWithGUID(agent, effectGUID, out var effectEvents))
         {
@@ -64,7 +64,7 @@ partial class CombatData
         return false;
     }
 
-    public bool HasRelatedEffectDst(GUID effectGUID, AgentItem agent, long time, long epsilon = ServerDelayConstant)
+    public bool HasRelatedEffectDst(Guid effectGUID, AgentItem agent, long time, long epsilon = ServerDelayConstant)
     {
         if (TryGetEffectEventsByDstWithGUID(agent, effectGUID, out var effectEvents))
         {
@@ -93,7 +93,7 @@ partial class CombatData
             .Any(apply => apply.CreditedBy.Is(source) && Math.Abs(apply.ExtendedDuration - extendedDuration) < epsilon);
     }
 
-    public static List<BuffEvent> GetBuffApplyRemoveSequence(IReadOnlyList<BuffEvent> buffEvents, AgentItem target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd)
+    public static List<BuffEvent> GetBuffApplyRemoveSequence(IReadOnlyList<BuffEvent> buffEvents, AgentItem target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd, long minThresholdBetweenGainAndLoss = ServerDelayConstant)
     {
         bool needStart = beginWithApply;
         var main = buffEvents.Where(x => (x is BuffApplyEvent || x is BuffRemoveAllEvent)).ToList();
@@ -106,6 +106,15 @@ partial class CombatData
                 if (needStart && c is BuffApplyEvent)
                 {
                     needStart = false;
+                    if (filtered.Count > 0)
+                    {
+                        var prev = filtered[^1];
+                        if (c.Time - prev.Time < minThresholdBetweenGainAndLoss)
+                        {
+                            filtered.Remove(prev);
+                            continue;
+                        }
+                    }
                     filtered.Add(c);
                 }
                 else if (!needStart && c is BuffRemoveAllEvent)

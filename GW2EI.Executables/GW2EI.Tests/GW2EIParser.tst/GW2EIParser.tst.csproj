@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>12.0</LangVersion>
+        <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -9,7 +9,7 @@
         <ReferencePath>$(ProgramFiles)\Common Files\microsoft shared\VSTT\$(VisualStudioVersion)\UITestExtensionPackages</ReferencePath>
         <IsCodedUITest>False</IsCodedUITest>
         <TestProjectType>UnitTest</TestProjectType>
-        <AssemblyTitle>EliteInsights</AssemblyTitle>
+        <AssemblyTitle>EliteInsights.tst</AssemblyTitle>
         <OutputPath>..\..\..\GW2EI.bin\$(Configuration).tst\</OutputPath>
         <Product>GW2 Elite Insights</Product>
         <RepositoryUrl>https://github.com/baaron4/GW2-Elite-Insights-Parser</RepositoryUrl>
@@ -17,25 +17,30 @@
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <Configurations>Debug;Release;NoRewards;Trace</Configurations>
     </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
         <DebugType>none</DebugType>
         <DebugSymbols>false</DebugSymbols>
-        <PlatformTarget>x64</PlatformTarget>
+        <PlatformTarget>AnyCPU</PlatformTarget>
     </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Trace|AnyCPU'">
-      <DebugType>none</DebugType>
-      <DefineConstants>TRACING</DefineConstants>
-      <DebugSymbols>false</DebugSymbols>
-      <PlatformTarget>x64</PlatformTarget>
+        <DebugType>none</DebugType>
+        <DefineConstants>TRACING</DefineConstants>
+        <DebugSymbols>false</DebugSymbols>
+        <PlatformTarget>AnyCPU</PlatformTarget>
     </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
         <DefineConstants>DEBUG</DefineConstants>
-        <PlatformTarget>x64</PlatformTarget>
+        <PlatformTarget>AnyCPU</PlatformTarget>
     </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NoRewards|AnyCPU'">
         <DefineConstants>DEBUG</DefineConstants>
-        <PlatformTarget>x64</PlatformTarget>
+        <PlatformTarget>AnyCPU</PlatformTarget>
     </PropertyGroup>
+    
     <PropertyGroup>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
@@ -47,9 +52,9 @@
     </PropertyGroup>
     <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
     <ItemGroup>
-        <PackageReference Include="nunit" Version="3.13.3" />
-        <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
+        <PackageReference Include="nunit" Version="4.6.1" />
+        <PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\..\GW2EI.Library\GW2EI.Services\GW2EIParserCommons\GW2EIParserCommons.csproj" />

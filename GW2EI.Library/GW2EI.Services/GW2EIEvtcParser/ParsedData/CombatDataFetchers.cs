@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using GW2EIEvtcParser.Exceptions;
+using GW2EIEvtcParser.Extensions;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.ParserHelper;
 
@@ -241,11 +242,11 @@ partial class CombatData
         return _statusEvents.MarkerEventsByID.GetValueOrEmpty(markerID);
     }
     /// <summary>
-    /// True if marker events of given marker GUID has been found
+    /// True if marker events of given marker Guid has been found
     /// </summary>
-    /// <param name="marker">marker GUID</param>
+    /// <param name="marker">marker Guid</param>
     /// <param name="markerEvents">Found marker events</param>
-    public bool TryGetMarkerEventsByGUID(GUID marker, [NotNullWhen(true)] out IReadOnlyList<MarkerEvent>? markerEvents)
+    public bool TryGetMarkerEventsByGUID(Guid marker, [NotNullWhen(true)] out IReadOnlyList<MarkerEvent>? markerEvents)
     {
         var markerGUIDEvent = GetMarkerGUIDEventByGUID(marker);
         markerEvents = GetMarkerEventsByMarkerID(markerGUIDEvent.MarkerID);
@@ -257,18 +258,18 @@ partial class CombatData
         return false;
     }
     /// <summary>
-    /// True if marker events of given marker GUID has been found on given agent
+    /// True if marker events of given marker Guid has been found on given agent
     /// </summary>
     /// <param name="agent">marker owner</param>
-    /// <param name="marker">marker GUID</param>
+    /// <param name="marker">marker Guid</param>
     /// <param name="markerEvents">Found marker events</param>
-    public bool TryGetMarkerEventsBySrcWithGUID(AgentItem agent, GUID marker, [NotNullWhen(true)] out IReadOnlyList<MarkerEvent>? markerEvents)
+    public bool TryGetMarkerEventsBySrcWithGUID(AgentItem agent, Guid marker, [NotNullWhen(true)] out IReadOnlyList<MarkerEvent>? markerEvents)
     {
         if (TryGetMarkerEventsByGUID(marker, out var markers))
         {
             if (agent.IsEnglobedAgent)
             {
-                markerEvents = markers.Where(marker => marker.Src.Is(agent) && agent.InAwareTimes(marker.Time)).ToList();
+                markerEvents = markers.Where(marker => marker.Src.IsAtTime(agent, marker.Time)).ToList();
             }
             else
             {
@@ -303,11 +304,11 @@ partial class CombatData
         return _statusEvents.TransformationEventsByTransformationID.GetValueOrEmpty(transformationID);
     }
     /// <summary>
-    /// True if transformation events of given transformation GUID has been found
+    /// True if transformation events of given transformation Guid has been found
     /// </summary>
-    /// <param name="transformation">transformation GUID</param>
+    /// <param name="transformation">transformation Guid</param>
     /// <param name="transformationEvents">Found transformation events</param>
-    public bool TryGetTransformationEventsByGUID(GUID transformation, [NotNullWhen(true)] out IReadOnlyList<TransformationEvent>? transformationEvents)
+    public bool TryGetTransformationEventsByGUID(Guid transformation, [NotNullWhen(true)] out IReadOnlyList<TransformationEvent>? transformationEvents)
     {
         var transformationGUIDEvent = GetTransformationGUIDEventByGUID(transformation);
         transformationEvents = GetTransformationEventsByTransformationID(transformationGUIDEvent.TransformationID);
@@ -319,18 +320,18 @@ partial class CombatData
         return false;
     }
     /// <summary>
-    /// True if transformation events of given transformation GUID has been found on given agent
+    /// True if transformation events of given transformation Guid has been found on given agent
     /// </summary>
     /// <param name="agent">transformation owner</param>
-    /// <param name="transformation">transformation GUID</param>
+    /// <param name="transformation">transformation Guid</param>
     /// <param name="transformationEvents">Found transformation events</param>
-    public bool TryGetTransformationEventsBySrcWithGUID(AgentItem agent, GUID transformation, [NotNullWhen(true)] out IReadOnlyList<TransformationEvent>? transformationEvents)
+    public bool TryGetTransformationEventsBySrcWithGUID(AgentItem agent, Guid transformation, [NotNullWhen(true)] out IReadOnlyList<TransformationEvent>? transformationEvents)
     {
         if (TryGetTransformationEventsByGUID(transformation, out var transformations))
         {
             if (agent.IsEnglobedAgent)
             {
-                transformationEvents = transformations.Where(transformation => transformation.Src.Is(agent) && agent.InAwareTimes(transformation.Time)).ToList();
+                transformationEvents = transformations.Where(transformation => transformation.Src.IsAtTime(agent, transformation.Time)).ToList();
             }
             else
             {
@@ -384,6 +385,20 @@ partial class CombatData
     {
         return _metaDataEvents.SkillInfoEvents.GetValueOrDefault(skillID);
     }
+
+    public IReadOnlyList<GadgetModelInfoEvent> GetGadgetModelInfoEvents(AgentItem src)
+    {
+        return GetTimeValueOrEmpty(_statusEvents.GadgetModelInfoEventsBySrc, src);
+    }
+    public IReadOnlyList<GadgetModelInfoEvent> GetGadgetModelInfoEventsByModel(ulong model)
+    {
+        return _statusEvents.GadgetModelInfoEventsByModel.GetValueOrEmpty(model);
+    }
+    public IReadOnlyList<GadgetModelInfoEvent> GetGadgetModelInfoEventsByPropID(ulong propID)
+    {
+        return _statusEvents.GadgetModelInfoEventsByPropID.GetValueOrEmpty(propID);
+    }
+
     #endregion INFO
     #region LAST90
     public IReadOnlyList<Last90BeforeDownEvent> GetLast90BeforeDownEvents()
@@ -683,7 +698,7 @@ partial class CombatData
     }
 
     /// <returns>true on success</returns>
-    public bool TryGetEmoteEventsByGUID(GUID emoteGUID, [NotNullWhen(true)] out IReadOnlyList<EmoteEvent>? emoteEvents)
+    public bool TryGetEmoteEventsByGUID(Guid emoteGUID, [NotNullWhen(true)] out IReadOnlyList<EmoteEvent>? emoteEvents)
     {
         var emoteGUIDEvent = GetEmoteGUIDEventByGUID(emoteGUID);
         emoteEvents = GetEmoteCastData(emoteGUIDEvent.EmoteID);
@@ -696,7 +711,7 @@ partial class CombatData
     }
 
     /// <returns>true on success</returns>
-    public bool TryGetEmoteEventsByGUIDs(Span<GUID> emotes, out List<EmoteEvent> emoteEvents)
+    public bool TryGetEmoteEventsByGUIDs(Span<Guid> emotes, out List<EmoteEvent> emoteEvents)
     {
         //TODO_PERF(Rennorb): find average complexity
         emoteEvents = new(emotes.Length * 10);
@@ -716,7 +731,7 @@ partial class CombatData
         List<EmoteEvent> result;
         if (agent.IsEnglobedAgent)
         {
-            result = emotes.Where(emote => emote.Caster.Is(agent) && agent.InAwareTimes(emote.Time)).ToList();
+            result = emotes.Where(emote => emote.Caster.IsAtTime(agent, emote.Time)).ToList();
         }
         else
         {
@@ -730,8 +745,7 @@ partial class CombatData
         List<EmoteEvent> result;
         if (agent.IsEnglobedAgent)
         {
-            var parentAgent = agent.EnglobingAgentItem;
-            result = emotes.Where(emote => parentAgent.IsMasterOf(emote.Caster) && agent.InAwareTimes(emote.Time)).ToList();
+            result = emotes.Where(emote => agent.IsMasterOfAtTime(emote.Caster, emote.Time)).ToList();
         }
         else
         {
@@ -741,10 +755,10 @@ partial class CombatData
     }
 
     /// <summary>
-    /// Returns emote events by the given agent and emote GUID.
+    /// Returns emote events by the given agent and emote Guid.
     /// </summary>
     /// <returns>true on found emote with entries > 0</returns>
-    public bool TryGetEmoteEventsBySrcWithGUID(AgentItem agent, GUID emote, [NotNullWhen(true)] out IReadOnlyList<EmoteEvent>? emoteEvents)
+    public bool TryGetEmoteEventsBySrcWithGUID(AgentItem agent, Guid emote, [NotNullWhen(true)] out IReadOnlyList<EmoteEvent>? emoteEvents)
     {
         if (TryGetEmoteEventsByGUID(emote, out var emotes))
         {
@@ -764,7 +778,7 @@ partial class CombatData
     /// Returns emote events by the given agent and emote GUIDs.
     /// </summary>
     /// <returns>true on success</returns>
-    public bool TryGetEmoteEventsBySrcWithGUIDs(AgentItem agent, ReadOnlySpan<GUID> emoteGUIDs, out List<EmoteEvent> emoteEvents)
+    public bool TryGetEmoteEventsBySrcWithGUIDs(AgentItem agent, ReadOnlySpan<Guid> emoteGUIDs, out List<EmoteEvent> emoteEvents)
     {
         //TODO_PERF(Rennorb): find average complexity
         emoteEvents = new List<EmoteEvent>(emoteGUIDs.Length * 10);
@@ -782,7 +796,7 @@ partial class CombatData
     /// Returns emote events by the given agent <b>including</b> minions and the given emote GUIDs.
     /// </summary>
     /// <returns>true on success</returns>
-    public bool TryGetEmoteEventsByMasterWithGUIDs(AgentItem agent, Span<GUID> emoteGUIDs, out List<EmoteEvent> emoteEvents)
+    public bool TryGetEmoteEventsByMasterWithGUIDs(AgentItem agent, Span<Guid> emoteGUIDs, out List<EmoteEvent> emoteEvents)
     {
         emoteEvents = [];
         foreach (var emoteGUID in emoteGUIDs)
@@ -822,6 +836,14 @@ partial class CombatData
     {
         return GetTimeValueOrEmpty(_statusEvents.GliderEventsBySrc, src);
     }
+    public IReadOnlyList<JumpEvent> GetJumpEvents(AgentItem src)
+    {
+        return GetTimeValueOrEmpty(_statusEvents.JumpEventsBySrc, src);
+    }
+    public IReadOnlyList<FlyToEvent> GetFlyToEvents(AgentItem src)
+    {
+        return GetTimeValueOrEmpty(_statusEvents.FlyToEventsBySrc, src);
+    }
     #endregion MOVEMENTS
     #region EFFECTS
     public IReadOnlyList<EffectEvent> GetEffectEventsBySrc(AgentItem src)
@@ -840,7 +862,7 @@ partial class CombatData
     }
 
     /// <returns>true on success</returns>
-    public bool TryGetEffectEventsByGUID(GUID effectGUID, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
+    public bool TryGetEffectEventsByGUID(Guid effectGUID, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
     {
         var effectGUIDEvent = GetEffectGUIDEventByGUID(effectGUID);
         effectEvents = GetEffectEventsByEffectID(effectGUIDEvent.EffectID);
@@ -853,7 +875,7 @@ partial class CombatData
     }
 
     /// <returns>true on success</returns>
-    public bool TryGetEffectEventsByGUIDs(Span<GUID> effects, out List<EffectEvent> effectEvents)
+    public bool TryGetEffectEventsByGUIDs(Span<Guid> effects, out List<EffectEvent> effectEvents)
     {
         //TODO_PERF(Rennorb): find average complexity
         effectEvents = new(effects.Length * 10);
@@ -873,7 +895,7 @@ partial class CombatData
         List<EffectEvent> result;
         if (agent.IsEnglobedAgent)
         {
-            result = effects.Where(effect => effect.Src.Is(agent) && agent.InAwareTimes(effect.Time)).ToList();
+            result = effects.Where(effect => effect.Src.IsAtTime(agent, effect.Time)).ToList();
         }
         else
         {
@@ -887,8 +909,7 @@ partial class CombatData
         List<EffectEvent> result;
         if (agent.IsEnglobedAgent)
         {
-            var parentAgent = agent.EnglobingAgentItem;
-            result = effects.Where(effect => parentAgent.IsMasterOf(effect.Src) && agent.InAwareTimes(effect.Time)).ToList();
+            result = effects.Where(effect => agent.IsMasterOfAtTime(effect.Src, effect.Time)).ToList();
         }
         else
         {
@@ -902,7 +923,7 @@ partial class CombatData
         List<EffectEvent> result;
         if (agent.IsEnglobedAgent)
         {
-            result = effects.Where(effect => effect.Dst.Is(agent) && agent.InAwareTimes(effect.Time)).ToList();
+            result = effects.Where(effect => effect.Dst.IsAtTime(agent, effect.Time)).ToList();
         }
         else
         {
@@ -912,10 +933,10 @@ partial class CombatData
     }
 
     /// <summary>
-    /// Returns effect events by the given agent and effect GUID.
+    /// Returns effect events by the given agent and effect Guid.
     /// </summary>
     /// <returns>true on found effect with entries > 0</returns>
-    public bool TryGetEffectEventsBySrcWithGUID(AgentItem agent, GUID effect, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
+    public bool TryGetEffectEventsBySrcWithGUID(AgentItem agent, Guid effect, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
     {
         if (TryGetEffectEventsByGUID(effect, out var effects))
         {
@@ -933,10 +954,10 @@ partial class CombatData
 
 
     /// <summary>
-    /// Returns effect events on the given agent and effect GUID.
+    /// Returns effect events on the given agent and effect Guid.
     /// </summary>
     /// <returns>true on success</returns>
-    public bool TryGetEffectEventsByDstWithGUID(AgentItem agent, GUID effect, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
+    public bool TryGetEffectEventsByDstWithGUID(AgentItem agent, Guid effect, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
     {
         if (TryGetEffectEventsByGUID(effect, out var effects))
         {
@@ -956,7 +977,7 @@ partial class CombatData
     /// Returns effect events by the given agent and effect GUIDs.
     /// </summary>
     /// <returns>true on success</returns>
-    public bool TryGetEffectEventsBySrcWithGUIDs(AgentItem agent, ReadOnlySpan<GUID> effectGUIDs, out List<EffectEvent> effectEvents)
+    public bool TryGetEffectEventsBySrcWithGUIDs(AgentItem agent, ReadOnlySpan<Guid> effectGUIDs, out List<EffectEvent> effectEvents)
     {
         //TODO_PERF(Rennorb): find average complexity
         effectEvents = new List<EffectEvent>(effectGUIDs.Length * 10);
@@ -974,7 +995,7 @@ partial class CombatData
     /// Returns effect events on the given agent and effect GUIDs.
     /// </summary>
     /// <returns>true on success</returns>
-    public bool TryGetEffectEventsByDstWithGUIDs(AgentItem agent, ReadOnlySpan<GUID> effectGUIDs, out List<EffectEvent> effectEvents)
+    public bool TryGetEffectEventsByDstWithGUIDs(AgentItem agent, ReadOnlySpan<Guid> effectGUIDs, out List<EffectEvent> effectEvents)
     {
         //TODO_PERF(Rennorb): find average complexity
         effectEvents = new List<EffectEvent>(effectGUIDs.Length * 10);
@@ -990,10 +1011,10 @@ partial class CombatData
     }
 
     /// <summary>
-    /// Returns effect events by the given agent <b>including</b> minions and the given effect GUID.
+    /// Returns effect events by the given agent <b>including</b> minions and the given effect Guid.
     /// </summary>
     /// <returns>true on success</returns>
-    public bool TryGetEffectEventsByMasterWithGUID(AgentItem agent, GUID effect, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
+    public bool TryGetEffectEventsByMasterWithGUID(AgentItem agent, Guid effect, [NotNullWhen(true)] out IReadOnlyList<EffectEvent>? effectEvents)
     {
         if (TryGetEffectEventsByGUID(effect, out var effects))
         {
@@ -1013,7 +1034,7 @@ partial class CombatData
     /// Returns effect events by the given agent <b>including</b> minions and the given effect GUIDs.
     /// </summary>
     /// <returns>true on success</returns>
-    public bool TryGetEffectEventsByMasterWithGUIDs(AgentItem agent, Span<GUID> effectGUIDs, out List<EffectEvent> effectEvents)
+    public bool TryGetEffectEventsByMasterWithGUIDs(AgentItem agent, Span<Guid> effectGUIDs, out List<EffectEvent> effectEvents)
     {
         effectEvents = [];
         foreach (var effectGUID in effectGUIDs)
@@ -1028,12 +1049,12 @@ partial class CombatData
     }
 
     /// <summary>
-    /// Returns effect events by the given agent and effect GUID.
+    /// Returns effect events by the given agent and effect Guid.
     /// Effects happening within epsilon milliseconds are grouped together.
     /// </summary>
     /// <param name="epsilon">Windows size</param>
     /// <returns>true on success</returns>
-    public bool TryGetGroupedEffectEventsBySrcWithGUID(AgentItem agent, GUID guid, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
+    public bool TryGetGroupedEffectEventsBySrcWithGUID(AgentItem agent, Guid guid, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
     {
         if (!TryGetEffectEventsBySrcWithGUID(agent, guid, out var effects))
         {
@@ -1050,7 +1071,7 @@ partial class CombatData
     /// </summary>
     /// <param name="epsilon">Windows size</param>
     /// <returns>true on success</returns>
-    public bool TryGetGroupedEffectEventsBySrcWithGUIDs(AgentItem agent, Span<GUID> guids, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
+    public bool TryGetGroupedEffectEventsBySrcWithGUIDs(AgentItem agent, Span<Guid> guids, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
     {
         if (!TryGetEffectEventsBySrcWithGUIDs(agent, guids, out var effects))
         {
@@ -1062,12 +1083,12 @@ partial class CombatData
         return true;
     }
     /// <summary>
-    /// Returns effect events for the given effect GUID.
+    /// Returns effect events for the given effect Guid.
     /// Effects happening within epsilon milliseconds are grouped together.
     /// </summary>
     /// <param name="epsilon">Window size</param>
     /// <returns>true on success</returns>
-    public bool TryGetGroupedEffectEventsByGUID(GUID effect, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
+    public bool TryGetGroupedEffectEventsByGUID(Guid effect, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
     {
         if (!TryGetEffectEventsByGUID(effect, out var effects))
         {
@@ -1085,7 +1106,7 @@ partial class CombatData
     /// </summary>
     /// <param name="epsilon">Window size</param>
     /// <returns>true on success</returns>
-    public bool TryGetGroupedEffectEventsByGUIDs(Span<GUID> guids, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
+    public bool TryGetGroupedEffectEventsByGUIDs(Span<Guid> guids, [NotNullWhen(true)] out List<List<EffectEvent>>? groupedEffectEvents, long epsilon = ServerDelayConstant)
     {
         if (!TryGetEffectEventsByGUIDs(guids, out var effects))
         {
@@ -1136,7 +1157,7 @@ partial class CombatData
     }
     #endregion EFFECTS
     #region GUIDS
-    public EffectGUIDEvent GetEffectGUIDEventByGUID(GUID effectGUID)
+    public EffectGUIDEvent GetEffectGUIDEventByGUID(Guid effectGUID)
     {
         return _metaDataEvents.EffectGUIDEventsByGUID.TryGetValue(effectGUID, out var evt) ? evt : EffectGUIDEvent.DummyEffectGUID;
     }
@@ -1150,13 +1171,13 @@ partial class CombatData
 #if DEBUG2
         if (GetEffectEventsByEffectID(effectID).Count > 0)
         {
-            throw new EvtcCombatEventException("Missing GUID event for effect " + effectID);
+            throw new EvtcCombatEventException("Missing Guid event for effect " + effectID);
         }
 #endif
         return EffectGUIDEvent.DummyEffectGUID;
     }
 
-    public SkillGUIDEvent? GetSkillGUIDEventByGUID(GUID skill)
+    public SkillGUIDEvent? GetSkillGUIDEventByGUID(Guid skill)
     {
         return _metaDataEvents.SkillGUIDEventsByGUID.TryGetValue(skill, out var evt) ? evt : HasSpeciesAndSkillGUIDs ? SkillGUIDEvent.DummySkillGUID : null;
     }
@@ -1166,7 +1187,7 @@ partial class CombatData
         return _metaDataEvents.SkillGUIDEventsBySkillID.TryGetValue(skillID, out var evt) ? evt : HasSpeciesAndSkillGUIDs ? SkillGUIDEvent.DummySkillGUID : null;
     }
 
-    public SpeciesGUIDEvent? GetSpeciesGUIDEventByGUID(GUID species)
+    public SpeciesGUIDEvent? GetSpeciesGUIDEventByGUID(Guid species)
     {
         return _metaDataEvents.SpeciesGUIDEventsByGUID.TryGetValue(species, out var evt) ? evt : HasSpeciesAndSkillGUIDs ? SpeciesGUIDEvent.DummySpeciesGUID : null;
     }
@@ -1176,7 +1197,7 @@ partial class CombatData
         return _metaDataEvents.SpeciesGUIDEventsBySpeciesID.TryGetValue(speciesID, out var evt) ? evt : HasSpeciesAndSkillGUIDs ? SpeciesGUIDEvent.DummySpeciesGUID : null;
     }
 
-    public EmoteGUIDEvent GetEmoteGUIDEventByGUID(GUID emote)
+    public EmoteGUIDEvent GetEmoteGUIDEventByGUID(Guid emote)
     {
         return _metaDataEvents.EmoteGUIDEventsByGUID.TryGetValue(emote, out var evt) ? evt : EmoteGUIDEvent.DummyEmoteGUID;
     }
@@ -1185,7 +1206,7 @@ partial class CombatData
     {
         return _metaDataEvents.EmoteGUIDEventsByEmoteID.TryGetValue(emoteID, out var evt) ? evt : EmoteGUIDEvent.DummyEmoteGUID;
     }
-    public TransformationGUIDEvent GetTransformationGUIDEventByGUID(GUID transformation)
+    public TransformationGUIDEvent GetTransformationGUIDEventByGUID(Guid transformation)
     {
         return _metaDataEvents.TransformationGUIDEventsByGUID.TryGetValue(transformation, out var evt) ? evt : TransformationGUIDEvent.DummyTransformationGUID;
     }
@@ -1195,7 +1216,7 @@ partial class CombatData
         return _metaDataEvents.TransformationGUIDEventsByTransformationID.TryGetValue(transformationID, out var evt) ? evt : TransformationGUIDEvent.DummyTransformationGUID;
     }
 
-    public MarkerGUIDEvent GetMarkerGUIDEventByGUID(GUID marker)
+    public MarkerGUIDEvent GetMarkerGUIDEventByGUID(Guid marker)
     {
         return _metaDataEvents.MarkerGUIDEventsByGUID.TryGetValue(marker, out var evt) ? evt : MarkerGUIDEvent.DummyMarkerGUID;
     }
@@ -1205,7 +1226,7 @@ partial class CombatData
         return _metaDataEvents.MarkerGUIDEventsByMarkerID.TryGetValue(markerID, out var evt) ? evt : MarkerGUIDEvent.DummyMarkerGUID;
     }
 
-    public TeamGUIDEvent? GetTeamGUIDEventByGUID(GUID team)
+    public TeamGUIDEvent? GetTeamGUIDEventByGUID(Guid team)
     {
         return _metaDataEvents.TeamGUIDEventsByGUID.TryGetValue(team, out var evt) ? evt : null;
     }
@@ -1273,4 +1294,247 @@ partial class CombatData
     }
 
     #endregion GADGET_CAPTURE
+
+    internal static void FillUnique(List<CombatEvent> events, HashSet<CombatEvent> seen, CombatEvent? evt)
+    {
+        if (evt != null && seen.Add(evt))
+        {
+            events.Add(evt);
+        }
+    }
+    internal static void FillFromRangeUnique(List<CombatEvent> events, HashSet<CombatEvent> seen, IEnumerable<CombatEvent> source)
+    {
+        foreach (var evt in source)
+        {
+            FillUnique(events, seen, evt);
+        }
+    }
+
+    internal static void FillFromManyRangeUnique(List<CombatEvent> events, HashSet<CombatEvent> seen, IEnumerable<IEnumerable<CombatEvent>> manySource)
+    {
+        FillFromRangeUnique(events, seen, manySource.SelectMany(x => x));
+    }
+
+    public IReadOnlyList<TimeCombatEvent> GetAllTimeCombatEvents()
+    {
+        var events = new List<CombatEvent>();
+        var seen = new HashSet<CombatEvent>();
+
+        // BUFFS
+        FillFromManyRangeUnique(events, seen, _buffData.Values);
+        FillFromManyRangeUnique(events, seen, _buffDataByDst.Values);
+        FillFromManyRangeUnique(events, seen, _buffDataBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _buffDataByIDByDst.Values.SelectMany(x => x.Values));
+        FillFromManyRangeUnique(events, seen, _buffDataByInstanceID.Values.SelectMany(x => x.Values));
+
+        FillFromManyRangeUnique(events, seen, _buffApplyData.Values);
+        FillFromManyRangeUnique(events, seen, _buffApplyDataByDst.Values);
+        FillFromManyRangeUnique(events, seen, _buffApplyDataByIDBySrc.Values.SelectMany(x => x.Values));
+        FillFromManyRangeUnique(events, seen, _buffApplyDataByIDByDst.Values.SelectMany(x => x.Values));
+
+        FillFromManyRangeUnique(events, seen, _buffRemoveAllData.Values);
+        FillFromManyRangeUnique(events, seen, _buffRemoveAllDataByIDBySrc.Values.SelectMany(x => x.Values));
+        FillFromManyRangeUnique(events, seen, _buffRemoveAllDataByIDByDst.Values.SelectMany(x => x.Values));
+        FillFromManyRangeUnique(events, seen, _buffRemoveAllDataBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _buffRemoveAllDataByDst.Values);
+
+        FillFromManyRangeUnique(events, seen, _buffRemoveSingleDataByIDByDst.Values.SelectMany(x => x.Values));
+
+        FillFromManyRangeUnique(events, seen, _buffExtensionData.Values);
+
+        // DAMAGE
+        FillFromManyRangeUnique(events, seen, _damageData.Values);
+        FillFromManyRangeUnique(events, seen, _damageDataByID.Values);
+        FillFromManyRangeUnique(events, seen, _damageTakenData.Values);
+
+        FillFromManyRangeUnique(events, seen, _breakbarDamageData.Values);
+        FillFromManyRangeUnique(events, seen, _breakbarDamageDataByID.Values);
+        FillFromManyRangeUnique(events, seen, _breakbarDamageTakenData.Values);
+        FillFromManyRangeUnique(events, seen, _breakbarRecoveredData.Values);
+        FillFromManyRangeUnique(events, seen, _breakbarRecoveredDataByID.Values);
+
+        // CROWD CONTROL
+        FillFromManyRangeUnique(events, seen, _crowControlData.Values);
+        FillFromManyRangeUnique(events, seen, _crowControlDataByID.Values);
+        FillFromManyRangeUnique(events, seen, _crowControlTakenData.Values);
+        FillFromManyRangeUnique(events, seen, _stunBreakData.Values);
+        FillFromManyRangeUnique(events, seen, _stunBreakReceivedData.Values);
+
+        // CAST
+        FillFromManyRangeUnique(events, seen, _animatedCastData.Values);
+        FillFromManyRangeUnique(events, seen, _animatedCastDataByID.Values);
+        FillFromManyRangeUnique(events, seen, _instantCastData.Values);
+        FillFromManyRangeUnique(events, seen, _instantCastDataByID.Values);
+        FillFromManyRangeUnique(events, seen, _weaponSwapData.Values);
+
+        // EMOTES
+        FillFromManyRangeUnique(events, seen, _emoteCastData.Values);
+        FillFromManyRangeUnique(events, seen, _emoteCastDataByEmoteID.Values);
+
+        // GADGET ANIMATION
+        FillFromManyRangeUnique(events, seen, _gadgetAnimationEventsByGadget.Values);
+        FillFromManyRangeUnique(events, seen, _gadgetAnimationEventsByToken.Values);
+
+        // GADGET INTERACTION
+        FillFromManyRangeUnique(events, seen, _gadgetInteractCastData.Values);
+        FillFromManyRangeUnique(events, seen, _gadgetInteractCastDataBySpeciesID.Values);
+        FillFromManyRangeUnique(events, seen, _gadgetInteractCastDataByGadget.Values);
+
+        // STATUS
+        FillFromManyRangeUnique(events, seen, _statusEvents.TargetableEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.VisibilityEventsBySrc.Values);
+
+        FillFromManyRangeUnique(events, seen, _statusEvents.AliveEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.DeadEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.DownEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.DespawnEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.SpawnEvents.Values);
+
+        FillFromManyRangeUnique(events, seen, _statusEvents.EnterCombatEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.ExitCombatEvents.Values);
+
+        // UPDATES
+        FillFromManyRangeUnique(events, seen, _statusEvents.HealthUpdateEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.BarrierUpdateEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.MaxHealthUpdateEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.MaxHealthUpdateEventsByMaxHP.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.TeamChangeEvents.Values);
+
+        // BREAKBAR
+        FillFromManyRangeUnique(events, seen, _statusEvents.BreakbarStateEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.BreakbarPercentEvents.Values);
+
+        // MOVEMENT
+        FillFromManyRangeUnique(events, seen, _statusEvents.MovementEvents.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.GliderEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.JumpEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.FlyToEventsBySrc.Values);
+
+        // EFFECTS
+        FillFromManyRangeUnique(events, seen, _statusEvents.EffectEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.EffectEventsByDst.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.EffectEventsByEffectID.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.EffectEventsByTrackingID.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.AgentEffectEventsByTrackingID.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.GroundEffectEventsByTrackingID.Values);
+        FillFromRangeUnique(events, seen, _statusEvents.EffectEvents);
+
+        // MARKERS
+        FillFromManyRangeUnique(events, seen, _statusEvents.MarkerEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.MarkerEventsByID.Values);
+        FillFromRangeUnique(events, seen, _statusEvents.MarkerEvents);
+        FillFromManyRangeUnique(events, seen, _statusEvents.SquadMarkerEventsByIndex.Values);
+
+        // TRANSFORMATIONS
+        FillFromManyRangeUnique(events, seen, _statusEvents.TransformationEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.TransformationEventsByTransformationID.Values);
+
+        // LAST 90
+        FillFromManyRangeUnique(events, seen, _statusEvents.Last90BeforeDownEventsBySrc.Values);
+        FillFromRangeUnique(events, seen, _statusEvents.Last90BeforeDownEvents);
+
+        // GADGET CAPTURE
+        FillFromManyRangeUnique(events, seen, _statusEvents.GadgetCaptureEventsBySrc.Values);
+        FillFromRangeUnique(events, seen, _statusEvents.GadgetCaptureEvents);
+
+        // MISSILES
+        FillFromManyRangeUnique(events, seen, _statusEvents.MissileEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.MissileDamagingEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.MissileEventsBySkillID.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.MissileEventsByTrackingID.Values);
+        FillFromRangeUnique(events, seen, _statusEvents.MissileEvents);
+
+        // GADGET MODEL INFO
+        FillFromManyRangeUnique(events, seen, _statusEvents.GadgetModelInfoEventsBySrc.Values);
+        FillFromManyRangeUnique(events, seen, _statusEvents.GadgetModelInfoEventsByModel.Values);
+
+        // REWARDS
+        FillFromRangeUnique(events, seen, _rewardEvents);
+
+        return events.OfType<TimeCombatEvent>().ToList();
+    }
+    public IReadOnlyList<EXTHealingExtensionEvent> GetAllHealingExtensionCombatEvents()
+    {
+        var events = new List<CombatEvent>();
+
+        //EXTENSION HEAL
+        events.AddRange(EXTHealingCombatData.GetAllTimeCombatEvents());
+        events.AddRange(EXTBarrierCombatData.GetAllTimeCombatEvents());
+
+        return events.OfType<EXTHealingExtensionEvent>().ToList();
+    }
+
+    public IReadOnlyList<NonTimeCombatEvent> GetAllNonTimeCombatEvents()
+    {
+        var events = new List<CombatEvent>();
+        var seen = new HashSet<CombatEvent>();
+
+        // WvW
+        FillFromRangeUnique(events, seen, _statusEvents.WvWObjectiveStatusEvents);
+
+        // BUILD / DATE
+        FillUnique(events, seen, _metaDataEvents.EvtcVersionEvent);
+        FillUnique(events, seen, _metaDataEvents.GW2BuildEvent);
+        FillUnique(events, seen, _metaDataEvents.InstanceStartEvent);
+        FillUnique(events, seen, _metaDataEvents.LogStartEvent);
+        FillFromRangeUnique(events, seen, _metaDataEvents.SquadCombatStartEvents);
+        FillFromRangeUnique(events, seen, _metaDataEvents.LogNPCUpdateEvents);
+        FillUnique(events, seen, _metaDataEvents.LogEndEvent);
+        FillFromRangeUnique(events, seen, _metaDataEvents.SquadCombatEndEvents);
+
+        // MAP
+        FillUnique(events, seen, _metaDataEvents.MapIDEvent);
+        FillFromRangeUnique(events, seen, _metaDataEvents.MapChangeEvents);
+        FillUnique(events, seen, _metaDataEvents.ShardEvent);
+        FillUnique(events, seen, _metaDataEvents.FractalScaleEvent);
+
+        // OTHER META
+        FillUnique(events, seen, _metaDataEvents.PointOfViewEvent);
+        FillUnique(events, seen, _metaDataEvents.LanguageEvent);
+        FillUnique(events, seen, _metaDataEvents.WvWTeamsEvent);
+
+        // GUILD
+        FillFromRangeUnique(events, seen, _metaDataEvents.GuildEvents.Values.SelectMany(x => x));
+
+        // INFO
+        FillFromRangeUnique(events, seen, _metaDataEvents.BuffInfoEvents.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.BuffInfoEventsByCategory.Values.SelectMany(x => x));
+        FillFromRangeUnique(events, seen, _metaDataEvents.SkillInfoEvents.Values);
+
+        // ERRORS
+        FillFromRangeUnique(events, seen, _metaDataEvents.ErrorEvents);
+
+        // Guid EVENTS
+        FillFromRangeUnique(events, seen, _metaDataEvents.EffectGUIDEventsByEffectID.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.EffectGUIDEventsByGUID.Values);
+
+        FillFromRangeUnique(events, seen, _metaDataEvents.MarkerGUIDEventsByMarkerID.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.MarkerGUIDEventsByGUID.Values);
+
+        FillFromRangeUnique(events, seen, _metaDataEvents.SpeciesGUIDEventsBySpeciesID.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.SpeciesGUIDEventsByGUID.Values);
+
+        FillFromRangeUnique(events, seen, _metaDataEvents.SkillGUIDEventsBySkillID.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.SkillGUIDEventsByGUID.Values);
+
+        FillFromRangeUnique(events, seen, _metaDataEvents.EmoteGUIDEventsByEmoteID.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.EmoteGUIDEventsByGUID.Values);
+
+        FillFromRangeUnique(events, seen, _metaDataEvents.TeamGUIDEventsByTeamID.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.TeamGUIDEventsByGUID.Values);
+
+        FillFromRangeUnique(events, seen, _metaDataEvents.TransformationGUIDEventsByTransformationID.Values);
+        FillFromRangeUnique(events, seen, _metaDataEvents.TransformationGUIDEventsByGUID.Values);
+
+        // ATTACK TARGETS
+        FillFromRangeUnique(events, seen, _metaDataEvents.AttackTargetEvents);
+        FillFromRangeUnique(events, seen, _metaDataEvents.AttackTargetEventsBySrc.Values.SelectMany(x => x));
+        FillFromRangeUnique(events, seen, _metaDataEvents.AttackTargetEventByAttackTarget.Values);
+
+        // TICKS
+        FillFromRangeUnique(events, seen, _metaDataEvents.TickRateEvents);
+        FillFromRangeUnique(events, seen, _metaDataEvents.TickEvents);
+
+        return events.OfType<NonTimeCombatEvent>().ToList();
+    }
 }

@@ -32,7 +32,7 @@ internal static class MechanistHelper
                 var pos = combatData.GetMovementData(spawn.Src).OfType<PositionEvent>().FirstOrDefault(evt => evt.Time + ServerDelayConstant >= spawn.Time);
                 if (pos != null && combatData.TryGetEffectEventsByGUID(EffectGUIDs.MechanistCrashDownImpact, out var effects))
                 {
-                    return CombatData.FindRelatedEvents(effects, spawn.Time + 800).Any(effect => (pos.GetPointXY() - effect.Position.XY()).Length() < 10.0f);
+                    return CombatData.FindRelatedEvents(effects, spawn.Time + 800).Any(effect => (pos.Point2D - effect.Position.XY()).Length() < 10.0f);
                 }
                 return false;
             }) // intersect first position after spawn with delayed effect
@@ -111,7 +111,7 @@ internal static class MechanistHelper
     [
         (int)MinionID.JadeMech,
     ];
-    
+
     internal static bool IsKnownMinionID(int id)
     {
         return Minions.Contains(id);

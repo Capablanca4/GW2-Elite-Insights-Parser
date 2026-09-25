@@ -2,15 +2,14 @@
 using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
-using static GW2EIEvtcParser.EIData.Mechanic;
-using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
+using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -22,11 +21,11 @@ internal class Cairn : BastionOfThePenitent
             new MechanicGroup([
                 new PlayerDstHealthDamageHitMechanic([SpatialManipulation1, SpatialManipulationInitial, SpatialManipulation2, SpatialManipulation3, SpatialManipulation4, SpatialManipulationFastTrigger], Mech_SpatialManipulation, new (Symbols.Circle,Colors.DarkGreen), new("Std.Green", "Stood in Green Spatial Manipulation Field","Green"), Sev2)
                     .WithStabilitySubMechanic(
-                        new SubMechanic(Mech_SpatialManipulationNoStab, new (Symbols.Circle,Colors.Green), new("Green.C", "Green Spatial Manipulation Field (lift)","Green (lift)"), Sev2),
+                        new SubMechanic(Mech_SpatialManipulationNoStab, new (Symbols.Circle,Colors.Green), new("Green.C", "Green Spatial Manipulation Field (lift)","Green (lift)"), Sev0),
                         false
                     )
                     .WithStabilitySubMechanic(
-                        new SubMechanic(Mech_SpatialManipulationStab, new (Symbols.CircleOpen,Colors.Green), new("Stab.Green.C", "Green Spatial Manipulation Field while affected by stability","Stabilized Green"), Sev0),
+                        new SubMechanic(Mech_SpatialManipulationStab, new (Symbols.CircleOpen,Colors.Green), new("Stab.Green.C", "Green Spatial Manipulation Field while affected by stability","Stabilized Green"), Sev2),
                         true
                     )
                     .UsingIgnored()
@@ -122,7 +121,7 @@ internal class Cairn : BastionOfThePenitent
         {SpatialManipulationInitial, 3300},
     };
 
-    private static void AddGreenDecorations(ParsedEvtcLog log, CombatReplayDecorationContainer environmentDecorations, Span<GUID> greenGUIDs)
+    private static void AddGreenDecorations(ParsedEvtcLog log, CombatReplayDecorationContainer environmentDecorations, Span<Guid> greenGUIDs)
     {
         if (log.CombatData.TryGetEffectEventsByGUIDs(greenGUIDs, out var greenEffects))
         {
@@ -184,7 +183,7 @@ internal class Cairn : BastionOfThePenitent
                 {
                     environmentDecorations.AddWithGrowing(new CircleDecoration(radius, (greenStart, greenEnd), Colors.DarkGreen, 0.3, positionConnector), greenEnd);
                     environmentDecorations.Add(new CircleDecoration(radius, (greenEnd - 200, greenEnd), Colors.DarkGreen, 0.4, positionConnector));
-                } 
+                }
                 else
                 {
                     environmentDecorations.Add(new CircleDecoration(radius, (greenStart, greenEnd), Colors.DarkGreen, 0.3, positionConnector));
@@ -271,9 +270,9 @@ internal class Cairn : BastionOfThePenitent
                             break;
                     }
                 }
-                #if DEBUG_EFFECTS
+#if DEBUG_EFFECTS
                     CombatReplay.DebugAllNPCEffects(log, replay.Decorations, [], 50000, 63000);
-                #endif
+#endif
                 break;
             default:
                 break;

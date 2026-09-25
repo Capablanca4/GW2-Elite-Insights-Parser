@@ -6,16 +6,15 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -242,7 +241,7 @@ internal class Escort : StrongholdOfTheFaithful
             if (combatData.HasMovementData)
             {
                 var glennaInitialPosition = new Vector2(9092.697f, 21477.2969f/*, -2946.81885f*/);
-                if (!combatData.GetMovementData(glenna).Any(x => x is PositionEvent pe && pe.Time < glenna.FirstAware + MinimumInCombatDuration && (pe.GetPointXY() - glennaInitialPosition).Length() < 100))
+                if (!combatData.GetMovementData(glenna).Any(x => x is PositionEvent pe && pe.Time < glenna.FirstAware + MinimumInCombatDuration && (pe.Point2D - glennaInitialPosition).Length() < 100))
                 {
                     return LogData.StartStatus.Late;
                 }
@@ -258,7 +257,7 @@ internal class Escort : StrongholdOfTheFaithful
             return LogData.StartStatus.Normal;
         }
     }
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -291,7 +290,7 @@ internal class Escort : StrongholdOfTheFaithful
         ];
     }
 
-    internal override IReadOnlyList<TargetID>  GetFriendlyNPCIDs()
+    internal override IReadOnlyList<TargetID> GetFriendlyNPCIDs()
     {
         return
         [

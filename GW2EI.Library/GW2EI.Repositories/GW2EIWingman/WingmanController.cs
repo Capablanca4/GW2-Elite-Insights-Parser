@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text;
-using GW2EIWingman.WingmanUploadJsons;
 using System.Text.Json;
+using GW2EIWingman.WingmanUploadJsons;
 
 [assembly: CLSCompliant(false)]
 namespace GW2EIWingman;
@@ -214,7 +214,7 @@ public static class WingmanController
         var data = new Dictionary<string, string> {
             { "account", account },
         };
-        Func<HttpContent> contentCreator = () =>
+        HttpContent contentCreator()
         {
             var multiPartContent = new MultipartFormDataContent();
             var fileContent = new ByteArrayContent(fileBytes);
@@ -230,7 +230,7 @@ public static class WingmanController
                 multiPartContent.Add(content, pair.Key);
             }
             return multiPartContent;
-        };
+        }
 
         string? response = GetWingmanResponse("UploadProcessed", UploadProcessedURL, traceHandler, null, HttpMethod.Post, contentCreator);
         return response != null && response != "False";
@@ -244,7 +244,7 @@ public static class WingmanController
         {
             traceHandler(requestName + " tentative");
             var webService = new Uri(@url);
-            using var requestMessage = new HttpRequestMessage(method, webService);
+            var requestMessage = new HttpRequestMessage(method, webService);
             requestMessage.Headers.ExpectContinue = false;
 
             if (content != null)
@@ -275,7 +275,7 @@ public static class WingmanController
             catch (AggregateException agg)
             {
                 traceHandler(requestName + " tentative failed");
-                traceHandler("Main reason: " + agg.Message);         
+                traceHandler("Main reason: " + agg.Message);
                 foreach (Exception e in agg.InnerExceptions)
                 {
                     traceHandler(requestName + " tentaive failed - sub message - " + e.Message);
@@ -285,6 +285,10 @@ public static class WingmanController
             {
                 traceHandler(requestName + " tentaive failed");
                 traceHandler("Reason: " + e.Message);
+            }
+            finally
+            {
+                requestMessage.Dispose();
             }
         }
         return null;

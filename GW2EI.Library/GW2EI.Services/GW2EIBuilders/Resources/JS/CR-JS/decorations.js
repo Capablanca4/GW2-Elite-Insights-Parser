@@ -498,7 +498,7 @@ class MechanicDrawable {
         return this.positionFetcher(this.connectedTo, this.master, this.start, this.end);
     }
 
-    moveContext(ctx, pos, rot) {
+    moveContext(ctx, pos, rot, useGlobalRotation = false) {
         const angle = ToRadians(rot);
         const offsetAngle = ToRadians(this.rotationOffset);
         const offset = this.getOffset();
@@ -506,6 +506,9 @@ class MechanicDrawable {
         ctx.translate(pos.x, pos.y);
         if (!offsetAfterRotation) {       
             ctx.translate(offset.x, offset.y);   
+        }
+        if (useGlobalRotation) {
+            ctx.rotate(-animator.globalRotation);
         }
         ctx.rotate(angle);
         if (offsetAngle !== 0 && this.rotationOffsetMode === RotationOffsetMode.addToMaster) {
@@ -686,7 +689,7 @@ class CircleMechanicDrawable extends FormMechanicDrawable {
             ctx.fillStyle = this.color;
             ctx.fill();
         } else {
-            ctx.lineWidth = (2 / animator.scale).toString();
+            ctx.lineWidth = (2 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
             ctx.stroke();
         }
@@ -731,7 +734,7 @@ class RegularPolygonMechanicDrawable extends FormMechanicDrawable {
             ctx.fillStyle = this.color;
             ctx.fill();
         } else {
-            ctx.lineWidth = (2 / animator.scale).toString();
+            ctx.lineWidth = (2 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
             ctx.stroke();
         }
@@ -781,7 +784,7 @@ class CustomPolygonMechanicDrawable extends FormMechanicDrawable {
             ctx.fillStyle = this.color;
             ctx.fill();
         } else {
-            ctx.lineWidth = (2 / animator.scale).toString();
+            ctx.lineWidth = (2 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
             ctx.stroke();
         }
@@ -842,7 +845,7 @@ class DoughnutMechanicDrawable extends FormMechanicDrawable {
             ctx.closePath();
             ctx.fill();
         } else {  
-            ctx.lineWidth = (2 / animator.scale).toString();
+            ctx.lineWidth = (2 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
 
             ctx.beginPath();
@@ -892,7 +895,7 @@ class RectangleMechanicDrawable extends FormMechanicDrawable {
             ctx.fillStyle = this.color;
             ctx.fill();
         } else {
-            ctx.lineWidth = (2 / animator.scale).toString();
+            ctx.lineWidth = (2 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
             ctx.stroke();
         }
@@ -968,7 +971,7 @@ class ProgressBarMechanicDrawable extends RectangleMechanicDrawable {
         const progressPercent = this.computeProgress() / 100.0;
         const ctx = animator.mainContext;
         ctx.save();
-        this.moveContext(ctx, pos, rot);
+        this.moveContext(ctx, pos, rot, true);
         const secondaryOffset = this.getSecondaryOffset();
         if (secondaryOffset) {
             ctx.translate(secondaryOffset.x, secondaryOffset.y);
@@ -988,14 +991,14 @@ class ProgressBarMechanicDrawable extends RectangleMechanicDrawable {
             ctx.beginPath();
             ctx.rect(- 0.5 * size.w, - 0.5 * size.h, progressPercent * size.w, size.h);
             ctx.closePath();
-            ctx.lineWidth = (3 / animator.scale).toString();
+            ctx.lineWidth = (3 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
             ctx.stroke();
             //
             ctx.beginPath();
             ctx.rect(- 0.5 * size.w, - 0.5 * size.h, size.w, size.h);
             ctx.closePath();
-            ctx.lineWidth = (2 / animator.scale).toString();
+            ctx.lineWidth = (2 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
             ctx.stroke();
             if (progressPercent < 1) {
@@ -1044,8 +1047,8 @@ class OverheadProgressBarMechanicDrawable extends ProgressBarMechanicDrawable {
             }
         } else {
             return {
-                h: this.pixelHeight / animator.scale,
-                w: this.pixelWidth / animator.scale,
+                h: this.pixelHeight / animator.globalScale,
+                w: this.pixelWidth / animator.globalScale,
             }
         }
     }
@@ -1088,7 +1091,7 @@ class PieMechanicDrawable extends FormMechanicDrawable {
             ctx.fillStyle = this.color;
             ctx.fill();
         } else {
-            ctx.lineWidth = (2 / animator.scale).toString();
+            ctx.lineWidth = (2 / animator.globalScale).toString();
             ctx.strokeStyle = this.color;
             ctx.stroke();
         }
@@ -1184,7 +1187,7 @@ class LineMechanicDrawable extends FormMechanicDrawable {
         }
         let thickness = this.thickness;
         if (!this.worldSizeThickness) {
-            thickness /= animator.scale;
+            thickness /= animator.globalScale;
         }
         ctx.lineWidth = (thickness).toString();
         ctx.strokeStyle = this.color;
@@ -1423,7 +1426,7 @@ class IconMechanicDrawable extends MechanicDrawable {
         if (animator.displaySettings.useActorHitboxWidth && this.worldSize > 0) {
             return this.worldSize;
         } else if (this.pixelSize > 0){
-            return this.pixelSize / animator.scale;
+            return this.pixelSize / animator.globalScale;
         } else if (this.worldSize > 0){
             return this.worldSize;
         }
@@ -1449,7 +1452,7 @@ class IconMechanicDrawable extends MechanicDrawable {
         
         const ctx = animator.mainContext;
         ctx.save();
-        this.moveContext(ctx, pos, rot);
+        this.moveContext(ctx, pos, rot, true);
         ctx.globalAlpha = this.getOpacity();
         const secondaryOffset = this.getSecondaryOffset();
         if (secondaryOffset) {        
@@ -1538,7 +1541,7 @@ class IconOverheadMechanicDrawable extends IconMechanicDrawable {
         if (animator.displaySettings.useActorHitboxWidth && this.worldSize > 0) {
             return this.worldSize;
         } else {
-            return this.pixelSize / animator.scale;
+            return this.pixelSize / animator.globalScale;
         }
     }
 
@@ -1548,7 +1551,7 @@ class IconOverheadMechanicDrawable extends IconMechanicDrawable {
             return null; 
         }
         const masterSize = this.master.getSize();
-        const scale = animator.displaySettings.useActorHitboxWidth ? 1/InchToPixel : animator.scale;
+        const scale = animator.displaySettings.useActorHitboxWidth ? 1/InchToPixel : animator.globalScale;
         let offset = {
             x: 0,
             y: 0,
@@ -1579,7 +1582,7 @@ class TextDrawable extends MechanicDrawable {
         if (this.connectedTo.isScreenSpace) {
             return this.fontSize * resolutionMultiplier;
         }
-        return this.fontSize / animator.scale;
+        return this.fontSize / animator.globalScale;
     }
 
     getSecondaryOffset() {
@@ -1599,7 +1602,7 @@ class TextDrawable extends MechanicDrawable {
         pos.y += fontSize / 2;
         const ctx = animator.mainContext;
         ctx.save();
-        this.moveContext(ctx, pos, rot);     
+        this.moveContext(ctx, pos, rot, true);     
         const secondaryOffset = this.getSecondaryOffset();
         if (secondaryOffset) {        
             ctx.translate(secondaryOffset.x, secondaryOffset.y);
@@ -1624,7 +1627,7 @@ class TextOverheadDrawable extends TextDrawable {
         if (animator.displaySettings.useActorHitboxWidth) {
             return this.fontSize / (resolutionMultiplier * resolutionMultiplier) ;
         } else {
-            return this.fontSize / animator.scale;
+            return this.fontSize / animator.globalScale;
         }
     }
 
@@ -1634,7 +1637,7 @@ class TextOverheadDrawable extends TextDrawable {
             return null; 
         }
         const masterSize = this.master.getSize();
-        const scale = animator.displaySettings.useActorHitboxWidth ? 1 / InchToPixel : animator.scale;
+        const scale = animator.displaySettings.useActorHitboxWidth ? 1 / InchToPixel : animator.globalScale;
         let offset = {
             x: 0,
             y: 0,

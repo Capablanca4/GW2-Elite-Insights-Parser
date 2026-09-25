@@ -292,7 +292,8 @@ class Animator {
             skillMechanicsMask: DefaultSkillDecorations,
             displayTrashMobs: true,
             useActorHitboxWidth: false,
-            followSelected: false
+            followSelected: false,
+            rotateSelected: false
         };
         this.selectedExtraDecorations = null;
         // actors
@@ -323,7 +324,9 @@ class Animator {
         // manipulation
         this.mouseDown = null;
         this.dragged = false;
-        this.scale = 1.0;
+        this.globalScale = 1.0;
+        this.globalRotation = 0;
+        this.globalTranslation = null;
         // options
         if (options) {
             if (options.inchToPixel) {
@@ -812,6 +815,13 @@ class Animator {
 
     toggleFollowSelected() {
         this.displaySettings.followSelected = !this.displaySettings.followSelected;
+        this.needBGUpdate = true;
+        animateCanvas(noUpdateTime);
+    }
+
+    toggleRotateSelected() {
+        this.displaySettings.rotateSelected = !this.displaySettings.rotateSelected;
+        this.needBGUpdate = true;
         animateCanvas(noUpdateTime);
     }
 
@@ -914,6 +924,8 @@ class Animator {
         if (defaultViewpoint) {
             this._setScaleOnPoint(defaultViewpoint.s, 0, 0);
         }
+        this.globalTranslation = null;
+        this.globalRotation = 0;
         this.needBGUpdate = true;
         if (this.animation === null) {
             animateCanvas(noUpdateTime);
@@ -927,7 +939,7 @@ class Animator {
         ctx.translate(pt.x, pt.y);
         bgCtx.translate(pt.x, pt.y);
         ctx.scale(factor, factor);
-        if ((50 / (InchToPixel * this.scale) < 10)) {
+        if ((50 / (InchToPixel * this.globalScale) < 10)) {
             ctx.scale(1.0 / factor, 1.0 / factor);
             factor = 1.0;
         }
@@ -1077,7 +1089,7 @@ class Animator {
             xform = xform.scale(sx, sy);
             const xAxis = Math.sqrt(xform.a * xform.a + xform.b * xform.b);
             const yAxis = Math.sqrt(xform.c * xform.c + xform.d * xform.d);
-            _this.scale = Math.max(xAxis, yAxis) / resolutionMultiplier;
+            _this.globalScale = Math.max(xAxis, yAxis) / resolutionMultiplier;
             return scale.call(ctx, sx, sy);
         };
         
@@ -1147,6 +1159,8 @@ class Animator {
             {
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "grey";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
             ctx.restore();
 
@@ -1156,39 +1170,6 @@ class Animator {
                 this._moveToSelected(ctx);
                 this.backgroundImages.draw(standardDraw);
                 //ctx.globalCompositeOperation = "color-burn";
-                ctx.save();
-                {
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    // draw scale
-                    ctx.lineWidth = 3 * resolutionMultiplier;
-                    ctx.strokeStyle = "#CC2200";
-                    const pos = resolutionMultiplier * 70;
-                    const width = resolutionMultiplier * 50;
-                    const height = resolutionMultiplier * 6;
-                    // main line
-                    ctx.beginPath();
-                    ctx.moveTo(pos, pos);
-                    ctx.lineTo(pos + width, pos);
-                    ctx.stroke();
-                    ctx.lineWidth = 2 * resolutionMultiplier;
-                    // right border
-                    ctx.beginPath();
-                    ctx.moveTo(pos - resolutionMultiplier, pos + height);
-                    ctx.lineTo(pos - resolutionMultiplier, pos - height);
-                    ctx.stroke();
-                    // left border
-                    ctx.beginPath();
-                    ctx.moveTo(pos + width + resolutionMultiplier, pos + height);
-                    ctx.lineTo(pos + width + resolutionMultiplier, pos - height);
-                    ctx.stroke();
-                    // text
-                    const fontSize = 13 * resolutionMultiplier;
-                    ctx.font = "bold " + fontSize + "px Comic Sans MS";
-                    ctx.fillStyle = "#CC2200";
-                    ctx.textAlign = "center";
-                    ctx.fillText((50 / (InchToPixel * this.scale)).toFixed(1) + " units", resolutionMultiplier * 95, resolutionMultiplier * 60);
-                }
-                ctx.restore();
             }
             //ctx.restore();
             //ctx.globalCompositeOperation = 'normal';
@@ -1264,6 +1245,10 @@ class Animator {
         {
 
             this._moveToSelected(ctx);
+            if (!this.displaySettings.followSelected || !this.displaySettings.rotateSelected) {
+                this.globalTranslation = null;
+                this.globalRotation = 0;
+            }
             // Background items commonly overlap so they need to be drawn in the correct order by height
             // This is sorted in reverse order because the z axis is inverted
             animator.backgroundActorData.sort((x, y) => y.getHeight() - x.getHeight());
@@ -1314,6 +1299,39 @@ class Animator {
                 this.screenSpaceActorData.draw(standardDraw);
             }
             ctx.restore()
+            ctx.save();
+            {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                // draw scale
+                ctx.lineWidth = 3 * resolutionMultiplier;
+                ctx.strokeStyle = "#CC2200";
+                const pos = resolutionMultiplier * 70;
+                const width = resolutionMultiplier * 50;
+                const height = resolutionMultiplier * 6;
+                // main line
+                ctx.beginPath();
+                ctx.moveTo(pos, pos);
+                ctx.lineTo(pos + width, pos);
+                ctx.stroke();
+                ctx.lineWidth = 2 * resolutionMultiplier;
+                // right border
+                ctx.beginPath();
+                ctx.moveTo(pos - resolutionMultiplier, pos + height);
+                ctx.lineTo(pos - resolutionMultiplier, pos - height);
+                ctx.stroke();
+                // left border
+                ctx.beginPath();
+                ctx.moveTo(pos + width + resolutionMultiplier, pos + height);
+                ctx.lineTo(pos + width + resolutionMultiplier, pos - height);
+                ctx.stroke();
+                // text
+                const fontSize = 13 * resolutionMultiplier;
+                ctx.font = "bold " + fontSize + "px Comic Sans MS";
+                ctx.fillStyle = "#CC2200";
+                ctx.textAlign = "center";
+                ctx.fillText((50 / (InchToPixel * this.globalScale)).toFixed(1) + " units", resolutionMultiplier * 95, resolutionMultiplier * 60);
+            }
+            ctx.restore();
         }
         //ctx.restore();  
     }
@@ -1328,10 +1346,24 @@ class Animator {
             const pos = this.selectedActor.getPosition();
             if (pos !== null) {
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.scale(this.scale * resolutionMultiplier, this.scale * resolutionMultiplier);
-                const translateScale = 0.5 / resolutionMultiplier / this.scale
-                ctx.translate(-pos.x + this.mainCanvas.width * translateScale, -pos.y + this.mainCanvas.height * translateScale);
+                const translateScale = 0.5 / resolutionMultiplier / this.globalScale
+                ctx.scale(this.globalScale * resolutionMultiplier, this.globalScale * resolutionMultiplier);
+                ctx.translate(this.mainCanvas.width * translateScale, this.mainCanvas.height * translateScale);
+                if (this.displaySettings.rotateSelected) {               
+                    const rot = this.selectedActor.getRotation();
+                    const angle = rot != null ? ToRadians(rot + 90) : 0;
+                    ctx.rotate(-angle);
+                    this.globalRotation = -angle;
+                    this.globalTranslation = pos;
+                }
+                ctx.translate(-pos.x, -pos.y);
             }
+        }
+        // We need to restore orientation 
+        else if (this.globalTranslation) {
+            ctx.translate(this.globalTranslation.x, this.globalTranslation.y);
+            ctx.rotate(-this.globalRotation);
+            ctx.translate(-this.globalTranslation.x, -this.globalTranslation.y);
         }
     }
     draw() {

@@ -1,10 +1,10 @@
 ﻿using GW2EIEvtcParser;
 using NUnit.Framework;
 
-namespace GW2EIParserWinForms.tst;
+namespace GW2EIParser.tst;
 
 [TestFixture]
-public class ParsingErrors
+internal class ParsingErrors
 {
     [TestCase("20231017-143845.zevtc", "Log is longer than 24h")]
     //TODO(Rennorb) This one doesn't throw? Only reports an error when run in the ui tool for some reason.
@@ -25,7 +25,7 @@ public class ParsingErrors
         var parser = new EvtcParser(TestHelper.ParserSettings, TestHelper.APIController);
 
         var file = new FileInfo("TestInput/Broken/" + logFile);
-        if(!file.Exists)
+        if (!file.Exists)
         {
             Assert.Inconclusive($"Required file ({file}) does not exist.");
             return;

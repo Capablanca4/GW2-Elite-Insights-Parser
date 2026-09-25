@@ -180,6 +180,8 @@ Temple of Febe: 0x040502
 
 Guardian's Glade: 0x040601
 
+Nexus of Eternity: 0x040602
+
 0xXXXX1X indicates a full instance log.
 
 ## Open World
@@ -260,3 +262,7 @@ Greer, the Blightbringer: 0x090201
 Decima, the Stormsinger: 0x090202
 
 Ura, the Steamshrieker: 0x090203
+
+### Nexus of Eternity
+
+Vloxx: 0x090300

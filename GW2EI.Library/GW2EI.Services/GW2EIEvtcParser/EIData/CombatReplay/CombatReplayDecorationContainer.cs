@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Drawing;
 using System.Numerics;
 using GW2EIEvtcParser.ParsedData;
 using static GW2EIEvtcParser.EIData.Decoration;
@@ -323,6 +322,18 @@ internal class CombatReplayDecorationContainer
         AddTethers(tethers, color.WithAlpha(opacity).ToString(true), thickness, worldSizeThickess);
     }
 
+    internal void AddTetherByEffectGUID(EffectEvent effect, Color color, double opacity, (long start, long end) lifespan)
+    {
+        AddTetherByEffectGUID(effect, color.WithAlpha(opacity).ToString(true), lifespan);
+    }
+
+    internal void AddTetherByEffectGUID(EffectEvent effect, string color, (long start, long end) lifespan)
+    {
+        if (!effect.IsAroundDst) { return; }
+
+        AddTether(lifespan.start, lifespan.end, effect.Dst, effect.Src, color);
+    }
+
     /// <summary>
     /// Add tether decorations which src and dst are defined by tethers parameter using <see cref="EffectEvent"/>.
     /// </summary>
@@ -360,7 +371,7 @@ internal class CombatReplayDecorationContainer
     /// <param name="opacity">Opacity of the tether decoration.</param>
     /// <param name="duration">Manual set duration to use as override of the <paramref name="effect"/> duration.</param>
     /// <param name="overrideDuration">Wether to override the duration or not.</param>
-    internal void AddTethersByEffectGUID(ParsedEvtcLog log, EffectEvent effect, Color color, double opacity, int duration = 0, bool overrideDuration = false)
+    internal void AddTetherByEffectGUID(ParsedEvtcLog log, EffectEvent effect, Color color, double opacity, int duration = 0, bool overrideDuration = false)
     {
         AddTetherByEffectGUID(log, effect, color.WithAlpha(opacity).ToString(true), duration, overrideDuration);
     }
@@ -613,6 +624,30 @@ internal class CombatReplayDecorationContainer
     internal delegate void MissileDecorationHandler(MissileLaunchEvent launch, (long start, long end) lifespan, GeographicalConnector connector);
     internal delegate void MissileRotatingDecorationHandler(MissileLaunchEvent launch, (long start, long end) lifespan, GeographicalConnector connector, RotationConnector rotationConnector);
 
+    private static void AddNonHomingLaunch(MissileEvent missileEvent, int i, long end, MissileDecorationHandler handler)
+    {
+        var launchEvents = missileEvent.LaunchEvents;
+        var launch = launchEvents[i];
+        (long start, long end) trajectoryLifeSpan;
+        if (i == launchEvents.Count - 1)
+        {
+            trajectoryLifeSpan = (launch.Time, end);
+            if (missileEvent.RemoveEvent == null)
+            {
+                trajectoryLifeSpan.end = launch.GetExpectedEndTime();
+            }
+        }
+        else
+        {
+            trajectoryLifeSpan = (launch.Time, launchEvents[i + 1].Time);
+        }
+        handler(launch, trajectoryLifeSpan, new InterpolationConnector([
+                    new ParametricPoint3D(launch.LaunchPosition, trajectoryLifeSpan.start),
+                        launch.GetFinalPosition(trajectoryLifeSpan)
+                ],
+                Connector.InterpolationMethod.Linear));
+    }
+
     /// <summary>
     /// Add a missile going from a Point A to Point B, supports multi launches
     /// </summary>
@@ -620,19 +655,13 @@ internal class CombatReplayDecorationContainer
     /// <param name="missileEvent"></param>
     /// <param name="handler">Handler that will create the decoration</param>
     /// <param name="endOverride"></param>
-    internal static void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, MissileDecorationHandler handler, long? endOverride = null)
+    internal static void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, MissileDecorationHandler handler)
     {
-        long end = missileEvent.RemoveEvent?.Time ?? (endOverride.HasValue ? Math.Min(endOverride.Value, log.LogData.LogEnd) : log.LogData.LogEnd);
+        long end = missileEvent.RemoveEvent?.Time ?? Math.Min(log.LogData.LogEnd, missileEvent.Src.LastAware);
         var launchEvents = missileEvent.LaunchEvents;
         for (int i = 0; i < launchEvents.Count; i++)
         {
-            var launch = launchEvents[i];
-            (long start, long end) trajectoryLifeSpan = (launch.Time, i != launchEvents.Count - 1 ? launchEvents[i + 1].Time : end);
-            handler(launch, trajectoryLifeSpan, new InterpolationConnector([
-                        new ParametricPoint3D(launch.LaunchPosition, trajectoryLifeSpan.start),
-                        launch.GetFinalPosition(trajectoryLifeSpan)
-                    ],
-                    Connector.InterpolationMethod.Linear));
+            AddNonHomingLaunch(missileEvent, i, end, handler);
         }
     }
 
@@ -649,6 +678,24 @@ internal class CombatReplayDecorationContainer
         AddNonHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
         {
             Add(new CircleDecoration(radius, lifespan, color, opacity, connector));
+        });
+    }
+
+    /// <summary>
+    /// Add a missile going from a Point A to Point B, supports multi launches, uses CircleDecoration and adds a border
+    /// </summary>
+    /// <param name="log">Evtc log</param>
+    /// <param name="missileEvent"></param>
+    /// <param name="color"></param>
+    /// <param name="opacity"></param>
+    /// <param name="radius"></param>
+    /// <param name="borderColor"></param>
+    /// <param name="borderOpacity"></param>
+    internal void AddNonHomingMissileWithBorder(ParsedEvtcLog log, MissileEvent missileEvent, Color color, double opacity, uint radius, Color borderColor, double borderOpacity)
+    {
+        AddNonHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
+        {
+            AddWithBorder(new CircleDecoration(radius, lifespan, color, opacity, connector), borderColor, borderOpacity);
         });
     }
 
@@ -678,7 +725,7 @@ internal class CombatReplayDecorationContainer
     /// <param name="useTargetOrientation"></param>
     internal static void AddRotatingAroundTargetMissile(ParsedEvtcLog log, MissileEvent missileEvent, float angleOffset, MissileRotatingDecorationHandler handler, bool useTargetOrientation = false)
     {
-        long end = missileEvent.RemoveEvent?.Time ?? log.LogData.LogEnd;
+        long end = missileEvent.RemoveEvent?.Time ?? Math.Min(log.LogData.LogEnd, missileEvent.Src.LastAware);
         var launchEvents = missileEvent.LaunchEvents;
         for (int i = 0; i < launchEvents.Count; i++)
         {
@@ -732,7 +779,7 @@ internal class CombatReplayDecorationContainer
     /// <param name="handler"></param>
     internal static void AddHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, MissileDecorationHandler handler)
     {
-        long end = missileEvent.RemoveEvent?.Time ?? log.LogData.LogEnd;
+        long end = missileEvent.RemoveEvent?.Time ?? Math.Min(log.LogData.LogEnd, missileEvent.Src.LastAware);
         var launchEvents = missileEvent.LaunchEvents;
         for (int i = 0; i < launchEvents.Count; i++)
         {
@@ -744,11 +791,7 @@ internal class CombatReplayDecorationContainer
             }
             else
             {
-                handler(launch, trajectoryLifeSpan, new InterpolationConnector([
-                        new ParametricPoint3D(launch.LaunchPosition, trajectoryLifeSpan.start),
-                        launch.GetFinalPosition(trajectoryLifeSpan)
-                    ],
-                    Connector.InterpolationMethod.Linear));
+                AddNonHomingLaunch(missileEvent, i, end, handler);
             }
         }
     }

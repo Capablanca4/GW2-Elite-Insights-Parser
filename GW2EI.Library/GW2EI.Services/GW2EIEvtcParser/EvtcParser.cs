@@ -18,35 +18,127 @@ public class EvtcParser
 {
 
     //Main data storage after binary parse
-    private LogData _logData;
-    private AgentData _agentData;
-    private readonly List<AgentItem> _allAgentsList;
-    private SkillData _skillData;
-    private readonly List<CombatItem> _combatItems;
-    private readonly Dictionary<ulong, ulong> ArcDPSAgentRedirection = [];
-    private List<Player> _playerList;
-    private byte _revision;
-    private ushort _id;
-    private long _logStartOffset;
-    private long _logEndTime;
-    private EvtcVersionEvent _evtcVersion;
-    private ulong _gw2Build;
-    private int _mapID = -1;
-    private readonly EvtcParserSettings _parserSettings;
+    private EvtcParserSettings _parserSettings;
     private readonly GW2APIController _apiController;
-    private readonly Dictionary<uint, ExtensionHandler> _enabledExtensions;
 
     public EvtcParser(EvtcParserSettings parserSettings, GW2APIController apiController)
     {
         _apiController = apiController;
         _parserSettings = parserSettings;
-        _allAgentsList = [];
-        _combatItems = [];
-        _playerList = [];
-        _logStartOffset = long.MinValue;
-        _logEndTime = 0;
-        _enabledExtensions = [];
     }
+
+    #region Raw Parse Method
+    /// <summary>
+    /// Parses the given log without any EI logic. <br></br>
+    /// On parsing failure, <see cref="ParsingFailureReason"/> will be filled with the reason of the failure and the method will return <see langword="null"/>.
+    /// </summary>
+    /// <param name="operation">Operation object bound to the UI.</param>
+    /// <param name="evtc">The path to the log to parse.</param>
+    /// <param name="parsingFailureReason">The reason why the parsing failed, if applicable.</param>
+    /// <returns>The <see cref="RawEvtcLog"/> log.</returns>
+    /// <exception cref="EvtcFileException"></exception>
+    public RawEvtcLog? ParseRawLog(ParserController operation, FileInfo evtc, out ParsingFailureReason? parsingFailureReason, bool useEIPreProcess)
+    {
+        parsingFailureReason = null;
+        try
+        {
+            if (!evtc.Exists)
+            {
+                throw new EvtcFileException("File " + evtc.FullName + " does not exist");
+            }
+            if (!SupportedFileFormats.IsSupportedFormat(evtc.Name))
+            {
+                throw new EvtcFileException("Not EVTC");
+            }
+            RawEvtcLog? evtcLog;
+            using var fs = new FileStream(evtc.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (SupportedFileFormats.IsCompressedFormat(evtc.Name))
+            {
+                using var arch = new ZipArchive(fs, ZipArchiveMode.Read);
+                if (arch.Entries.Count != 1)
+                {
+                    throw new EvtcFileException("Invalid Archive");
+                }
+
+                using Stream data = arch.Entries[0].Open();
+                using var ms = new MemoryStream();
+                data.CopyTo(ms);
+                operation.SetFileSize(ms.Length / (1024L * 1024L));
+                if (operation.FileSize > _parserSettings.TooBigLimit)
+                {
+                    throw new TooBigException(operation.FileSize, _parserSettings.TooBigLimit);
+                }
+                ms.Position = 0;
+                evtcLog = ParseRawLog(operation, ms, out parsingFailureReason, useEIPreProcess);
+            }
+            else
+            {
+                operation.SetFileSize(evtc.Length / (1024L * 1024L));
+                if (operation.FileSize > _parserSettings.TooBigLimit)
+                {
+                    throw new TooBigException(operation.FileSize, _parserSettings.TooBigLimit);
+                }
+                evtcLog = ParseRawLog(operation, fs, out parsingFailureReason, useEIPreProcess);
+            }
+            return evtcLog;
+        }
+        catch (Exception ex)
+        {
+            parsingFailureReason = new ParsingFailureReason(ex);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Parses the given log without any EI Logic. <br></br>
+    /// On parsing failure, <see cref="ParsingFailureReason"/> will be filled with the reason of the failure and the method will return <see langword="null"/>.
+    /// </summary>
+    /// <param name="operation">Operation object bound to the UI.</param>
+    /// <param name="evtcStream">The stream of the log.</param>
+    /// <param name="parsingFailureReason">The reason why the parsing failed, if applicable.</param>
+    /// <returns>The <see cref="ParsedEvtcLog"/> log.</returns>
+    public RawEvtcLog? ParseRawLog(ParserController operation, Stream evtcStream, out ParsingFailureReason? parsingFailureReason, bool useEIPreProcess)
+    {
+        var oldSettings = _parserSettings;
+        _parserSettings = new EvtcParserSettings();
+        parsingFailureReason = null;
+        try
+        {
+            using BinaryReader reader = CreateReader(evtcStream);
+            operation.UpdateProgressWithCancellationCheck("Parsing: Reading Binary");
+            operation.UpdateProgressWithCancellationCheck("Parsing: Parsing log data");
+            var (revision, id, evtcVersion) = ParseLogData(reader, operation);
+            operation.UpdateProgressWithCancellationCheck("Parsing: Parsing agent data");
+            var agentsList = ParseAgentData(reader, operation);
+            operation.UpdateProgressWithCancellationCheck("Parsing: Parsing skill data");
+            var skillData = ParseSkillData(reader, operation, evtcVersion);
+            operation.UpdateProgressWithCancellationCheck("Parsing: Parsing combat list");
+            var (combatItems, arcdpsAgentRedirection, enabledExtensions, newID, mapID, logStartOffset, logEndTime, gw2Build) = ParseCombatList(reader, operation, revision, id, evtcVersion);
+            operation.UpdateProgressWithCancellationCheck("Parsing: Linking agents to combat list");
+            var (logData, agentData, playerList) = CompleteAgentsAndLogData(operation, agentsList, combatItems, arcdpsAgentRedirection, enabledExtensions, logStartOffset, logEndTime, newID, evtcVersion);
+            if (useEIPreProcess)
+            {
+                operation.UpdateProgressWithCancellationCheck("Parsing: Preparing data for log generation");
+                PreProcessEvtcData(operation, logData, agentData, combatItems, enabledExtensions, evtcVersion, gw2Build);
+            }
+            operation.UpdateProgressWithCancellationCheck("Parsing: Data parsed");
+            var log = new RawEvtcLog(evtcVersion, logData, agentData, skillData, combatItems, playerList, enabledExtensions, _parserSettings, _apiController, operation);
+            _parserSettings = oldSettings;
+            return log;
+        }
+        catch (Exception ex)
+        {
+            _parserSettings = oldSettings;
+#if DEBUG
+            Console.Error.WriteLine(ex);
+#endif
+
+            parsingFailureReason = new ParsingFailureReason(ex);
+            return null;
+        }
+    }
+
+    #endregion
 
     #region Main Parse Method
 
@@ -112,13 +204,13 @@ public class EvtcParser
         }
     }
 
-    private static void DoMultiThreadAccelerationCommon(ParsedEvtcLog log, AutoTrace _t, 
+    private static void DoMultiThreadAccelerationCommon(ParsedEvtcLog log, AutoTrace _t,
         IReadOnlyList<(long start, long end)> intervals)
     {
         Parallel.ForEach(log.Friendlies, actor =>
         {
-        foreach (var (start, end) in intervals)
-        {
+            foreach (var (start, end) in intervals)
+            {
                 // To create the caches
                 foreach (var p in log.PlayerList)
                 {
@@ -266,7 +358,7 @@ public class EvtcParser
         DoMultiThreadAccelerationCommon(log, _t, intervals);
     }
 
-    private static void DoMultiThreadAccelerationWithEnglobingAgents(ParsedEvtcLog log, AutoTrace _t, 
+    private static void DoMultiThreadAccelerationWithEnglobingAgents(ParsedEvtcLog log, AutoTrace _t,
         IReadOnlyList<SingleActor> friendliesAndTargets,
         IReadOnlyList<SingleActor> friendliesAndTargetsAndMobsEnglobing, IReadOnlyList<SingleActor> friendliesAndTargetsAndMobsNonEnglobed,
         IReadOnlyList<SingleActor> friendliesAndTargetsEnglobing,
@@ -281,7 +373,7 @@ public class EvtcParser
         Parallel.ForEach(friendliesAndTargetsEnglobing, actor =>
         {
             var englobeds = friendliesAndTargetsAndMobsEnglobed.Where(x => x.EnglobingAgentItem == actor.AgentItem);
-            foreach ( var (start, end) in intervals)
+            foreach (var (start, end) in intervals)
             {
                 actor.GetBuffDistribution(log, start, end);
                 foreach (var englobed in englobeds)
@@ -379,26 +471,20 @@ public class EvtcParser
             operation.UpdateProgressWithCancellationCheck("Parsing: Reading Binary");
 
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing log data");
-            ParseLogData(reader, operation);
+            var (revision, id, evtcVersion) = ParseLogData(reader, operation);
 
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing agent data");
-            ParseAgentData(reader, operation);
-
+            var agentsList = ParseAgentData(reader, operation);
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing skill data");
-            ParseSkillData(reader, operation);
-
+            var skillData = ParseSkillData(reader, operation, evtcVersion);
             operation.UpdateProgressWithCancellationCheck("Parsing: Parsing combat list");
-            ParseCombatList(reader, operation);
-
+            var (combatItems, arcdpsAgentRedirection, enabledExtensions, newID, mapID, logStartOffset, logEndTime, gw2Build) = ParseCombatList(reader, operation, revision, id, evtcVersion);
             operation.UpdateProgressWithCancellationCheck("Parsing: Linking agents to combat list");
-            CompleteAgents(operation);
-
+            var (logData, agentData, playerList) = CompleteAgentsAndLogData(operation, agentsList, combatItems, arcdpsAgentRedirection, enabledExtensions, logStartOffset, logEndTime, newID, evtcVersion);
             operation.UpdateProgressWithCancellationCheck("Parsing: Preparing data for log generation");
-            PreProcessEvtcData(operation);
-
+            PreProcessEvtcData(operation, logData, agentData, combatItems, enabledExtensions, evtcVersion, gw2Build);
             operation.UpdateProgressWithCancellationCheck("Parsing: Data parsed");
-
-            var log = new ParsedEvtcLog(_evtcVersion, _logData, _agentData, _skillData, _combatItems, _playerList, _enabledExtensions, _parserSettings, _apiController, operation);
+            var log = new ParsedEvtcLog(evtcVersion, logData, agentData, skillData, combatItems, playerList, enabledExtensions, _parserSettings, _apiController, operation);
 
             if (multiThreadAcceleration)
             {
@@ -457,18 +543,18 @@ public class EvtcParser
                         .Where(x => !x.AgentItem.IsEnglobedAgent)
                         .ToList();
 
-                    DoMultiThreadAccelerationWithEnglobingAgents(log, _t, 
-                        friendliesAndTargets, 
-                        friendliesAndTargetsAndMobsEnglobing, friendliesAndTargetsAndMobsNonEnglobed, 
-                        friendliesAndTargetsEnglobing, 
-                        friendliesAndTargetsAndMobsEnglobed, friendliesAndTargetsNonEnglobed, 
+                    DoMultiThreadAccelerationWithEnglobingAgents(log, _t,
+                        friendliesAndTargets,
+                        friendliesAndTargetsAndMobsEnglobing, friendliesAndTargetsAndMobsNonEnglobed,
+                        friendliesAndTargetsEnglobing,
+                        friendliesAndTargetsAndMobsEnglobed, friendliesAndTargetsNonEnglobed,
                         [(log.LogData.LogStart, log.LogData.LogEnd)]);
                     IReadOnlyList<PhaseData> phases = log.LogData.GetPhases(log);
                     DoMultiThreadAccelerationWithEnglobingAgents(log, _t,
                         friendliesAndTargets,
                         friendliesAndTargetsAndMobsEnglobing, friendliesAndTargetsAndMobsNonEnglobed,
                         friendliesAndTargetsEnglobing,
-                        friendliesAndTargetsAndMobsEnglobed, friendliesAndTargetsNonEnglobed, 
+                        friendliesAndTargetsAndMobsEnglobed, friendliesAndTargetsNonEnglobed,
                         phases.Select(x => (x.Start, x.End)).ToList());
                 }
                 else
@@ -507,8 +593,9 @@ public class EvtcParser
     /// </summary>
     /// <param name="reader">Reads binary values from the evtc.</param>
     /// <param name="operation">Operation object bound to the UI.</param>
+    /// returns (revision, id, evtc version)
     /// <exception cref="EvtcFileException"></exception>
-    private void ParseLogData(BinaryReader reader, ParserController operation)
+    private static (byte, ushort, EvtcVersionEvent) ParseLogData(BinaryReader reader, ParserController operation)
     {
         using var _t = new AutoTrace("Log Data");
         // 12 bytes: arc build version
@@ -517,19 +604,19 @@ public class EvtcParser
         {
             throw new EvtcFileException("Not EVTC");
         }
-
-        _evtcVersion = new EvtcVersionEvent(headerVersion);
+        var evtcVersionEvent = new EvtcVersionEvent(headerVersion);
         operation.UpdateProgressWithCancellationCheck("Parsing: ArcDPS Build " + evtcVersion.AsSpan().ToString());
 
         // 1 byte: revision
-        _revision = reader.ReadByte();
-        operation.UpdateProgressWithCancellationCheck("Parsing: ArcDPS Combat Item Revision " + _revision);
+        var revision = reader.ReadByte();
+        operation.UpdateProgressWithCancellationCheck("Parsing: ArcDPS Combat Item Revision " + revision);
 
         // 2 bytes: log ID
-        _id = reader.ReadUInt16();
-        operation.UpdateProgressWithCancellationCheck("Parsing: Trigger ID " + _id);
+        var id = reader.ReadUInt16();
+        operation.UpdateProgressWithCancellationCheck("Parsing: Trigger ID " + id);
         // 1 byte: skip
         _ = reader.ReadByte();
+        return (revision, id, evtcVersionEvent);
     }
 
     /// <summary>
@@ -555,12 +642,14 @@ public class EvtcParser
     /// </summary>
     /// <param name="reader">Reads binary values from the evtc.</param>
     /// <param name="operation">Operation object bound to the UI.</param>
-    private void ParseAgentData(BinaryReader reader, ParserController operation)
+    /// returns list of AgentItem
+    private List<AgentItem> ParseAgentData(BinaryReader reader, ParserController operation)
     {
         using var _t = new AutoTrace("Agent Data");
         // 4 bytes: player count
         uint agentCount = reader.ReadUInt32();
 
+        var allAgentsList = new List<AgentItem>((int)agentCount);
         operation.UpdateProgressWithCancellationCheck("Parsing: Agent Count " + agentCount);
         // 96 bytes: each player
         for (int i = 0; i < agentCount; i++)
@@ -608,10 +697,9 @@ public class EvtcParser
                     type = AgentItem.AgentType.Player;
                     break;
             }
-
-            AgentItem agentItem = new(agent, name, agentProf, ID, type, toughness, healing, condition, concentration, hbWidth, hbHeight);
-            _allAgentsList.Add(agentItem);
+            allAgentsList.Add(new AgentItem(agent, name, agentProf, ID, type, toughness, healing, condition, concentration, hbWidth, hbHeight));
         }
+        return allAgentsList;
     }
 
     /// <summary>
@@ -619,19 +707,27 @@ public class EvtcParser
     /// </summary>
     /// <param name="reader">Reads binary values from the evtc.</param>
     /// <param name="operation">Operation object bound to the UI.</param>
-    private void ParseSkillData(BinaryReader reader, ParserController operation)
+    /// <param name="evtcVersion">Evtc version event.</param>
+    /// returns SkillData instance
+    private SkillData ParseSkillData(BinaryReader reader, ParserController operation, EvtcVersionEvent evtcVersion)
     {
         using var _t = new AutoTrace("Skill Data");
-        
+        var skillData = new SkillData(_apiController, evtcVersion);
         // 4 bytes: player count
         uint skillCount = reader.ReadUInt32();
         operation.UpdateProgressWithCancellationCheck("Parsing: Skill Count " + skillCount);
-        // 68 bytes: each skill = 4 bytes: skill ID + 64 bytes: name
-        var skills = Enumerable
-            .Range(0, (int)skillCount)
-            .Select(x => (skillID: reader.ReadInt32(), name: GetString(reader, 64)))
-            .Select(x => new SkillItem(x.skillID, x.name, _apiController.GetAPISkill(x.skillID)));
-        _skillData = new SkillData(_apiController, _evtcVersion, skills);
+        //TempData["Debug"] += "Skill Count:" + skill_count.ToString();
+        // 68 bytes: each skill
+        for (int i = 0; i < skillCount; i++)
+        {
+            // 4 bytes: skill ID
+            int skillID = reader.ReadInt32();
+            // 64 bytes: name
+            string name = GetString(reader, 64);
+            //Save
+            skillData.Add(skillID, name);
+        }
+        return skillData;
     }
 
     /// <summary>
@@ -639,8 +735,9 @@ public class EvtcParser
     /// Old version when header[12] == 0.
     /// </summary>
     /// <param name="reader">Reads binary values from the evtc.</param>
+    /// <param name="evtcVersion">Evtc version event.</param>
     /// <returns><see cref="CombatItem"/></returns>
-    private CombatItem ReadCombatItem(BinaryReader reader)
+    private static CombatItem ReadCombatItem(BinaryReader reader, EvtcVersionEvent evtcVersion)
     {
         // 8 bytes: time
         long time = reader.ReadInt64();
@@ -718,7 +815,7 @@ public class EvtcParser
         // Add combat
         return new CombatItem(time, srcAgent, dstAgent, value, buffDmg, overstackValue, skillID,
             srcInstid, dstInstid, srcMasterInstid, 0, iff, buff, result, isActivation, isBuffRemove,
-            isNinety, isFifty, isMoving, isStateChange, isFlanking, isShields, isOffcycle, 0, _evtcVersion);
+            isNinety, isFifty, isMoving, isStateChange, isFlanking, isShields, isOffcycle, 0, evtcVersion);
     }
 
     /// <summary>
@@ -726,8 +823,9 @@ public class EvtcParser
     /// Current version when header[12] == 1.
     /// </summary>
     /// <param name="reader">Reads binary values from the evtc.</param>
+    /// <param name="evtcVersion">Evtc version event.</param>
     /// <returns><see cref="CombatItem"/></returns>
-    private CombatItem ReadCombatItemRev1(BinaryReader reader)
+    private static CombatItem ReadCombatItemRev1(BinaryReader reader, EvtcVersionEvent evtcVersion)
     {
         // 8 bytes: time
         long time = reader.ReadInt64();
@@ -802,7 +900,7 @@ public class EvtcParser
         // Add combat
         return new CombatItem(time, srcAgent, dstAgent, value, buffDmg, overstackValue, skillID,
             srcInstid, dstInstid, srcMasterInstid, dstmasterInstid, iff, buff, result, isActivation, isBuffRemove,
-            isNinety, isFifty, isMoving, isStateChange, isFlanking, isShields, isOffcycle, pad, _evtcVersion);
+            isNinety, isFifty, isMoving, isStateChange, isFlanking, isShields, isOffcycle, pad, evtcVersion);
     }
 
     /// <summary>
@@ -810,10 +908,14 @@ public class EvtcParser
     /// </summary>
     /// <param name="reader">Reads binary values from the evtc.</param>
     /// <param name="operation">Operation object bound to the UI.</param>
+    /// <param name="revision">Combat item revision.</param>
+    /// <param name="id">Trigger id of the log.</param>
+    /// <param name="evtcVersion">Evtc version event.</param>
     /// <exception cref="EvtcCombatEventException"></exception>
     /// <exception cref="TooShortException"></exception>
     /// <exception cref="TooLongException"></exception>
-    private void ParseCombatList(BinaryReader reader, ParserController operation)
+    /// returns (list of combat items, arc's agent redirection dictionary, dictionary of enabled extension, edited trigger id, map id, first time encountered in log, log end, gw2 build)
+    private (List<CombatItem>, Dictionary<ulong, ulong>, Dictionary<uint, ExtensionHandler>, ushort, int, long, long, ulong) ParseCombatList(BinaryReader reader, ParserController operation, byte revision, ushort id, EvtcVersionEvent evtcVersion)
     {
         using var _t = new AutoTrace("Combat List");
 
@@ -823,19 +925,26 @@ public class EvtcParser
 
         int discardedCbtEvents = 0;
         bool keepOnlyExtensionEvents = false;
-        int stopAtLogEndEvent = _id == (int)TargetID.Instance ? 1 : -1;
+        int stopAtLogEndEvent = id == (int)TargetID.Instance ? 1 : -1;
         var extensionEvents = new List<CombatItem>(5000);
         int currentMapID = -1;
+        var combatItems = new List<CombatItem>((int)cbtItemCount);
+        Dictionary<ulong, ulong> arcdpsAgentRedirection = [];
+        Dictionary<uint, ExtensionHandler> enabledExtensions = [];
+        int mapID = -1;
+        long logStartOffset = long.MinValue;
+        long logEndTime = 0;
+        ulong gw2Build = 0;
         for (long i = 0; i < cbtItemCount; i++)
         {
-            CombatItem combatItem = _revision > 0 ? ReadCombatItemRev1(reader) : ReadCombatItem(reader);
-            if (stopAtLogEndEvent == -1 && 
+            CombatItem combatItem = revision > 0 ? ReadCombatItemRev1(reader, evtcVersion) : ReadCombatItem(reader, evtcVersion);
+            if (stopAtLogEndEvent == -1 &&
                 combatItem.IsStateChange == StateChange.SquadCombatStart)
             {
                 // Trigger ID is map ID
                 if (SquadCombatStartEvent.GetLogType(combatItem) == LogType.Map)
                 {
-                    _id = (int)TargetID.Instance;
+                    id = (int)TargetID.Instance;
                     operation.UpdateProgressWithCancellationCheck("Parsing: Correcting boss log to instance log");
                     stopAtLogEndEvent = 1;
                 }
@@ -846,8 +955,8 @@ public class EvtcParser
             }
             if (combatItem.IsStateChange == StateChange.MapID)
             {
-                _mapID = MapIDEvent.GetMapID(combatItem);
-                currentMapID = _mapID;
+                mapID = MapIDEvent.GetMapID(combatItem);
+                currentMapID = mapID;
             }
             if (combatItem.IsStateChange == StateChange.MapChange)
             {
@@ -855,9 +964,9 @@ public class EvtcParser
             }
             if (combatItem.IsStateChange == StateChange.AgentChange)
             {
-                ArcDPSAgentRedirection[combatItem.SrcAgent] = combatItem.DstAgent;
+                arcdpsAgentRedirection[combatItem.SrcAgent] = combatItem.DstAgent;
             }
-            if (!IsValid(combatItem, currentMapID, operation) || (keepOnlyExtensionEvents && !combatItem.IsExtension))
+            if (!IsValid(combatItem, currentMapID, operation, enabledExtensions, id, mapID) || (keepOnlyExtensionEvents && !combatItem.IsExtension))
             {
                 discardedCbtEvents++;
                 continue;
@@ -865,21 +974,21 @@ public class EvtcParser
 
             if (combatItem.IsStateChange == StateChange.ArcBuild)
             {
-                _evtcVersion.SetFromCombatItem(combatItem);
+                evtcVersion.SetFromCombatItem(combatItem);
                 continue;
             }
 
             if (combatItem.HasTime())
             {
-                if (_logStartOffset == long.MinValue)
+                if (logStartOffset == long.MinValue)
                 {
-                    _logStartOffset = combatItem.Time;
+                    logStartOffset = combatItem.Time;
                 }
-                combatItem.OverrideTime(combatItem.Time - _logStartOffset);
-                _logEndTime = combatItem.Time;
+                combatItem.OverrideTime(combatItem.Time - logStartOffset);
+                logEndTime = combatItem.Time;
             }
 
-            _combatItems.Add(combatItem);
+            combatItems.Add(combatItem);
             if (combatItem.IsExtension)
             {
                 extensionEvents.Add(combatItem);
@@ -887,7 +996,7 @@ public class EvtcParser
 
             if (combatItem.IsStateChange == StateChange.GWBuild && GW2BuildEvent.GetBuild(combatItem) != 0)
             {
-                _gw2Build = GW2BuildEvent.GetBuild(combatItem);
+                gw2Build = GW2BuildEvent.GetBuild(combatItem);
             }
 
             if (combatItem.IsStateChange == StateChange.SquadCombatEnd && stopAtLogEndEvent <= 0)
@@ -897,45 +1006,50 @@ public class EvtcParser
         }
         extensionEvents.ForEach(x =>
         {
-            if (x.HasTime(_enabledExtensions))
+            if (x.HasTime(enabledExtensions))
             {
-                x.OverrideTime(x.Time - _logStartOffset);
+                x.OverrideTime(x.Time - logStartOffset);
             }
         });
         operation.UpdateProgressWithCancellationCheck("Parsing: Combat Event Discarded " + discardedCbtEvents);
-        if (_combatItems.Count == 0)
+        if (combatItems.Count == 0)
         {
             throw new EvtcCombatEventException("No combat events found");
         }
-        if (_logEndTime < _parserSettings.TooShortLimit)
+        if (logEndTime < _parserSettings.TooShortLimit)
         {
-            throw new TooShortException(_logEndTime, _parserSettings.TooShortLimit);
+            throw new TooShortException(logEndTime, _parserSettings.TooShortLimit);
         }
         // 24 hours
-        if (_logEndTime > 86400000)
+        if (logEndTime > 86400000)
         {
             throw new TooLongException();
         }
+        return (combatItems, arcdpsAgentRedirection, enabledExtensions, id, mapID, logStartOffset, logEndTime, gw2Build);
     }
 
     /// <summary>
     /// Checks if the <see cref="CombatItem"/> contains valid data and should be used.
     /// </summary>
     /// <param name="combatItem"><see cref="CombatItem"/> data to validate.</param>
+    /// <param name="currentMapID">Current map id.</param>
     /// <param name="operation">Operation object bound to the UI.</param>
+    /// <param name="enabledExtensions"></param>
+    /// <param name="id">Trigger id of the log.</param>
+    /// <param name="mapID">Original map id.</param>
     /// <returns>Returns <see langword="true"/> if the <see cref="CombatItem"/> is valid, otherwise <see langword="false"/>.</returns>
-    private bool IsValid(CombatItem combatItem, long currentMapID, ParserController operation)
+    private bool IsValid(CombatItem combatItem, long currentMapID, ParserController operation, Dictionary<uint, ExtensionHandler> enabledExtensions, ushort id, int mapID)
     {
         if (!IsSupportedStateChange(combatItem.IsStateChange))
         {
             return false;
         }
-        if (_mapID != -1 && _mapID != currentMapID && (combatItem.SrcIsAgent(_enabledExtensions) || combatItem.DstIsAgent(_enabledExtensions)))
+        if (mapID != -1 && mapID != currentMapID && (combatItem.SrcIsAgent(enabledExtensions) || combatItem.DstIsAgent(enabledExtensions)))
         {
             // ignore events linked to an agent that are not on current map
             return false;
         }
-        if ((_id == (int)TargetID.Instance) && !IsSupportedStateChangeForInstanceLogs(combatItem.IsStateChange))
+        if ((id == (int)TargetID.Instance) && !IsSupportedStateChangeForInstanceLogs(combatItem.IsStateChange))
         {
             return false;
         }
@@ -958,7 +1072,7 @@ public class EvtcParser
                 ExtensionHandler? handler = ExtensionHelper.GetExtensionHandler(combatItem);
                 if (handler != null)
                 {
-                    _enabledExtensions[handler.Signature] = handler;
+                    enabledExtensions[handler.Signature] = handler;
                     operation.UpdateProgressWithCancellationCheck("Parsing: Encountered supported extension " + handler.Name + " on " + handler.Version);
                 }
                 // No need to keep that event, it'll be immediately parsed by the handler
@@ -966,7 +1080,7 @@ public class EvtcParser
             }
             else
             {
-                return _enabledExtensions.ContainsKey(combatItem.Pad);
+                return enabledExtensions.ContainsKey(combatItem.Pad);
             }
         }
         if (combatItem.SrcInstid == 0 && combatItem.DstAgent == 0 && combatItem.SrcAgent == 0 && combatItem.DstInstid == 0 && combatItem.IFF == IFF.Unknown && !combatItem.IsEffect && !combatItem.IsMissile)
@@ -1015,12 +1129,13 @@ public class EvtcParser
     /// <param name="logTime">Log time.</param>
     /// <param name="masterInstid">SpeciesID of the master.</param>
     /// <param name="minionAgent"></param>
-    private void FindAgentMaster(long logTime, ushort masterInstid, ulong minionAgent)
+    /// <param name="agentData"></param>
+    private static void FindAgentMaster(long logTime, ushort masterInstid, ulong minionAgent, AgentData agentData)
     {
-        AgentItem master = _agentData.GetAgentByInstID(masterInstid, logTime);
+        AgentItem master = agentData.GetAgentByInstID(masterInstid, logTime);
         if (!master.IsUnknown)
         {
-            AgentItem minion = _agentData.GetAgent(minionAgent, logTime);
+            AgentItem minion = agentData.GetAgent(minionAgent, logTime);
             if (!minion.IsUnknown)
             {
                 minion.SetMaster(master);
@@ -1032,11 +1147,14 @@ public class EvtcParser
     /// Complete the players agent data.
     /// </summary>
     /// <param name="operation">Operation object bound to the UI.</param>
-    private void CompletePlayers(ParserController operation)
+    /// <param name="logData"></param>
+    /// <param name="agentData"></param>
+    private List<Player> CompletePlayers(ParserController operation, LogData logData, AgentData agentData)
     {
+        var playerList = new List<Player>();
         //Create squad players
-        var noSquads = _logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.Instanced5 || _logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.sPvP;
-        IReadOnlyList<AgentItem> playerAgentList = _agentData.GetAgentByType(AgentItem.AgentType.Player);
+        var noSquads = logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.Instanced5 || logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.sPvP;
+        IReadOnlyList<AgentItem> playerAgentList = agentData.GetAgentByType(AgentItem.AgentType.Player);
         foreach (AgentItem playerAgent in playerAgentList)
         {
             if (playerAgent.InstID == 0 || playerAgent.LastAware == long.MaxValue)
@@ -1045,29 +1163,29 @@ public class EvtcParser
                 continue;
             }
             var player = new Player(playerAgent, noSquads);
-            _playerList.Add(player);
+            playerList.Add(player);
         }
-        if (_playerList.Count == 0)
+        if (playerList.Count == 0)
         {
             throw new EvtcAgentException("No valid players");
         }
-        if (_playerList.Exists(x => x.Group == 0))
+        if (playerList.Exists(x => x.Group == 0))
         {
-            _playerList.ForEach(x => x.MakeSquadless());
+            playerList.ForEach(x => x.MakeSquadless());
         }
-        _playerList = _playerList.OrderBy(a => a.Character).ToList();
+        playerList = playerList.OrderBy(a => a.Character).ToList();
         if (_parserSettings.AnonymousPlayers)
         {
             operation.UpdateProgressWithCancellationCheck("Parsing: Anonymous players");
-            for (int i = 0; i < _playerList.Count; i++)
+            for (int i = 0; i < playerList.Count; i++)
             {
-                _playerList[i].Anonymize(i + 1);
+                playerList[i].Anonymize(i + 1);
             }
-            var allPlayerAgents = _agentData.GetAgentByType(AgentItem.AgentType.Player).ToList();
-            allPlayerAgents.AddRange(_agentData.GetAgentByType(AgentItem.AgentType.NonSquadPlayer));
-            var playerAgents = new HashSet<AgentItem>(_playerList.Select(x => x.AgentItem));
+            var allPlayerAgents = agentData.GetAgentByType(AgentItem.AgentType.Player).ToList();
+            allPlayerAgents.AddRange(agentData.GetAgentByType(AgentItem.AgentType.NonSquadPlayer));
+            var playerAgents = new HashSet<AgentItem>(playerList.Select(x => x.AgentItem));
             playerAgents.UnionWith(playerAgents.Select(x => x.EnglobingAgentItem).ToList());
-            int playerOffset = _playerList.Count + 1;
+            int playerOffset = playerList.Count + 1;
             foreach (AgentItem playerAgent in allPlayerAgents.OrderBy(x => x.InstID))
             {
                 if (!playerAgents.Contains(playerAgent))
@@ -1111,42 +1229,51 @@ public class EvtcParser
                 }
             }
         }
-        uint minToughness = _playerList.Min(x => x.Toughness);
+        uint minToughness = playerList.Min(x => x.Toughness);
         if (minToughness > 0)
         {
             operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting player toughness scores");
-            uint maxToughness = _playerList.Max(x => x.Toughness);
-            foreach (Player p in _playerList)
+            uint maxToughness = playerList.Max(x => x.Toughness);
+            foreach (Player p in playerList)
             {
                 p.AgentItem.OverrideToughness((ushort)Math.Round(10.0 * (p.AgentItem.Toughness - minToughness) / Math.Max(1.0, maxToughness - minToughness)));
             }
         }
+        return playerList;
     }
 
     /// <summary>
     /// Complete the agents data.
     /// </summary>
     /// <param name="operation">Operation object bound to the UI.</param>
+    /// <param name="allAgentsList"></param>
+    /// <param name="combatItems"></param>
+    /// <param name="arcdpsAgentRedirection"></param>
+    /// <param name="enabledExtensions"></param>
+    /// <param name="logStartOffset"></param>
+    /// <param name="logEndTime"></param>
+    /// <param name="id">Trigger id of the log.</param>
+    /// <param name="evtcVersion"></param>
     /// <exception cref="InvalidDataException"></exception>
     /// <exception cref="EvtcAgentException"></exception>
-    private void CompleteAgents(ParserController operation)
+    private (LogData, AgentData, List<Player>) CompleteAgentsAndLogData(ParserController operation, List<AgentItem> allAgentsList, List<CombatItem> combatItems, Dictionary<ulong, ulong> arcdpsAgentRedirection, Dictionary<uint, ExtensionHandler> enabledExtensions, long logStartOffset, long logEndTime, ushort id, EvtcVersionEvent evtcVersion)
     {
         using var _t = new AutoTrace("Linking Agents to list");
         var allAgentValues = new HashSet<ulong>(
-            _combatItems.Where(x => x.SrcIsAgent())
+            combatItems.Where(x => x.SrcIsAgent())
             .Select(x => x.SrcAgent)
-            .Concat(_combatItems.Where(x => x.DstIsAgent())
+            .Concat(combatItems.Where(x => x.DstIsAgent())
                     .Select(x => x.DstAgent)
                     )
         );
-        allAgentValues.ExceptWith(_allAgentsList.Select(x => x.Agent));
+        allAgentValues.ExceptWith(allAgentsList.Select(x => x.Agent));
         allAgentValues.Remove(0);
         operation.UpdateProgressWithCancellationCheck("Parsing: Creating " + allAgentValues.Count + " missing agents");
         foreach (ulong missingAgentValue in allAgentValues)
         {
-            _allAgentsList.Add(new AgentItem(missingAgentValue, "UNKNOWN " + missingAgentValue, Spec.NPC, NonIdentifiedSpecies, AgentItem.AgentType.StableSpecies, 0, 0, 0, 0, 0, 0));
+            allAgentsList.Add(new AgentItem(missingAgentValue, "UNKNOWN " + missingAgentValue, Spec.NPC, NonIdentifiedSpecies, AgentItem.AgentType.StableSpecies, 0, 0, 0, 0, 0, 0));
         }
-        var agentsLookup = _allAgentsList.GroupBy(x => x.Agent).ToDictionary(x => x.Key, x =>
+        var agentsLookup = allAgentsList.GroupBy(x => x.Agent).ToDictionary(x => x.Key, x =>
         {
             var res = x.ToList();
             res.SortByFirstAware();
@@ -1158,11 +1285,11 @@ public class EvtcParser
         var invalidDstCombatItems = new HashSet<CombatItem>();
         var orphanedSrcInstidCombatItems = new List<CombatItem>();
         var orphanedDstInstidCombatItems = new List<CombatItem>();
-        foreach (CombatItem c in _combatItems)
+        foreach (CombatItem c in combatItems)
         {
             if (c.SrcIsAgent())
             {
-                if (ArcDPSAgentRedirection.TryGetValue(c.SrcAgent, out ulong newAgent))
+                if (arcdpsAgentRedirection.TryGetValue(c.SrcAgent, out ulong newAgent))
                 {
                     c.OverrideSrcAgent(newAgent);
                 }
@@ -1190,7 +1317,7 @@ public class EvtcParser
             }
             if (c.DstIsAgent())
             {
-                if (ArcDPSAgentRedirection.TryGetValue(c.DstAgent, out ulong newAgent))
+                if (arcdpsAgentRedirection.TryGetValue(c.DstAgent, out ulong newAgent))
                 {
                     c.OverrideDstAgent(newAgent);
                 }
@@ -1219,7 +1346,7 @@ public class EvtcParser
         }
         if (orphanedSrcInstidCombatItems.Count > 0 || orphanedDstInstidCombatItems.Count > 0)
         {
-            var agentsInstidLookup = _allAgentsList.GroupBy(x => x.InstID).ToDictionary(x => x.Key, x =>
+            var agentsInstidLookup = allAgentsList.GroupBy(x => x.InstID).ToDictionary(x => x.Key, x =>
             {
                 var res = x.ToList();
                 res.SortByFirstAware();
@@ -1257,26 +1384,26 @@ public class EvtcParser
             throw new InvalidDataException("Must remove " + invalidCombatItems.Count + " invalid combat items");
 #else
             operation.UpdateProgressWithCancellationCheck("Removing " + invalidCombatItems.Count + " invalid combat items");
-            _combatItems.RemoveAll(invalidCombatItems.Contains);
+            combatItems.RemoveAll(invalidCombatItems.Contains);
 #endif
         }
-        _allAgentsList.RemoveAll(x => !(x.LastAware != long.MaxValue && x.LastAware - x.FirstAware >= 0));
-        operation.UpdateProgressWithCancellationCheck("Parsing: Keeping " + _allAgentsList.Count + " agents");
-        _agentData = new AgentData(_apiController, _allAgentsList);
+        allAgentsList.RemoveAll(x => !(x.LastAware != long.MaxValue && x.LastAware - x.FirstAware >= 0));
+        operation.UpdateProgressWithCancellationCheck("Parsing: Keeping " + allAgentsList.Count + " agents");
+        var agentData = new AgentData(_apiController, allAgentsList);
         operation.UpdateProgressWithCancellationCheck("Parsing: Adding environment agent");
-        _agentData.AddCustomNPCAgent(0, _logEndTime, "Environment", Spec.Gadget, TargetID.Environment, true);
+        agentData.AddCustomNPCAgent(0, logEndTime, "Environment", Spec.Gadget, TargetID.Environment, true);
 
         // Adjust extension events if needed
-        if (_enabledExtensions.Count != 0)
+        if (enabledExtensions.Count != 0)
         {
             operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting extension events");
-            foreach (CombatItem combatItem in _combatItems)
+            foreach (CombatItem combatItem in combatItems)
             {
                 if (combatItem.IsExtension)
                 {
-                    if (_enabledExtensions.TryGetValue(combatItem.Pad, out var handler))
+                    if (enabledExtensions.TryGetValue(combatItem.Pad, out var handler))
                     {
-                        handler.AdjustCombatEvent(combatItem, _agentData);
+                        handler.AdjustCombatEvent(combatItem, agentData);
                     }
                 }
 
@@ -1284,28 +1411,28 @@ public class EvtcParser
         }
 
         operation.UpdateProgressWithCancellationCheck("Parsing: Linking minions to their masters");
-        foreach (CombatItem c in _combatItems)
+        foreach (CombatItem c in combatItems)
         {
             if (c.SrcIsAgent() && c.SrcMasterInstid != 0)
             {
-                FindAgentMaster(c.Time, c.SrcMasterInstid, c.SrcAgent);
+                FindAgentMaster(c.Time, c.SrcMasterInstid, c.SrcAgent, agentData);
             }
             if (c.DstIsAgent() && c.DstMasterInstid != 0)
             {
-                FindAgentMaster(c.Time, c.DstMasterInstid, c.DstAgent);
+                FindAgentMaster(c.Time, c.DstMasterInstid, c.DstAgent, agentData);
             }
         }
 
         operation.UpdateProgressWithCancellationCheck("Parsing: Regrouping Agents");
-        AgentManipulationHelper.RegroupSameAgentsAndDetermineTeams(_agentData, _combatItems, _evtcVersion, _enabledExtensions);
+        AgentManipulationHelper.RegroupSameAgentsAndDetermineTeams(agentData, combatItems, evtcVersion, enabledExtensions);
 
-        if (_agentData.GetAgentByType(AgentItem.AgentType.Player).Count == 0)
+        if (agentData.GetAgentByType(AgentItem.AgentType.Player).Count == 0)
         {
             throw new EvtcAgentException("No players found");
         }
 
         operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting minion names");
-        foreach (AgentItem agent in _agentData.GetAgentByType(AgentItem.AgentType.StableSpecies))
+        foreach (AgentItem agent in agentData.GetAgentByType(AgentItem.AgentType.StableSpecies))
         {
             if (agent.Master != null)
             {
@@ -1313,80 +1440,92 @@ public class EvtcParser
             }
         }
 
-        _logData = new LogData(_id, _agentData, _combatItems, _parserSettings, _logStartOffset, _logEndTime, _evtcVersion);
-        bool splitByEnterCombatEvents = _logData.IsInstance || _logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.WvW || _logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.OpenWorld;
-        if (splitByEnterCombatEvents || _agentData.GetAgentByType(AgentItem.AgentType.Player).Any(x => x.Regrouped.Count > 0))
+        var logData = new LogData(id, agentData, combatItems, _parserSettings, logStartOffset, logEndTime, evtcVersion);
+        bool splitByEnterCombatEvents = logData.IsInstance || logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.WvW || logData.Logic.ParseMode == LogLogic.LogLogic.ParseModeEnum.OpenWorld;
+        if (splitByEnterCombatEvents || agentData.GetAgentByType(AgentItem.AgentType.Player).Any(x => x.Regrouped.Count > 0))
         {
-            var enterAndExitCombatEvents = _combatItems.Where(x => x.IsStateChange == StateChange.EnterCombat || x.IsStateChange == StateChange.ExitCombat).ToList();
-            var enterCombatEvents = enterAndExitCombatEvents.Where(x => x.IsStateChange == StateChange.EnterCombat).Select(x => new EnterCombatEvent(x, _agentData)).GroupBy(x => x.Src).ToDictionary(x => x.Key, x => x.ToList());
-            var exitCombatEvents = enterAndExitCombatEvents.Where(x => x.IsStateChange == StateChange.ExitCombat).Select(x => new ExitCombatEvent(x, _agentData)).GroupBy(x => x.Src).ToDictionary(x => x.Key, x => x.ToList());
+            var enterAndExitCombatEvents = combatItems.Where(x => x.IsStateChange == StateChange.EnterCombat || x.IsStateChange == StateChange.ExitCombat).ToList();
+            var enterCombatEvents = enterAndExitCombatEvents.Where(x => x.IsStateChange == StateChange.EnterCombat).Select(x => new EnterCombatEvent(x, agentData)).GroupBy(x => x.Src).ToDictionary(x => x.Key, x => x.ToList());
+            var exitCombatEvents = enterAndExitCombatEvents.Where(x => x.IsStateChange == StateChange.ExitCombat).Select(x => new ExitCombatEvent(x, agentData)).GroupBy(x => x.Src).ToDictionary(x => x.Key, x => x.ToList());
             operation.UpdateProgressWithCancellationCheck("Parsing: Splitting players per spec and subgroup");
-            foreach (var playerAgentItem in _agentData.GetAgentByType(AgentItem.AgentType.Player))
+            foreach (var playerAgentItem in agentData.GetAgentByType(AgentItem.AgentType.Player))
             {
                 if (enterCombatEvents.TryGetValue(playerAgentItem, out var enterCombatEventsForAgent))
                 {
                     if (exitCombatEvents.TryGetValue(playerAgentItem, out var exitCombatEventsForAgent))
                     {
-                        AgentManipulationHelper.SplitPlayerPerSpecSubgroupAndSwap(enterCombatEventsForAgent, exitCombatEventsForAgent, _enabledExtensions, _agentData, playerAgentItem, splitByEnterCombatEvents);
+                        AgentManipulationHelper.SplitPlayerPerSpecSubgroupAndSwap(enterCombatEventsForAgent, exitCombatEventsForAgent, enabledExtensions, agentData, playerAgentItem, splitByEnterCombatEvents);
                     }
                     else
                     {
-                        AgentManipulationHelper.SplitPlayerPerSpecSubgroupAndSwap(enterCombatEventsForAgent, [], _enabledExtensions, _agentData, playerAgentItem, splitByEnterCombatEvents);
+                        AgentManipulationHelper.SplitPlayerPerSpecSubgroupAndSwap(enterCombatEventsForAgent, [], enabledExtensions, agentData, playerAgentItem, splitByEnterCombatEvents);
                     }
                 }
                 else
                 {
-                    AgentManipulationHelper.SplitPlayerPerSpecSubgroupAndSwap([], [], _enabledExtensions, _agentData, playerAgentItem, splitByEnterCombatEvents);
+                    AgentManipulationHelper.SplitPlayerPerSpecSubgroupAndSwap([], [], enabledExtensions, agentData, playerAgentItem, splitByEnterCombatEvents);
                 }
             }
         }
 
 
         operation.UpdateProgressWithCancellationCheck("Parsing: Creating players");
-        CompletePlayers(operation);
+        var players = CompletePlayers(operation, logData, agentData);
+        return (logData, agentData, players);
     }
 
     /// <summary>
     /// Applies the EncounterStart offset to all time based related information (CombatEvent Time, First and Last Awares, etc.).
+    /// <paramref name="logData"/>
+    /// <paramref name="agentData"/>
+    /// <paramref name="combatItems"/>
+    /// <paramref name="enabledExtensions"/>
+    /// <paramref name="evtcVersion"/>
     /// </summary>
-    private void OffsetEvtcData()
+    private static void OffsetEvtcData(LogData logData, AgentData agentData, List<CombatItem> combatItems, Dictionary<uint, ExtensionHandler> enabledExtensions, EvtcVersionEvent evtcVersion)
     {
-        long offset = _logData.Logic.GetLogOffset(_evtcVersion, _logData, _agentData, _combatItems);
+        long offset = logData.Logic.GetLogOffset(evtcVersion, logData, agentData, combatItems);
         if (offset == 0)
         {
             return;
         }
         // apply offset to everything
-        foreach (CombatItem c in _combatItems)
+        foreach (CombatItem c in combatItems)
         {
-            if (c.HasTime(_enabledExtensions))
+            if (c.HasTime(enabledExtensions))
             {
                 c.OverrideTime(c.Time - offset);
             }
         }
-        _agentData.ApplyOffset(offset);
+        agentData.ApplyOffset(offset);
 
-        _logData.ApplyOffset(offset);
+        logData.ApplyOffset(offset);
     }
 
     /// <summary>
     /// Pre process evtc data for EI.
     /// </summary>
-    /// <param name="operation">Operation object bound to the UI.</param>
+    /// <param name="operation"></param>
+    /// <param name="logData"></param>
+    /// <param name="agentData"></param>
+    /// <param name="combatItems"></param>
+    /// <param name="enabledExtensions"></param>
+    /// <param name="evtcVersion"></param>
+    /// <param name="gw2Build"></param>
     /// <exception cref="EvtcAgentException"></exception>
     /// <exception cref="MissingKeyActorsException"></exception>
-    private void PreProcessEvtcData(ParserController operation)
+    private static void PreProcessEvtcData(ParserController operation, LogData logData, AgentData agentData, List<CombatItem> combatItems, Dictionary<uint, ExtensionHandler> enabledExtensions, EvtcVersionEvent evtcVersion, ulong gw2Build)
     {
         using var _t = new AutoTrace("Prepare Data for output");
         operation.UpdateProgressWithCancellationCheck("Parsing: Identifying critical agents");
-        _logData.Logic.HandleCriticalAgents(_evtcVersion, _logData, _agentData, _combatItems, _enabledExtensions);
+        logData.Logic.HandleCriticalAgents(evtcVersion, logData, agentData, combatItems, enabledExtensions);
         operation.UpdateProgressWithCancellationCheck("Parsing: Offseting time");
-        OffsetEvtcData();
-        operation.UpdateProgressWithCancellationCheck("Parsing: Offset of " + (_logData.LogStartOffset) + " ms added");
+        OffsetEvtcData(logData, agentData, combatItems, enabledExtensions, evtcVersion);
+        operation.UpdateProgressWithCancellationCheck("Parsing: Offset of " + (logData.LogStartOffset) + " ms added");
 
         operation.UpdateProgressWithCancellationCheck("Parsing: Encounter specific processing");
-        _logData.Logic.EIEvtcParse(_gw2Build, _evtcVersion, _logData, _agentData, _combatItems, _enabledExtensions);
-        if (!_logData.Logic.Targets.Any())
+        logData.Logic.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatItems, enabledExtensions);
+        if (!logData.Logic.Targets.Any())
         {
             throw new MissingKeyActorsException("No Targets found");
         }

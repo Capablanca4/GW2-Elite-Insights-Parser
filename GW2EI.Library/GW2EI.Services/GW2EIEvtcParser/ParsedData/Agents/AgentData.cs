@@ -6,6 +6,7 @@ namespace GW2EIEvtcParser.ParsedData;
 
 public class AgentData
 {
+    public IReadOnlyList<AgentItem> AllAgents => _allAgentsList;
 #if DEBUG
     public readonly List<AgentItem> _allAgentsList;
 #else
@@ -318,14 +319,14 @@ public class AgentData
     {
         foreach (AgentItem a in GetAgentByType(AgentItem.AgentType.StableSpecies))
         {
-            if (a.Master != null && froms.Any(a.Is))
+            if (a.Master != null && froms.Any(a.Master.Is))
             {
                 a.SetMaster(to);
             }
         }
         foreach (AgentItem a in GetAgentByType(AgentItem.AgentType.VolatileSpecies))
         {
-            if (a.Master != null && froms.Any(a.Is))
+            if (a.Master != null && froms.Any(a.Master.Is))
             {
                 a.SetMaster(to);
             }

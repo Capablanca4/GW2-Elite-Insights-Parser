@@ -9,6 +9,9 @@ public static class SkillItemOverrides
     internal static readonly Dictionary<long, string> OverridenSkillNames = new()
     {
         { WeaponSwap, "Weapon Swap" },
+        { Jumping, "Jumping" },
+        { FlyTo, "Fly To" },
+        { Gliding, "Gliding" },
         { Resurrect, "Resurrect" },
         { Resurrect2, "Resurrect" },
         { Bandage, "Bandage" },
@@ -155,6 +158,7 @@ public static class SkillItemOverrides
         { HarmoniousHarpAfterimage, "Harmonious Harp (Afterimage)" },
         { MindWrackOrMindWrackAmmo, "Mind Wrack" },
         { SplitSecondOrSplitSecondAmmo, "Split Second" },
+        { MirageMirrorShatter, "Mirage Mirror Shatter" },
         #endregion Mesmer
         #region Necromancer
         { DesertEmpowerment, "Desert Empowerment" },
@@ -428,6 +432,8 @@ public static class SkillItemOverrides
     internal static readonly Dictionary<long, string> OverridenSkillIcons = new()
     {
         { WeaponSwap, SkillImages.WeaponSwap },
+        //{ Jumping, SkillImages.Jumping }, Icon for jumping?
+        //{ Gliding, SkillImages.Gliding }, Icon for gliding?
         { WeaponStow, SkillImages.WeaponStow },
         { WeaponDraw, SkillImages.WeaponDraw },
         { Resurrect, SkillImages.Resurrect },
@@ -588,6 +594,8 @@ public static class SkillItemOverrides
         { RelicOfTheForestDwellerMissileDamage, ItemImages.RelicOfTheForestDweller },
         { RelicOfGaldraSkill, ItemImages.RelicOfGaldra },
         { RelicOfTheCruelOverseer, ItemImages.RelicOfTheCruelOverseer },
+        { RelicOfTheEternalAlchemyHealing, ItemImages.RelicOfTheEternalAlchemy },
+        { RelicOfTheLastTyrantDamage, ItemImages.RelicOfTheLastTyrant },
 #endregion RelicIcons
         #region ElementalistIcons
         { EarthenBlast, TraitImages.EarthenBlast },
@@ -790,6 +798,7 @@ public static class SkillItemOverrides
             { HarmoniousHarpAfterimage, SkillImages.HarmoniousHarp },
             { MindWrackOrMindWrackAmmo, SkillImages.MindWrack },
             { SplitSecondOrSplitSecondAmmo, SkillImages.SplitSecond },
+            { MirageMirrorShatter, SkillImages.MirageCloak },
             #endregion  MesmerIcons
             #region NecromancerIcons
             { LifeFromDeath, TraitImages.LifeFromDeath },

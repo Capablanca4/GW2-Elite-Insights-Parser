@@ -157,7 +157,7 @@ public static class MechanicIDs
     public static readonly int Mech_RadiantAttunementEscort = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_CrimsonAttunementEscort = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_EscortSAK = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
-    public static readonly int Mech_EscortInvulnApplied= StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
+    public static readonly int Mech_EscortInvulnApplied = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_EscortTPCast = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_StatueFixated = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_HailOfFury = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
@@ -174,7 +174,7 @@ public static class MechanicIDs
     public static readonly int Mech_CrimsonEnergyBad = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_CoreHit = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_SpatialDistortion = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
-    public static readonly int Mech_StillWatersImmunity= StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
+    public static readonly int Mech_StillWatersImmunity = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_StillWatersRemoval = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_Madness = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
     public static readonly int Mech_ChaoticHaze = StrongholdOfTheFaithfulMask | ++strongholdOfTheFaithfulCount;
@@ -233,7 +233,7 @@ public static class MechanicIDs
     public static readonly int Mech_EffigyPulse = BastionOfThePenitentMask | ++bastionOfThePenitentCount;
     public static readonly int Mech_SpearImpact = BastionOfThePenitentMask | ++bastionOfThePenitentCount;
     public static readonly int Mech_Brutalized = BastionOfThePenitentMask | ++bastionOfThePenitentCount;
-    public static readonly int Mech_BrutalizeCast= BastionOfThePenitentMask | ++bastionOfThePenitentCount;
+    public static readonly int Mech_BrutalizeCast = BastionOfThePenitentMask | ++bastionOfThePenitentCount;
     public static readonly int Mech_BrutalizeKill = BastionOfThePenitentMask | ++bastionOfThePenitentCount;
     public static readonly int Mech_FanaticalResilienceEnd = BastionOfThePenitentMask | ++bastionOfThePenitentCount;
     public static readonly int Mech_SoulSwarm = BastionOfThePenitentMask | ++bastionOfThePenitentCount;
@@ -645,6 +645,8 @@ public static class MechanicIDs
     public static readonly int Mech_WhisperTPBack = IBSMask | ++_ibsCount;
     public static readonly int Mech_WhisperTPOut = IBSMask | ++_ibsCount;
     public static readonly int Mech_ViciousSlam = IBSMask | ++_ibsCount;
+    public static readonly int Mech_IcySlash = IBSMask | ++_ibsCount;
+    public static readonly int Mech_FallingIce = IBSMask | ++_ibsCount;
     #endregion IBS
 
     #region EOD
@@ -849,7 +851,7 @@ public static class MechanicIDs
     public static readonly int Mech_CrushingRegret = SotOMask | ++_sotoCount;
     public static readonly int Mech_CrushingRegretEmpowered = SotOMask | ++_sotoCount;
     public static readonly int Mech_CrushingRegretApply = SotOMask | ++_sotoCount;
-    public static readonly int Mech_CrushingRegretCast= SotOMask | ++_sotoCount;
+    public static readonly int Mech_CrushingRegretCast = SotOMask | ++_sotoCount;
     public static readonly int Mech_CrushingRegretSuccess = SotOMask | ++_sotoCount;
     public static readonly int Mech_CrushingRegretFail = SotOMask | ++_sotoCount;
     public static readonly int Mech_WallOfDespair = SotOMask | ++_sotoCount;
@@ -926,6 +928,32 @@ public static class MechanicIDs
     public static readonly int Mech_AtePlayer = VoEMask | ++_voeCount;
     public static readonly int Mech_PlayerEaten = VoEMask | ++_voeCount;
     public static readonly int Mech_TankEaten = VoEMask | ++_voeCount;
+    public static readonly int Mech_AnnihilatingOrb = VoEMask | ++_voeCount;
+    public static readonly int Mech_AnnihilatingOrbShockwave = VoEMask | ++_voeCount;
+    public static readonly int Mech_AnnihilatingOrbShockwaveNoStab = VoEMask | ++_voeCount;
+    public static readonly int Mech_NexusOfEternity3GreenSelect = VoEMask | ++_voeCount;
+    public static readonly int Mech_JudgmentOfEternity = VoEMask | ++_voeCount;
+    public static readonly int Mech_DivisionEternal = VoEMask | ++_voeCount;
+    public static readonly int Mech_SurroundingCurse = VoEMask | ++_voeCount;
+    public static readonly int Mech_CosmicCharge = VoEMask | ++_voeCount;
+    public static readonly int Mech_ThousandStrikes = VoEMask | ++_voeCount;
+    public static readonly int Mech_SliceThroughReality = VoEMask | ++_voeCount;
+    public static readonly int Mech_VisionsOfEternity = VoEMask | ++_voeCount;
+    public static readonly int Mech_ProbabilityDistribution = VoEMask | ++_voeCount;
+    public static readonly int Mech_RagingStorm = VoEMask | ++_voeCount;
+    public static readonly int Mech_ExcisionExtremis = VoEMask | ++_voeCount;
+    public static readonly int Mech_Worldpiercer = VoEMask | ++_voeCount;
+    public static readonly int Mech_NexusOfEternity2GreenSelect = VoEMask | ++_voeCount;
+    public static readonly int Mech_AscensionsSacrifice = VoEMask | ++_voeCount;
+    public static readonly int Mech_EternalReflection = VoEMask | ++_voeCount;
+    public static readonly int Mech_EchoingBlade = VoEMask | ++_voeCount;
+    public static readonly int Mech_VloxxEmpowered = VoEMask | ++_voeCount;
+    public static readonly int Mech_VloxxEmpoweredRemoved = VoEMask | ++_voeCount;
+    public static readonly int Mech_DamageImmunity = VoEMask | ++_voeCount;
+    public static readonly int Mech_Ascension = VoEMask | ++_voeCount;
+    public static readonly int Mech_AscensionRemove = VoEMask | ++_voeCount;
+    public static readonly int Mech_NexusOfEternitySpreadAndPuddleSelect = VoEMask | ++_voeCount;
+    public static readonly int Mech_Excision = VoEMask | ++_voeCount;
     #endregion VOE
 
     #endregion RAID ENCOUNTERS

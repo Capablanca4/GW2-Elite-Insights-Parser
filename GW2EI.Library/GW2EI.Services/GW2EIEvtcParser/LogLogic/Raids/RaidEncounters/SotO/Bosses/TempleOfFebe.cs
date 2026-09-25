@@ -6,16 +6,15 @@ using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -551,12 +550,12 @@ internal class TempleOfFebe : SecretOfTheObscureRaidEncounter
         }
 
         // Crushing Regret (Green) End
-        var crushingRegretEnds = new List<(GUID GUID, Color Color)>()
+        var crushingRegretEnds = new List<(Guid GUID, Color Color)>()
         {
             (EffectGUIDs.TempleOfFebeGreenSuccess, Colors.Green),
             (EffectGUIDs.TempleOfFebeGreenFailure, Colors.DarkRed)
         };
-        foreach ((GUID guid, Color color) in crushingRegretEnds)
+        foreach ((Guid guid, Color color) in crushingRegretEnds)
         {
             if (log.CombatData.TryGetEffectEventsByGUID(guid, out var crushingRegrets))
             {

@@ -21,6 +21,12 @@ namespace GW2EIParserCommons;
 
 public sealed class ProgramHelper : IDisposable
 {
+    public enum InspectionMode
+    {
+        EI = 0,
+        Raw = 1,
+        RawWithEIPreProcess = 2,
+    }
 
     public ProgramHelper(Version parserVersion, ProgramSettings settings)
     {
@@ -85,10 +91,7 @@ public sealed class ProgramHelper : IDisposable
     public readonly ProgramSettings Settings;
     private readonly Version ParserVersion;
 
-#pragma warning disable CA1823 // Avoid unused private fields
-    // Used in RELEASE for wingman
     private static readonly UTF8Encoding NoBOMEncodingUTF8 = new(false);
-#pragma warning restore CA1823 // Avoid unused private fields
 
     public static readonly string EILogPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Logs/";
 
@@ -172,12 +175,12 @@ public sealed class ProgramHelper : IDisposable
                         // First try a garbage collection, if we fall here again in 500ms, kill
                         GCExecuted = true;
                         GC.Collect();
-                    } 
+                    }
                     else
                     {
                         Environment.Exit(2);
                     }
-                } 
+                }
                 else
                 {
                     GCExecuted = false;
@@ -367,7 +370,7 @@ public sealed class ProgramHelper : IDisposable
             originalLog.ParserSettings.AnonymousPlayers,
             originalLog.ParserSettings.DetailedWvWParse);
             uploadresult[0] = response != null ? response.Permalink ?? "Upload process failed" : "Upload process failed";
-            originalController.DPSReportUploadFailed = response != null && response.Permalink != null;
+            originalController.DPSReportUploadFailed = !(response != null && response.Permalink != null);
             originalController.UpdateProgressWithCancellationCheck("DPSReport: " + uploadresult[0]);
             /*
             if (Properties.Settings.Default.UploadToWingman)
@@ -384,21 +387,20 @@ public sealed class ProgramHelper : IDisposable
             }
             */
         }
-        if (Settings.UploadToWingman)
+        if (Settings.UploadToWingmanInternal)
         {
             originalController.WingmanUploadTentative = true;
             if (originalLog.ParserSettings.AnonymousPlayers)
             {
                 originalController.WingmanUploadRefused = true;
                 originalController.UpdateProgressWithCancellationCheck("Wingman: players and accounts have been anonymized, log not supported");
-            } 
+            }
             else
             {
                 string accName = originalLog.LogMetadata.PoV != null ? originalLog.LogMetadata.PoVAccount : "-";
 
                 if (WingmanController.CheckUploadPossible(fInfo, accName, originalLog.LogData.TriggerID, str => originalController.UpdateProgress("Wingman: " + str)))
                 {
-#if !DEBUG
                     try
                     {
                         var expectedSettings = new EvtcParserSettings(Settings.CustomTooShort, Settings.CustomTooBig)
@@ -470,7 +472,6 @@ public sealed class ProgramHelper : IDisposable
                         originalController.WingmanUploadFailed = true;
                         originalController.UpdateProgressWithCancellationCheck("Wingman: Operation failed " + e.Message);
                     }
-#endif
                 }
                 else
                 {
@@ -484,6 +485,62 @@ public sealed class ProgramHelper : IDisposable
         return uploadresult;
     }
     #endregion UPLOAD
+    public EvtcLog? ParseLogForInspection(OperationController operation, InspectionMode inspectMode)
+    {
+        System.Globalization.CultureInfo before = Thread.CurrentThread.CurrentCulture;
+        Thread.CurrentThread.CurrentCulture =
+                new System.Globalization.CultureInfo("en-US");
+        operation.Reset();
+        try
+        {
+            operation.Start();
+            var fInfo = new FileInfo(operation.InputFile);
+
+            var parser = new EvtcParser(new EvtcParserSettings(
+                                            Settings.CustomTooShort,
+                                            Settings.CustomTooBig)
+            {
+                AnonymousPlayers = false,
+                SkipFailedTries = false,
+                ComputePhases = false,
+                ComputeCombatReplay = false,
+                ComputeDamageModifiers = false,
+                ComputeDamage = false,
+                ParseExtensions = true,
+                ComputeCast = false,
+                ComputeBuff = false,
+                ComputeMechanics = false,
+                DetailedWvWParse = true,
+            },
+                                        APIController);
+            EvtcLog? inspectLog;
+            ParsingFailureReason? failureReason;
+            switch (inspectMode)
+            {
+                case InspectionMode.Raw:
+                default:
+                    inspectLog = parser.ParseRawLog(operation, fInfo, out failureReason, false);
+                    break;
+                case InspectionMode.EI:
+                    inspectLog = parser.ParseLog(operation, fInfo, out failureReason, false);
+                    break;
+                case InspectionMode.RawWithEIPreProcess:
+                    inspectLog = parser.ParseRawLog(operation, fInfo, out failureReason, true);
+                    break;
+            }
+            failureReason?.Throw();
+            return inspectLog;
+        }
+        catch (Exception ex)
+        {
+            throw new ProgramException(ex);
+        }
+        finally
+        {
+            operation.Stop();
+            Thread.CurrentThread.CurrentCulture = before;
+        }
+    }
     public void DoWork(OperationController operation)
     {
         System.Globalization.CultureInfo before = Thread.CurrentThread.CurrentCulture;
@@ -515,10 +572,7 @@ public sealed class ProgramHelper : IDisposable
 
             //Process evtc here
             ParsedEvtcLog? log = parser.ParseLog(operation, fInfo, out var failureReason, !Settings.SingleThreaded && HasFormat());
-            if (failureReason != null)
-            {
-                failureReason.Throw();
-            }
+            failureReason?.Throw();
             operation.BasicMetaData = new OperationController.OperationBasicMetaData(log!);
             string[] uploadStrings = UploadOperation(fInfo, log!, operation);
             if (uploadStrings[0].Contains("https"))
@@ -537,7 +591,7 @@ public sealed class ProgramHelper : IDisposable
                         operation.UpdateProgressWithCancellationCheck("Webhook: " + message);
                     }
                 }
-            } 
+            }
             //Creating File
             GenerateFiles(log!, operation, uploadStrings, fInfo);
         }

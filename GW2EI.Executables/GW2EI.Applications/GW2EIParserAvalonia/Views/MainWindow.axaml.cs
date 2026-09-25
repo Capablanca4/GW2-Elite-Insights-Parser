@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.VisualTree;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIParserAvalonia.Services;
 using GW2EIParserAvalonia.ViewModels;
@@ -24,15 +24,28 @@ public sealed partial class MainWindow : Window, IDisposable
     private FileSystemWatcher? _logFileWatcher;
     private readonly IApplicationTrace _trace = null!;
 
+#if WINDOWS
+    private const string AssetName = "GW2EI-win-x64.zip";
+#elif OSX
+    private const string AssetName = "GW2EI-osx-x64.zip";
+#elif OSX_Arm
+    private const string AssetName = "GW2EI-osx-arm64.zip";
+#elif LINUX_ARM
+    private const string AssetName = "GW2EI-linux-arm64.zip";
+#elif LINUX
+    private const string AssetName = "GW2EI-linux-x64.zip";
+#else
+    private const string AssetName = "GW2EI-all.zip";
+#endif
+
     public MainWindow()
     {
         InitializeComponent();
+        Closing += (sender, e) => Settings.Default.Save();
     }
 
-    public MainWindow(IApplicationTrace trace)
+    public MainWindow(IApplicationTrace trace) : this()
     {
-        InitializeComponent();
-
         _trace = trace;
 
         UpdateFileWatcher();
@@ -53,7 +66,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
         var window = new SettingsWindow(viewModel.SettingsViewModel, _trace);
         window.Show();
-        window.Closed += (object? sender, EventArgs e) => UpdateFileWatcher();
+        window.Closed += (sender, e) => UpdateFileWatcher();
     }
 
     private async void PopulateButton_Click(object? sender, RoutedEventArgs e)
@@ -268,7 +281,7 @@ public sealed partial class MainWindow : Window, IDisposable
             Task.Factory.StartNew(async () =>
             {
                 List<string> traces = [];
-                Updater.UpdateInfo? info = await Updater.CheckForUpdate("GW2EI.zip", traces);
+                Updater.UpdateInfo? info = await Updater.CheckForUpdate(AssetName, traces);
                 if (info != null)
                 {
                     Settings.Default.UpdateAvailable = info.Value.UpdateAvailable;
@@ -290,7 +303,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _trace.Add("Updater: Checking for updates");
 
         var traces = new List<string>();
-        Updater.UpdateInfo? info = await Updater.CheckForUpdate("GW2EI.zip", traces);
+        Updater.UpdateInfo? info = await Updater.CheckForUpdate(AssetName, traces);
         traces.ForEach(x => _trace.Add("Updater: " + x));
 #if DEBUG
         var force = true;
@@ -300,6 +313,8 @@ public sealed partial class MainWindow : Window, IDisposable
         if (info is null)
         {
             _trace.Add("Updater: UpdateInfo is null");
+            var messageWindow = new MessageWindow("Update tentative failed, plase try again later or update manually.", _trace);
+            await messageWindow.ShowDialog(this);
             return;
         }
 
@@ -307,7 +322,6 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             _trace.Add("Updater: Update found, opening UI");
             Settings.Default.UpdateAvailable = info.Value.UpdateAvailable;
-            Settings.Default.Save();
             viewModel.UpdateVersionLabel(info.Value.UpdateAvailable);
 
             var updaterWindow = new UpdaterWindow(info.Value, _trace);
@@ -322,7 +336,6 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             _trace.Add("Updater: Up to date");
             Settings.Default.UpdateAvailable = false;
-            Settings.Default.Save();
             viewModel.UpdateVersionLabel(false);
 
             var messageWindow = new MessageWindow("Elite Insights is up to date.", _trace);

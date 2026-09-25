@@ -5,15 +5,14 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -91,7 +90,7 @@ internal class ConjuredAmalgamate : MythwrightGambit
             var attackTargetEvent = attackTargetEvents.First(x => position.Src.Is(x.AttackTarget));
             var atAgent = attackTargetEvent.AttackTarget;
             var agent = attackTargetEvent.Src;
-            var atPos = position.GetPoint3D();
+            var atPos = position.Point3D;
             if (agent.Type == AgentItem.AgentType.VolatileSpecies)
             {
                 if ((atPos - BodyAttackTargetPos).Length() < 5)
@@ -116,7 +115,7 @@ internal class ConjuredAmalgamate : MythwrightGambit
             var attackTargetEvent = attackTargetEvents.First(x => position.Src.Is(x.AttackTarget));
             var atAgent = attackTargetEvent.AttackTarget;
             var agent = attackTargetEvent.Src;
-            var atPos = position.GetPoint3D();
+            var atPos = position.Point3D;
             if (agent.IsSpecies(TargetID.CALeftArm) && (atPos - LeftArmAttackTargetPosForDamage).Length() < 5)
             {
                 atAgent.OverrideID(TargetID.CALeftArmAttackTarget, agentData);
@@ -141,7 +140,7 @@ internal class ConjuredAmalgamate : MythwrightGambit
         var effectIDToGUIDs = combatData.Where(x => x.IsStateChange == StateChange.IDToGUID);
         if (effectIDToGUIDs.Any())
         {
-            CombatItem? armSmashGUID = effectIDToGUIDs.FirstOrDefault(x => new GUID(x.SrcAgent, x.DstAgent) == EffectGUIDs.CAArmSmash);
+            CombatItem? armSmashGUID = effectIDToGUIDs.FirstOrDefault(x => EffectGUIDs.CAArmSmash.Equals(x.SrcAgent, x.DstAgent, true));
             if (armSmashGUID != null)
             {
                 CombatItem? firstArmSmash = combatData.FirstOrDefault(x => x.IsEffect && x.SkillID == armSmashGUID.SkillID);

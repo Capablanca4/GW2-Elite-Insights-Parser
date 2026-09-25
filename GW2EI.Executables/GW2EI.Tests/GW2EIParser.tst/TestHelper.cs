@@ -7,9 +7,9 @@ using GW2EIJSON;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
-namespace GW2EIParserWinForms.tst;
+namespace GW2EIParser.tst;
 
-public static class TestHelper
+internal static class TestHelper
 {
     internal static readonly UTF8Encoding NoBOMEncodingUTF8 = new(false);
     internal static readonly DefaultContractResolver DefaultJsonContractResolver = new()
@@ -43,7 +43,7 @@ public static class TestHelper
 
     internal static readonly GW2APIController APIController = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);
 
-    public class TestOperationController : ParserController
+    internal class TestOperationController : ParserController
     {
         public TestOperationController()
         {
@@ -61,10 +61,7 @@ public static class TestHelper
 
         var fInfo = new FileInfo(location);
         ParsedEvtcLog? parsedLog = parser.ParseLog(new TestOperationController(), fInfo, out var failureReason, true);
-        if (failureReason != null)
-        {
-            failureReason.Throw();
-        }
+        failureReason?.Throw();
         return parsedLog;
     }
 

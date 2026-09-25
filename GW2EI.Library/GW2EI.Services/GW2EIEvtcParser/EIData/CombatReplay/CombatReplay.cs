@@ -49,7 +49,7 @@ public class CombatReplay
         if (velocityInsertTime.HasValue)
         {
             // Add zero velocity after latest event to make sure to stop interpolation ...
-            _Velocities.Add(new(0,0,0, Math.Min(velocityInsertTime.Value + 1, position.Time - 1)));
+            _Velocities.Add(new(0, 0, 0, Math.Min(velocityInsertTime.Value + 1, position.Time - 1)));
             // ... and then restore previous
             _Velocities.Add(new(lastVelocity!.Value.XYZ, position.Time));
         }
@@ -232,7 +232,7 @@ public class CombatReplay
                 HandlePosition(t, ref polledPositionTableIndex, ref positionTableIndex, ref velocityTableIndex, rate);
                 HandleRotation(t, ref polledRotationTableIndex, ref rotationTableIndex, rate);
             }
-        } 
+        }
         else
         {
             for (long t = startOffset; t < logDuration; t += rate)
@@ -247,11 +247,15 @@ public class CombatReplay
     private static uint DebugRadius = 100;
     private static uint DebugOpeningAngle = 120;
     //NOTE(Rennorb): Methods used for debugging purposes. Keep unused variables.
-    internal static void DebugEffects(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugEffects(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, bool ignorePlayerSrc, long start = long.MinValue, long end = long.MaxValue)
     {
         var effectEventsOnAgent = log.CombatData.GetEffectEventsByDst(actor.AgentItem)
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && x.Time >= start && x.Time <= end)
             .ToList();
+        if (ignorePlayerSrc)
+        {
+            effectEventsOnAgent.RemoveAll(x => x.Src.GetFinalMaster().IsPlayer);
+        }
         var effectGUIDsOnAgent = effectEventsOnAgent.Select(x => x.GUIDEvent).ToList();
         var effectGUIDsOnAgentDistinct = effectGUIDsOnAgent.GroupBy(x => x).ToDictionary(x => x.Key, x => x.ToList().Count);
         foreach (EffectEvent effectEvt in effectEventsOnAgent)
@@ -349,7 +353,7 @@ public class CombatReplay
         }
     }
 
-    internal static void DebugUnknownEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugUnknownEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
     {
         var allEffectEvents = log.CombatData.GetEffectEvents()
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && x.Src.IsUnamedSpecies() && x.Time >= start && x.Time <= end && x.EffectID > 0)
@@ -403,7 +407,7 @@ public class CombatReplay
 
     }
 
-    internal static void DebugAllNPCEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllNPCEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
     {
         var allEffectEvents = log.CombatData.GetEffectEvents()
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && !x.Src.GetFinalMaster().IsPlayer && (!x.IsAroundDst || !x.Dst.GetFinalMaster().IsPlayer) && x.Time >= start && x.Time <= end && x.EffectID > 0)
@@ -456,7 +460,7 @@ public class CombatReplay
         }
     }
 
-    internal static void DebugAllEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
     {
         var allEffectEvents = log.CombatData.GetEffectEvents()
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && x.Time >= start && x.Time <= end && x.EffectID > 0)
@@ -513,22 +517,22 @@ public class CombatReplay
 
     #region DEBUG MISSILES
     private static uint DebugMissileRadius = 40;
-    internal static void DebugMissiles(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugMissiles(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<long> knownMissiles, long start = long.MinValue, long end = long.MaxValue)
     {
         var allMissileEvents = log.CombatData.GetMissileEventsBySrc(actor.AgentItem)
-            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0);
+            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && !knownMissiles.Contains(x.SkillID));
         decorations.AddNonHomingMissiles(log, allMissileEvents, Colors.Red, 0.5, DebugMissileRadius);
     }
-    internal static void DebugAllMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<long> knownMissiles, long start = long.MinValue, long end = long.MaxValue)
     {
         var allMissileEvents = log.CombatData.GetMissileEvents()
-            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0);
+            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && !knownMissiles.Contains(x.SkillID));
         decorations.AddNonHomingMissiles(log, allMissileEvents, Colors.Red, 0.5, DebugMissileRadius);
     }
-    internal static void DebugAllNPCMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllNPCMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<long> knownMissiles, long start = long.MinValue, long end = long.MaxValue)
     {
         var allMissileEvents = log.CombatData.GetMissileEvents()
-            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && x.Src.GetFinalMaster().IsNPC);
+            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && !knownMissiles.Contains(x.SkillID) && x.Src.GetFinalMaster().IsNPC);
         decorations.AddNonHomingMissiles(log, allMissileEvents, Colors.Red, 0.5, DebugMissileRadius);
     }
     #endregion DEBUG MISSILES

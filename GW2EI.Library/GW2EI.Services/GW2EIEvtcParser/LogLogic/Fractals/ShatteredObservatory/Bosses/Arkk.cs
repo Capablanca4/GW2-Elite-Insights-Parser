@@ -4,15 +4,15 @@ using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -461,7 +461,7 @@ internal class Arkk : ShatteredObservatory
                 {
                     if (anim.AnimationToken == areas)
                     {
-                        var lifespan = (anim.Time, anim.LoopEnd ?? log.LogData.LogEnd);
+                        var lifespan = (anim.Time, anim.LoopEnd);
                         environmentDecorations.Add(new RectangleDecoration(width, length, lifespan, Colors.Orange, 0.2, connector).UsingRotationConnector(rotation));
                     }
                 }
@@ -478,7 +478,7 @@ internal class Arkk : ShatteredObservatory
             {
                 foreach (var anim in log.CombatData.GetGadgetAnimationData(tile))
                 {
-                    var lifespan = (anim.Time, anim.LoopEnd ?? log.LogData.LogEnd);
+                    var lifespan = (anim.Time, anim.LoopEnd);
                     Color color;
                     if (anim.AnimationToken == warning)
                     {

@@ -6,7 +6,7 @@ namespace GW2EIParserWinForms;
 
 partial class UpdaterForm : Form
 {
-    private readonly Updater.UpdateInfo _info = new ();
+    private readonly Updater.UpdateInfo _info = new();
 
     public event EventHandler UpdateStartedEvent;
     public event EventHandler UpdateTracesEvent;
@@ -54,7 +54,7 @@ partial class UpdaterForm : Form
         else
         {
             UpdateTracesEvent(traces, null);
-            MessageBox.Show(this, "Update Failed.", "GW2 Elite Insights Parser", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(this, "Update Failed. Please update manually.", "GW2 Elite Insights Parser", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 

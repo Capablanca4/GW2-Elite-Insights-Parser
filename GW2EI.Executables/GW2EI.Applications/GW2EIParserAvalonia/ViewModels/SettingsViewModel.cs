@@ -111,14 +111,14 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string webhookURL = string.Empty;
     [ObservableProperty]
-    private bool sendSimpleMessageToWebhook; 
+    private bool sendSimpleMessageToWebhook;
     [ObservableProperty]
     private bool autoDiscordBatch;
 
     // GUI
     [ObservableProperty]
     private long populateHourLimit;
-    
+
     // Updater
     [ObservableProperty]
     private bool updateAvailable;
@@ -264,8 +264,6 @@ public partial class SettingsViewModel : ObservableObject
 
         // Updater
         Settings.Default.UpdateAvailable = UpdateAvailable;
-
-        Settings.Default.Save();
     }
 
     public void ApplyToSettings()
