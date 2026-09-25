@@ -2,8 +2,12 @@
 using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
 
-namespace GW2EIParserBenchmark;
+namespace GW2EIParserBenchmark.GW2EIGWAPI;
 
+[SimpleJob(
+    warmupCount: 5,
+    iterationCount: 10,
+    launchCount: 1)]
 [MemoryDiagnoser]
 public class GW2APIControllerBenchmark
 {
@@ -16,7 +20,7 @@ public class GW2APIControllerBenchmark
     }
 
     [Benchmark]
-    public static GW2APIController TestConstructorMemory()
+    public GW2APIController TestConstructorMemory()
     {
         GW2APIController controller = new("./Content/SkillList.json", "./Content/SpecList.json", "./Content/TraitList.json", "./Content/MapList.json");
         return controller;

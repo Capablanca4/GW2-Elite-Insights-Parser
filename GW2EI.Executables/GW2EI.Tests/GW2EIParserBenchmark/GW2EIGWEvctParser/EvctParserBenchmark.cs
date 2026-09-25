@@ -3,7 +3,7 @@ using GW2EIEvtcParser;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 
-namespace GW2EIParserBenchmark;
+namespace GW2EIParserBenchmark.GW2EIGWEvctParser;
 
 [MemoryDiagnoser]
 public class EvctParserBenchmark
