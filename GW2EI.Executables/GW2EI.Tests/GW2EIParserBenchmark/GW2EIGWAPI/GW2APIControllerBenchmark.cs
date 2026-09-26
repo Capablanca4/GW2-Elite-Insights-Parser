@@ -29,35 +29,35 @@ public class GW2APIControllerBenchmark
     [Benchmark]
     public GW2APISkill? GetAPISkill()
     {
-        var skill = _apiController?.GetAPISkill(0);
+        var skill = _apiController?.GetAPISkill(5555);
         return skill;
     }
 
     [Benchmark]
     public GW2APISpec? GetAPISpec()
     {
-        var spec = _apiController?.GetAPISpec(0);
+        var spec = _apiController?.GetAPISpec(1);
         return spec;
     }
 
     [Benchmark]
     public GW2APIMap? GetAPIMap()
     {
-        var map = _apiController?.GetAPIMap(0);
+        var map = _apiController?.GetAPIMap(50);
         return map;
     }
 
     [Benchmark]
     public GW2APITrait? GetAPITrait()
     {
-        var trait = _apiController?.GetAPITrait(0);
+        var trait = _apiController?.GetAPITrait(888);
         return trait;
     }
 
     [Benchmark]
     public string? GetSpec()
     {
-        var spec = _apiController?.GetSpec(0, 0);
+        var spec = _apiController?.GetSpec(2, 5);
         return spec;
     }
 }
