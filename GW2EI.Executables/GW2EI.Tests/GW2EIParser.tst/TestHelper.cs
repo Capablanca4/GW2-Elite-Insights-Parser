@@ -3,6 +3,7 @@ using GW2EIBuilders;
 using GW2EIEvtcParser;
 using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
+using GW2EIGW2API.Interfaces;
 using GW2EIJSON;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -27,19 +28,20 @@ internal static class TestHelper
     private static readonly HTMLAssets htmlAssets = new();
 
     internal static readonly string ContentLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/";
+    internal static readonly IGW2HttpClient httpClient = new GW2HttpClient();
 
     internal static readonly GW2SkillAPIController skillAPIController = new(
             new GW2BaseCache<GW2APISkill>(Path.Combine(ContentLocation, "SkillList.index"), Path.Combine(ContentLocation, "SkillList.json")),
-            new GW2BaseAPI<GW2APISkill>("/v2/skills"));
+            httpClient);
     internal static readonly GW2SpecAPIController specAPIController = new(
             new GW2BaseCache<GW2APISpec>(Path.Combine(ContentLocation, "SpecList.index"), Path.Combine(ContentLocation, "SpecList.json")),
-            new GW2BaseAPI<GW2APISpec>("/v2/specializations"));
+            httpClient);
     internal static readonly GW2MapAPIController mapAPIController = new(
             new GW2BaseCache<GW2APIMap>(Path.Combine(ContentLocation, "MapList.index"), Path.Combine(ContentLocation, "MapList.json")),
-            new GW2BaseAPI<GW2APIMap>("/v2/maps"));
+            httpClient);
     internal static readonly GW2TraitAPIController traitAPIController = new(
             new GW2BaseCache<GW2APITrait>(Path.Combine(ContentLocation, "TraitList.index"), Path.Combine(ContentLocation, "TraitList.json")),
-            new GW2BaseAPI<GW2APITrait>("/v2/traits"));
+            httpClient);
 
     internal static readonly GW2APIController APIController = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);
 

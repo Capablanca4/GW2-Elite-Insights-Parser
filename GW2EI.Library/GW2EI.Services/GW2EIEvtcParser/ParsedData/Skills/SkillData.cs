@@ -68,7 +68,8 @@ public class SkillData
     {
         if (!_skills.ContainsKey(id))
         {
-            _skills.Add(id, new SkillItem(id, name, _apiController));
+            GW2APISkill? apiSkill = _apiController.GetAPISkill(id);
+            _skills.Add(id, new SkillItem(id, name, apiSkill));
         }
     }
 

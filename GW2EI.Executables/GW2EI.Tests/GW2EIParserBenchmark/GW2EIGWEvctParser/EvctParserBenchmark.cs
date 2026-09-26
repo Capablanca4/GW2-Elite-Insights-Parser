@@ -3,6 +3,7 @@ using GW2EIEvtcParser;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
+using GW2EIGW2API.Interfaces;
 
 namespace GW2EIParserBenchmark;
 
@@ -29,18 +30,20 @@ public class EvctParserBenchmark
     [GlobalSetup]
     public void Setup()
     {
+       IGW2HttpClient httpClient = new GW2HttpClient();
+
         GW2SkillAPIController skillAPIController = new(
             new GW2BaseCache<GW2APISkill>("./Content/SkillList.index", "./Content/SkillList.json"),
-            new GW2BaseAPI<GW2APISkill>("/v2/skills"));
+            httpClient);
          GW2SpecAPIController specAPIController = new(
             new GW2BaseCache<GW2APISpec>("./Content/SpecList.index", "./Content/SpecList.json"),
-            new GW2BaseAPI<GW2APISpec>("/v2/specializations"));
+            httpClient);
         GW2MapAPIController mapAPIController = new(
             new GW2BaseCache<GW2APIMap>("./Content/MapList.index", "./Content/MapList.json"),
-            new GW2BaseAPI<GW2APIMap>("/v2/maps"));
+            httpClient);
         GW2TraitAPIController traitAPIController = new(
             new GW2BaseCache<GW2APITrait>("./Content/TraitList.index", "./Content/TraitList.json"),
-            new GW2BaseAPI<GW2APITrait>("/v2/traits"));
+            httpClient);
 
         EvtcParserSettings parserSettings = new(0, 0);
         GW2APIController apiController = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);

@@ -5,7 +5,7 @@ namespace GW2EIGW2API;
 
 public sealed class GW2MapAPIController(
     IGW2BaseCache<GW2APIMap> _mapCache,
-    IGW2BaseAPI<GW2APIMap> _mapAPI) : 
+    IGW2HttpClient _client) : 
     IGW2MapAPIController
 {
     public Task<GW2APIMap?> GetById(long ID)
@@ -13,9 +13,9 @@ public sealed class GW2MapAPIController(
         return _mapCache.GetByIdAsync(ID);
     }
 
-    public async Task WriteAPIMapsToFile()
+    public async Task WriteAPIMapsToFile(CancellationToken ctx = default)
     {
-        IEnumerable<GW2APIMap> maps = await _mapAPI.GetGW2APIItems();
+        IEnumerable<GW2APIMap> maps = await _client.GetGW2APIItems<GW2APIMap>("/v2/maps", ctx);
         _mapCache.WriteItemsToCache(maps.ToList());
     }
 }

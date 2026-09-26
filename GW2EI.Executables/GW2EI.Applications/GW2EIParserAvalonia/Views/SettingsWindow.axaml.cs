@@ -179,28 +179,28 @@ public partial class SettingsWindow : Window
 
     private async void ResetMapButton_Click(object sender, RoutedEventArgs e)
     {
-        ProgramHelper.APIController.WriteAPIMapsToFile(ProgramHelper.MapAPICacheLocation);
+        ProgramHelper.APIController.WriteAPIMapsToFile();
         var messageWindow = new MessageWindow("Map List has been redone", _trace);
         await messageWindow.ShowDialog(this);
     }
 
     private async void ResetSkillButton_Click(object sender, RoutedEventArgs e)
     {
-        ProgramHelper.APIController.WriteAPISkillsToFile(ProgramHelper.SkillAPICacheLocation);
+        ProgramHelper.APIController.WriteAPISkillsToFile();
         var messageWindow = new MessageWindow("Skill List has been redone", _trace);
         await messageWindow.ShowDialog(this);
     }
 
     private async void ResetTraitButton_Click(object sender, RoutedEventArgs e)
     {
-        ProgramHelper.APIController.WriteAPITraitsToFile(ProgramHelper.TraitAPICacheLocation);
+        ProgramHelper.APIController.WriteAPITraitsToFile();
         var messageWindow = new MessageWindow("Trait List has been redone", _trace);
         await messageWindow.ShowDialog(this);
     }
 
     private async void ResetSpecButton_Click(object sender, RoutedEventArgs e)
     {
-        ProgramHelper.APIController.WriteAPISpecsToFile(ProgramHelper.SpecAPICacheLocation);
+        ProgramHelper.APIController.WriteAPISpecsToFile();
         var messageWindow = new MessageWindow("Spec List has been redone", _trace);
         await messageWindow.ShowDialog(this);
     }

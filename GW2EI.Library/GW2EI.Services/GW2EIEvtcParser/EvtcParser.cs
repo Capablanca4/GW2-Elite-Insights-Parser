@@ -712,21 +712,18 @@ public class EvtcParser
     private SkillData ParseSkillData(BinaryReader reader, ParserController operation, EvtcVersionEvent evtcVersion)
     {
         using var _t = new AutoTrace("Skill Data");
-        var skillData = new SkillData(_apiController, evtcVersion);
+
         // 4 bytes: player count
         uint skillCount = reader.ReadUInt32();
         operation.UpdateProgressWithCancellationCheck("Parsing: Skill Count " + skillCount);
-        //TempData["Debug"] += "Skill Count:" + skill_count.ToString();
+
         // 68 bytes: each skill
-        for (int i = 0; i < skillCount; i++)
-        {
-            // 4 bytes: skill ID
-            int skillID = reader.ReadInt32();
-            // 64 bytes: name
-            string name = GetString(reader, 64);
-            //Save
-            skillData.Add(skillID, name);
-        }
+        IEnumerable<SkillItem> skills = Enumerable
+            .Range(0, (int)skillCount)
+            .Select(x => (skillID: reader.ReadInt32(), name: GetString(reader, 64)))
+            .Select(x => new SkillItem(x.skillID, x.name, _apiController.GetAPISkill(x.skillID)));
+
+        SkillData skillData = new(_apiController, evtcVersion, skills);
         return skillData;
     }
 
