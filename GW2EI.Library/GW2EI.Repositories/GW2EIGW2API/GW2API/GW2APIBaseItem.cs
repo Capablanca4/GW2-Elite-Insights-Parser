@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace GW2EIGW2API.GW2API;
 
@@ -7,7 +9,10 @@ namespace GW2EIGW2API.GW2API;
 [JsonDerivedType(typeof(GW2APISpec))]
 [JsonDerivedType(typeof(GW2APITrait))]
 [JsonDerivedType(typeof(GW2APIMap))]
+[JsonDerivedType(typeof(GW2APiBuild))]
 public abstract class GW2APIBaseItem
 {
-    public long Id;
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public long Id { get; set; }
 }

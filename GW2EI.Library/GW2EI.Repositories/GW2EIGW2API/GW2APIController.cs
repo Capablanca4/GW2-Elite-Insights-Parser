@@ -5,10 +5,10 @@ using GW2EIGW2API.Interfaces;
 namespace GW2EIGW2API;
 
 public class GW2APIController(
-    IGW2SkillAPIController skillAPIController, 
-    IGW2SpecAPIController specAPIController, 
-    IGW2TraitAPIController traitAPIController, 
-    IGW2MapAPIController mapAPIController)
+    IGW2DbRepository<GW2APISkill> skillAPIController, 
+    IGW2DbRepository<GW2APISpec> specAPIController, 
+    IGW2DbRepository<GW2APITrait> traitAPIController, 
+    IGW2DbRepository<GW2APIMap> mapAPIController)
 {
     //----------------------------------------------------------------------------- SKILLS
     /// <summary>
@@ -20,12 +20,13 @@ public class GW2APIController(
     /// <returns></returns>
     public GW2APISkill? GetAPISkill(long id)
     {
-        return skillAPIController.GetById(id).GetAwaiter().GetResult();
+        return skillAPIController.GetById(id);
     }
 
     public Task WriteAPISkillsToFile()
     {
-        return skillAPIController.WriteAPISkillsToFile();
+        throw new NotImplementedException("WriteAPISkillsToFile is not implemented yet.");
+        //return skillAPIController.WriteAPISkillsToFile();
     }
 
     //----------------------------------------------------------------------------- SPECS
@@ -69,7 +70,7 @@ public class GW2APIController(
 
     private string GetSpecNew(uint id)
     {
-        GW2APISpec? spec = specAPIController.GetById(id).GetAwaiter().GetResult();
+        GW2APISpec? spec = specAPIController.GetById(id);
         if (spec is null)
         {
             return UNKNOWN_SPEC;
@@ -80,7 +81,8 @@ public class GW2APIController(
 
     public Task WriteAPISpecsToFile()
     {
-        return specAPIController.WriteAPISpecsToFile();
+        throw new NotImplementedException("WriteAPISpecsToFile is not implemented yet.");
+        //return specAPIController.WriteAPISpecsToFile();
     }
 
     //----------------------------------------------------------------------------- MAPS
@@ -93,12 +95,13 @@ public class GW2APIController(
     /// <returns></returns>
     public GW2APIMap? GetAPIMap(int id)
     {
-        return mapAPIController.GetById(id).GetAwaiter().GetResult();
+        return mapAPIController.GetById(id);
     }
 
     public Task WriteAPIMapsToFile()
     {
-        return mapAPIController.WriteAPIMapsToFile();
+        throw new NotImplementedException("WriteAPIMapsToFile is not implemented yet.");
+       // return mapAPIController.WriteAPIMapsToFile();
     }
 
     //----------------------------------------------------------------------------- TRAITS
@@ -111,11 +114,12 @@ public class GW2APIController(
     /// <returns></returns>
     public GW2APITrait? GetAPITrait(long id)
     {
-        return traitAPIController.GetById(id).GetAwaiter().GetResult();
+        return traitAPIController.GetById(id);
     }
 
     public Task WriteAPITraitsToFile()
     {
-        return traitAPIController.WriteAPITraitsToFile();
+        throw new NotImplementedException("WriteAPITraitsToFile is not implemented yet.");
+        //return traitAPIController.WriteAPITraitsToFile();
     }
 }

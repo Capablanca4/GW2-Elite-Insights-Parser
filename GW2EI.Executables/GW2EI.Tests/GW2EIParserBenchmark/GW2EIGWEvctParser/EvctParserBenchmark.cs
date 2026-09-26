@@ -3,7 +3,11 @@ using GW2EIEvtcParser;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
+using GW2EIGW2API.GW2DB;
 using GW2EIGW2API.Interfaces;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace GW2EIParserBenchmark;
 
@@ -30,24 +34,40 @@ public class EvctParserBenchmark
     [GlobalSetup]
     public void Setup()
     {
-       IGW2HttpClient httpClient = new GW2HttpClient();
+        IGW2HttpClient httpClient = new GW2HttpClient();
 
-        GW2SkillAPIController skillAPIController = new(
-            new GW2BaseCache<GW2APISkill>("./Content/SkillList.index", "./Content/SkillList.json"),
-            httpClient);
-         GW2SpecAPIController specAPIController = new(
-            new GW2BaseCache<GW2APISpec>("./Content/SpecList.index", "./Content/SpecList.json"),
-            httpClient);
-        GW2MapAPIController mapAPIController = new(
-            new GW2BaseCache<GW2APIMap>("./Content/MapList.index", "./Content/MapList.json"),
-            httpClient);
-        GW2TraitAPIController traitAPIController = new(
-            new GW2BaseCache<GW2APITrait>("./Content/TraitList.index", "./Content/TraitList.json"),
-            httpClient);
+        bool useMemory = true;
+        string dbFilePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/GW2.db";
+        string inMemoryDbPath = "file:memdb1?mode=memory&cache=shared";
+        string dbPath = useMemory ? inMemoryDbPath : dbFilePath;
+        SqliteConnection sharedConnection = new($"Data Source={dbPath}");
+        sharedConnection.Open();
+
+        if (useMemory)
+        {
+            using SqliteConnection physicalConnection = new($"Data Source={dbFilePath}");
+            physicalConnection.Open();
+            physicalConnection.BackupDatabase(sharedConnection);
+        }
+
+        DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(sharedConnection)
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+            .AddInterceptors(new SqlitePragmaInterceptor())
+            .Options;
+
+        // creates the database if it doesn't exist
+        PooledDbContextFactory<AppDbContext> factory = new(options, poolSize: 128);
+        factory.CreateDbContext().Database.EnsureCreated();
+
+        GW2DbRepository<GW2APISkill> skillAPIController = new(factory);
+        GW2DbRepository<GW2APISpec> specAPIController = new(factory);
+        GW2DbRepository<GW2APIMap> mapAPIController = new(factory);
+        GW2DbRepository<GW2APITrait> traitAPIController = new(factory);
+        GW2APIController controller = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);
 
         EvtcParserSettings parserSettings = new(0, 0);
-        GW2APIController apiController = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);
-        parser = new EvtcParser(parserSettings, apiController);
+        parser = new EvtcParser(parserSettings, controller);
     }
     
     [Benchmark]

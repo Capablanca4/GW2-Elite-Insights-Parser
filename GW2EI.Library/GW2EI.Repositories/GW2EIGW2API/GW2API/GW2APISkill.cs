@@ -2,28 +2,34 @@
 
 public class GW2APISkill : GW2APIBaseItem
 {
-    public string Name;
-    public string Description;
-    public string Icon;
-    public string ChatLink;
-    public string Type;
-    public string WeaponType;
-    public IReadOnlyList<string> Professions;
-    public IReadOnlyList<string> Flags;
-    public string Slot;
-    public IReadOnlyList<GW2APIFact> Facts;
-    public IReadOnlyList<GW2APITraitedFact> TraitedFacts;
-    public IReadOnlyList<string> Categories;
-    public string Attunement;
-    public int Cost;
-    public string DualWield;
-    public int FlipSkill;
-    public int Initiative;
-    public int NextChain;
-    public int PrevChain;
-    public IReadOnlyList<long> TransformSkills;
-    public IReadOnlyList<long> BundleSkills;
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public string? Icon { get; set; }
+    public string ChatLink { get; set; }
+    public string? Type { get; set; }
+    public string? WeaponType { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<string>? Professions { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<string> Flags { get; set; }
+    public string? Slot { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<GW2APIFact>? Facts { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<GW2APITraitedFact>? TraitedFacts { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<string>? Categories { get; set; }
+    public string? Attunement { get; set; }
+    public int Cost { get; set; }
+    public string? DualWield { get; set; }
+    public int FlipSkill { get; set; }
+    public int Initiative { get; set; }
+    public int NextChain { get; set; }
+    public int PrevChain { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<long>? TransformSkills { get; set; }
+    [JsonColumn]    
+    public IReadOnlyList<long>? BundleSkills { get; set; }
 
-    public int ToolbeltSkill;
+    public int ToolbeltSkill { get; set; }
 }
-

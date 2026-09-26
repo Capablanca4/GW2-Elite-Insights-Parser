@@ -3,8 +3,12 @@ using GW2EIBuilders;
 using GW2EIEvtcParser;
 using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
+using GW2EIGW2API.GW2DB;
 using GW2EIGW2API.Interfaces;
 using GW2EIJSON;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
@@ -27,23 +31,43 @@ internal static class TestHelper
     private static readonly CSVSettings csvSettings = new(",");
     private static readonly HTMLAssets htmlAssets = new();
 
-    internal static readonly string ContentLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/";
-    internal static readonly IGW2HttpClient httpClient = new GW2HttpClient();
+    internal const bool useMemory = true;
+    internal static GW2APIController CreateController()
+    {
+        IGW2HttpClient httpClient = new GW2HttpClient();
 
-    internal static readonly GW2SkillAPIController skillAPIController = new(
-            new GW2BaseCache<GW2APISkill>(Path.Combine(ContentLocation, "SkillList.index"), Path.Combine(ContentLocation, "SkillList.json")),
-            httpClient);
-    internal static readonly GW2SpecAPIController specAPIController = new(
-            new GW2BaseCache<GW2APISpec>(Path.Combine(ContentLocation, "SpecList.index"), Path.Combine(ContentLocation, "SpecList.json")),
-            httpClient);
-    internal static readonly GW2MapAPIController mapAPIController = new(
-            new GW2BaseCache<GW2APIMap>(Path.Combine(ContentLocation, "MapList.index"), Path.Combine(ContentLocation, "MapList.json")),
-            httpClient);
-    internal static readonly GW2TraitAPIController traitAPIController = new(
-            new GW2BaseCache<GW2APITrait>(Path.Combine(ContentLocation, "TraitList.index"), Path.Combine(ContentLocation, "TraitList.json")),
-            httpClient);
+        string dbFilePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/GW2.db";
+        string inMemoryDbPath = "file:memdb1?mode=memory&cache=shared";
+        string dbPath = useMemory ? inMemoryDbPath : dbFilePath;
+        SqliteConnection sharedConnection = new($"Data Source={dbPath}");
+        sharedConnection.Open();
 
-    internal static readonly GW2APIController APIController = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);
+        if (useMemory)
+        {
+            using SqliteConnection physicalConnection = new($"Data Source={dbFilePath}");
+            physicalConnection.Open();
+            physicalConnection.BackupDatabase(sharedConnection);
+        }
+
+        DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(sharedConnection)
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+            .AddInterceptors(new SqlitePragmaInterceptor())
+            .Options;
+
+        // creates the database if it doesn't exist
+        PooledDbContextFactory<AppDbContext> factory = new(options, poolSize: 128);
+        factory.CreateDbContext().Database.EnsureCreated();
+
+        GW2DbRepository<GW2APISkill> skillAPIController = new(factory);
+        GW2DbRepository<GW2APISpec> specAPIController = new(factory);
+        GW2DbRepository<GW2APIMap> mapAPIController = new(factory);
+        GW2DbRepository<GW2APITrait> traitAPIController = new(factory);
+        GW2APIController controller = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);
+        return controller;
+    }
+
+    public static readonly GW2APIController APIController = CreateController();
 
     internal class TestOperationController : ParserController
     {

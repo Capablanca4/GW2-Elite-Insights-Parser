@@ -2,14 +2,17 @@
 
 public class GW2APITrait : GW2APIBaseItem
 {
-    public string Name;
-    public string Icon;
-    public string Description;
-    public int Specialization;
-    public int Tier;
-    public string Slot;
-    public IReadOnlyList<GW2APIFact> Facts;
-    public IReadOnlyList<GW2APITraitedFact> TraitedFacts;
-    public IReadOnlyList<GW2APISkill> Skills;
-}
+    public string Name { get; set; }
+    public string Icon { get; set; }
+    public string Description { get; set; }
+    public int Specialization { get; set; }
+    public int Tier { get; set; }
+    public string Slot { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<GW2APIFact>? Facts { get; set; }
 
+    [JsonColumn]
+    public IReadOnlyList<GW2APITraitedFact>? TraitedFacts { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<GW2APISkill>? Skills { get; set; }
+}

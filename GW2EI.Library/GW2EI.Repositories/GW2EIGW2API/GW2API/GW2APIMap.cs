@@ -2,17 +2,19 @@
 
 public class GW2APIMap : GW2APIBaseItem
 {
-    public string Name;
-    public int MinLevel;
-    public int MaxLevel;
-    public int DefaultFloor;
-    public string Type;
-    public IReadOnlyList<int> Floors;
-    public int RegionId;
-    public string RegionName;
-    public int ContinentId;
-    public string ContinentName;
-    public IReadOnlyList<IReadOnlyList<int>> MapRect;
-    public IReadOnlyList<IReadOnlyList<int>> ContinentRect;
+    public string Name { get; set; }
+    public int MinLevel { get; set; }
+    public int MaxLevel { get; set; }
+    public int DefaultFloor { get; set; }
+    public string Type { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<int> Floors { get; set; }
+    public int RegionId { get; set; }
+    public string? RegionName { get; set; }
+    public int ContinentId { get; set; }
+    public string? ContinentName { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<IReadOnlyList<int>> MapRect { get; set; }
+    [JsonColumn]
+    public IReadOnlyList<IReadOnlyList<int>> ContinentRect { get; set; }
 }
-
