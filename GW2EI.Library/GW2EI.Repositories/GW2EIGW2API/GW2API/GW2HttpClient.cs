@@ -1,9 +1,9 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-using GW2EIGW2API.GW2API;
 using GW2EIGW2API.Interfaces;
+using GW2EIGW2API.Models;
 
-namespace GW2EIGW2API;
+namespace GW2EIGW2API.GW2API;
 
 public class GW2HttpClient : IGW2HttpClient
 {

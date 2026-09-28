@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace GW2EIGW2API.GW2API;
+namespace GW2EIGW2API.Models;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct IndexRecord

@@ -5,6 +5,7 @@ using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
 using GW2EIGW2API.GW2DB;
 using GW2EIGW2API.Interfaces;
+using GW2EIGW2API.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;

@@ -1,7 +1,7 @@
 ﻿using System.Data.Common;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace GW2EIGW2API;
+namespace GW2EIGW2API.GW2DB;
 
 /// <summary>
 /// Applies per-connection performance PRAGMAs each time a (pooled) connection is opened.

@@ -1,4 +1,4 @@
-﻿using GW2EIGW2API.GW2API;
+﻿using GW2EIGW2API.Models;
 
 namespace GW2EIGW2API.Interfaces;
 

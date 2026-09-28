@@ -3,6 +3,7 @@ using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
 using GW2EIGW2API.GW2DB;
 using GW2EIGW2API.Interfaces;
+using GW2EIGW2API.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -18,30 +19,16 @@ public class GW2APIControllerBenchmark
 {
     private GW2APIController? _apiController;
 
-    [GlobalSetup]
-    public void Setup()
-    {
-        _apiController = CreateController();
-    }
+    [Params(true, false)]
+    public bool HighPerf;
 
     private GW2APIController CreateController()
     {
         IGW2HttpClient httpClient = new GW2HttpClient();
 
-        bool useMemory = true;
         string dbFilePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/GW2.db";
-        string inMemoryDbPath = "file:memdb1?mode=memory&cache=shared";
-        string dbPath = useMemory ? inMemoryDbPath : dbFilePath;
-        SqliteConnection sharedConnection = new($"Data Source={dbPath}");
+        SqliteConnection sharedConnection = new($"Data Source={dbFilePath}");
         sharedConnection.Open();
-
-        if (useMemory)
-        {
-            using SqliteConnection physicalConnection = new($"Data Source={dbFilePath}");
-            physicalConnection.Open();
-            physicalConnection.BackupDatabase(sharedConnection);
-            physicalConnection.Close();
-        }
 
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlite(sharedConnection)
@@ -51,14 +38,33 @@ public class GW2APIControllerBenchmark
 
         // creates the database if it doesn't exist
         PooledDbContextFactory<AppDbContext> factory = new(options, poolSize: 128);
-        factory.CreateDbContext().Database.EnsureCreated();
+        using (AppDbContext db = factory.CreateDbContext())
+        {
+            db.Database.EnsureCreated();   // creates the database if it doesn't exist
+        }
 
-        GW2DbRepository<GW2APISkill> skillAPIController = new(factory);
-        GW2DbRepository<GW2APISpec> specAPIController = new(factory);
-        GW2DbRepository<GW2APIMap> mapAPIController = new(factory);
-        GW2DbRepository<GW2APITrait> traitAPIController = new(factory);
-        GW2APIController controller = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);
+        // The only place where the mode picks an implementation
+        IGW2DbRepository<T> CreateRepository<T>() where T : GW2APIBaseItem
+        {
+            return HighPerf ? new CachedGW2Repository<T>(factory) : new GW2DbRepository<T>(factory);
+        }
+
+        long before = GC.GetTotalMemory(forceFullCollection: true);
+        GW2APIController controller = new(
+            CreateRepository<GW2APISkill>(),
+            CreateRepository<GW2APISpec>(),
+            CreateRepository<GW2APITrait>(),
+            CreateRepository<GW2APIMap>());
+        long after = GC.GetTotalMemory(forceFullCollection: true);
+        Console.WriteLine($"Retained: {after - before:N0} B");
+
         return controller;
+    }
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        _apiController = CreateController();
     }
 
     [Benchmark]

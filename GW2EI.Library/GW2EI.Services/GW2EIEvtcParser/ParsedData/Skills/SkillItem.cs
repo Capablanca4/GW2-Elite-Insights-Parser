@@ -1,7 +1,7 @@
 ﻿using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
-using GW2EIGW2API.GW2API;
+using GW2EIGW2API.Models;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.ParsedData.WeaponDescriptor;
 using static GW2EIEvtcParser.SkillIDs;

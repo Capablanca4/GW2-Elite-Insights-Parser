@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using GW2EIGW2API;
-using GW2EIGW2API.GW2API;
+using GW2EIGW2API.Models;
 
 namespace GW2EIEvtcParser.ParsedData;
 

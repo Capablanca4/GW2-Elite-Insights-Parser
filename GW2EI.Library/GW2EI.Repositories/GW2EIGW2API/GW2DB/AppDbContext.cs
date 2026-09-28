@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.Json;
-using GW2EIGW2API.GW2API;
+using GW2EIGW2API.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 

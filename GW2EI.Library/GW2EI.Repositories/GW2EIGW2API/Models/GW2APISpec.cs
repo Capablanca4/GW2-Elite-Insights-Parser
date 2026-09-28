@@ -1,4 +1,4 @@
-﻿namespace GW2EIGW2API.GW2API;
+﻿namespace GW2EIGW2API.Models;
 
 public class GW2APISpec : GW2APIBaseItem
 {

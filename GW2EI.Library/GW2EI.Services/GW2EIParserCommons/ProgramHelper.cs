@@ -14,6 +14,7 @@ using GW2EIGW2API;
 using GW2EIGW2API.GW2API;
 using GW2EIGW2API.GW2DB;
 using GW2EIGW2API.Interfaces;
+using GW2EIGW2API.Models;
 using GW2EIParserCommons.Exceptions;
 using GW2EIWingman;
 using Microsoft.Data.Sqlite;

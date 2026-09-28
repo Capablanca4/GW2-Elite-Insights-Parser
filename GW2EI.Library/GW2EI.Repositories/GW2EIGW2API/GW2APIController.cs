@@ -1,5 +1,5 @@
-﻿using GW2EIGW2API.GW2API;
-using GW2EIGW2API.Interfaces;
+﻿using GW2EIGW2API.Interfaces;
+using GW2EIGW2API.Models;
 
 [assembly: CLSCompliant(false)]
 namespace GW2EIGW2API;
