@@ -14,6 +14,9 @@ public class GW2APIControllerBenchmark
 {
     private GW2APIController? _apiController;
 
+    [Params(true, false)]
+    public bool UseCachedRepository;
+
     [GlobalSetup]
     public void Setup()
     {
@@ -24,17 +27,26 @@ public class GW2APIControllerBenchmark
     {
         IGW2HttpClient httpClient = new GW2HttpClient();
 
+        IGW2DBRepository<T> CreateRepositories<T>(string fileIndex, string filePositions) where T : GW2APIBaseItem
+        {
+            if (UseCachedRepository)
+            {
+                return new CachedGW2DBRepository<T>(filePositions);
+            }
+            return new GW2DBRepository<T>(fileIndex, filePositions);
+        }
+
         GW2SkillAPIController skillAPIController = new(
-            new GW2BaseCache<GW2APISkill>("./Content/SkillList.index", "./Content/SkillList.json"),
+            CreateRepositories<GW2APISkill>("./Content/SkillList.index", "./Content/SkillList.json"),
             httpClient);
         GW2SpecAPIController specAPIController = new(
-           new GW2BaseCache<GW2APISpec>("./Content/SpecList.index", "./Content/SpecList.json"),
+           CreateRepositories<GW2APISpec>("./Content/SpecList.index", "./Content/SpecList.json"),
            httpClient);
         GW2MapAPIController mapAPIController = new(
-            new GW2BaseCache<GW2APIMap>("./Content/MapList.index", "./Content/MapList.json"),
+            CreateRepositories<GW2APIMap>("./Content/TraitList.index", "./Content/TraitList.json"),
             httpClient);
         GW2TraitAPIController traitAPIController = new(
-            new GW2BaseCache<GW2APITrait>("./Content/TraitList.index", "./Content/TraitList.json"),
+            CreateRepositories<GW2APITrait>("./Content/MapList.index", "./Content/MapList.json"),
             httpClient);
 
         GW2APIController controller = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);

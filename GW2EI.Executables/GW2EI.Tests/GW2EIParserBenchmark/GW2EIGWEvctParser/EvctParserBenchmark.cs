@@ -33,16 +33,16 @@ public class EvctParserBenchmark
        IGW2HttpClient httpClient = new GW2HttpClient();
 
         GW2SkillAPIController skillAPIController = new(
-            new GW2BaseCache<GW2APISkill>("./Content/SkillList.index", "./Content/SkillList.json"),
+            new GW2DBRepository<GW2APISkill>("./Content/SkillList.index", "./Content/SkillList.json"),
             httpClient);
          GW2SpecAPIController specAPIController = new(
-            new GW2BaseCache<GW2APISpec>("./Content/SpecList.index", "./Content/SpecList.json"),
+            new GW2DBRepository<GW2APISpec>("./Content/SpecList.index", "./Content/SpecList.json"),
             httpClient);
         GW2MapAPIController mapAPIController = new(
-            new GW2BaseCache<GW2APIMap>("./Content/MapList.index", "./Content/MapList.json"),
+            new GW2DBRepository<GW2APIMap>("./Content/MapList.index", "./Content/MapList.json"),
             httpClient);
         GW2TraitAPIController traitAPIController = new(
-            new GW2BaseCache<GW2APITrait>("./Content/TraitList.index", "./Content/TraitList.json"),
+            new GW2DBRepository<GW2APITrait>("./Content/TraitList.index", "./Content/TraitList.json"),
             httpClient);
 
         EvtcParserSettings parserSettings = new(0, 0);

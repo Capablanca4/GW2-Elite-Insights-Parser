@@ -31,16 +31,16 @@ internal static class TestHelper
     internal static readonly IGW2HttpClient httpClient = new GW2HttpClient();
 
     internal static readonly GW2SkillAPIController skillAPIController = new(
-            new GW2BaseCache<GW2APISkill>(Path.Combine(ContentLocation, "SkillList.index"), Path.Combine(ContentLocation, "SkillList.json")),
+            new GW2DBRepository<GW2APISkill>(Path.Combine(ContentLocation, "SkillList.index"), Path.Combine(ContentLocation, "SkillList.json")),
             httpClient);
     internal static readonly GW2SpecAPIController specAPIController = new(
-            new GW2BaseCache<GW2APISpec>(Path.Combine(ContentLocation, "SpecList.index"), Path.Combine(ContentLocation, "SpecList.json")),
+            new GW2DBRepository<GW2APISpec>(Path.Combine(ContentLocation, "SpecList.index"), Path.Combine(ContentLocation, "SpecList.json")),
             httpClient);
     internal static readonly GW2MapAPIController mapAPIController = new(
-            new GW2BaseCache<GW2APIMap>(Path.Combine(ContentLocation, "MapList.index"), Path.Combine(ContentLocation, "MapList.json")),
+            new GW2DBRepository<GW2APIMap>(Path.Combine(ContentLocation, "MapList.index"), Path.Combine(ContentLocation, "MapList.json")),
             httpClient);
     internal static readonly GW2TraitAPIController traitAPIController = new(
-            new GW2BaseCache<GW2APITrait>(Path.Combine(ContentLocation, "TraitList.index"), Path.Combine(ContentLocation, "TraitList.json")),
+            new GW2DBRepository<GW2APITrait>(Path.Combine(ContentLocation, "TraitList.index"), Path.Combine(ContentLocation, "TraitList.json")),
             httpClient);
 
     internal static readonly GW2APIController APIController = new(skillAPIController, specAPIController, traitAPIController, mapAPIController);

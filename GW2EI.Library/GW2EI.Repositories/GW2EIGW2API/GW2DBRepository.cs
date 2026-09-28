@@ -1,59 +1,98 @@
 ﻿using System.Buffers;
 using System.Buffers.Binary;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using GW2EIGW2API.GW2API;
 using GW2EIGW2API.Interfaces;
 using Microsoft.Win32.SafeHandles;
 
 namespace GW2EIGW2API;
 
-public sealed class GW2BaseCache<T> : IDisposable, IGW2BaseCache<T> where T : GW2APIBaseItem
+public sealed class GW2DBRepository<T> : IDisposable, IGW2DBRepository<T> where T : GW2APIBaseItem
 {
     private readonly Dictionary<long, IndexRecord> _indexes;
     private readonly string _filePositions;
     private readonly string _fileIndex;
-    private readonly SafeFileHandle _fileHandle;
+    private readonly JsonTypeInfo<T> _typeInfo;
 
-    private static readonly JsonSerializerOptions SerializerSettings = new()
-    {
-        WriteIndented = false,
-        IncludeFields = true,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        //NOTE(Rennorb): does html escape by default
-    };
+    // Memory-mapped positions file (read-only, mapped once for the lifetime of the repository)
+    private readonly MemoryMappedFile _mmf;
+    private readonly MemoryMappedViewAccessor _view;
+    private readonly long _length;
+    private int _disposed;
 
-    public GW2BaseCache(string fileIndex, string filePositions)
+    public GW2DBRepository(string fileIndex, string filePositions)
     {
         _fileIndex = fileIndex;
         _filePositions = filePositions;
+        _typeInfo = GW2JsonContext.ResolveTypeInfo<T>();
         _indexes = ReadIndexes();
-        _fileHandle = File.OpenHandle(filePositions, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.Asynchronous | FileOptions.RandomAccess);
+
+        using FileStream stream = new(filePositions, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try
+        {
+            _mmf = MemoryMappedFile.CreateFromFile(
+                stream,
+                mapName: null,
+                capacity: 0,
+                MemoryMappedFileAccess.Read,
+                HandleInheritability.None,
+                leaveOpen: false); // the mapping now owns the stream
+        }
+        catch
+        {
+            stream.Dispose();
+            throw;
+        }
+
+        _view = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+        _length = _view.Capacity;
     }
 
-    public async Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    // Everything is served from the mapped memory, there is no I/O to await.
+    public Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(GetById(id));
+    }
+
+    public T? GetById(long id)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+
         if (!_indexes.TryGetValue(id, out IndexRecord entry))
         {
             return null;
         }
 
-        return await ReadPosition(entry, cancellationToken);
+        return ReadPosition(entry);
     }
 
     public void Dispose()
     {
-        _fileHandle.Dispose();
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        // The accessor ref-counts its native handle, so a read that is already in flight
+        // finishes safely before the mapping is actually released.
+        _view.Dispose();
+        _mmf.Dispose();
     }
 
     #region Write to cache
 
+    // NOTE: the positions file is mapped while this instance is alive, so it can't be rewritten
+    // through the same instance. Regenerate the cache before creating the repository
+    // (or dispose it first).
     public void WriteItemsToCache(IList<T> items)
     {
         // Builds positions and index
-        byte[][] positions = items.Select(i => JsonSerializer.SerializeToUtf8Bytes(i, SerializerSettings)).ToArray();
+        byte[][] positions = items.Select(i => JsonSerializer.SerializeToUtf8Bytes(i, _typeInfo)).ToArray();
         Dictionary<long, IndexRecord> index = new(items.Count);
         long offset = 0;
         for (var i = 0; i < items.Count; i++)
@@ -141,31 +180,29 @@ public sealed class GW2BaseCache<T> : IDisposable, IGW2BaseCache<T> where T : GW
 
     #region Read from positions
 
-    private async Task<T?> ReadPosition(IndexRecord entry, CancellationToken cancellationToken)
+    private T? ReadPosition(IndexRecord entry)
     {
-        byte[] buffer = ArrayPool<byte>.Shared.Rent((int)entry.Length);
+        // +1 skips the leading '['.
+        long start = entry.Offset + 1;
+        if (start < 0 || entry.Length < 0 || entry.Length > int.MaxValue || start + entry.Length > _length)
+        {
+            throw new InvalidDataException(
+                $"Index entry {entry.Key} points outside of '{_filePositions}'. The index and positions files are out of sync.");
+        }
+
+        int length = (int)entry.Length;
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
 
         try
         {
-            int totalRead = 0;
-
-            while (totalRead < entry.Length)
+            // Bounds-checked copy out of the mapped view (a memcpy, no syscall).
+            int read = _view.ReadArray(start, buffer, 0, length);
+            if (read != length)
             {
-                int read = await RandomAccess.ReadAsync(
-                    _fileHandle,
-                    new Memory<byte>(buffer, totalRead, (int)entry.Length - totalRead),
-                    entry.Offset + 1 + totalRead,
-                    cancellationToken);
-                if (read == 0)
-                {
-                    throw new EndOfStreamException("Unexpected end of stream while reading the element.");
-                }
-
-                totalRead += read;
+                throw new EndOfStreamException("Unexpected end of stream while reading the element.");
             }
 
-            var test = Encoding.UTF8.GetString(buffer.AsSpan(0, (int)entry.Length));
-            return JsonSerializer.Deserialize<T>(buffer.AsSpan(0, (int)entry.Length), SerializerSettings);
+            return JsonSerializer.Deserialize(buffer.AsSpan(0, length), _typeInfo);
         }
         finally
         {

@@ -4,13 +4,18 @@ using GW2EIGW2API.Interfaces;
 namespace GW2EIGW2API;
 
 public sealed class GW2MapAPIController(
-    IGW2BaseCache<GW2APIMap> _mapCache,
+    IGW2DBRepository<GW2APIMap> _mapCache,
     IGW2HttpClient _client) : 
     IGW2MapAPIController
 {
-    public Task<GW2APIMap?> GetById(long ID)
+    public GW2APIMap? GetById(long ID)
     {
-        return _mapCache.GetByIdAsync(ID);
+        return _mapCache.GetById(ID);
+    }
+
+    public Task<GW2APIMap?> GetByIdAsync(long ID, CancellationToken cancellationToken = default)
+    {
+        return _mapCache.GetByIdAsync(ID, cancellationToken);
     }
 
     public async Task WriteAPIMapsToFile(CancellationToken ctx = default)

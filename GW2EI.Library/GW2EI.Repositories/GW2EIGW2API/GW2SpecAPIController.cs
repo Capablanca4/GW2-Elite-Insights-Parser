@@ -4,13 +4,18 @@ using GW2EIGW2API.Interfaces;
 namespace GW2EIGW2API;
 
 public sealed class GW2SpecAPIController(
-    IGW2BaseCache<GW2APISpec> _specCache, 
+    IGW2DBRepository<GW2APISpec> _specCache, 
     IGW2HttpClient _client) : 
     IGW2SpecAPIController
 {
-    public Task<GW2APISpec?> GetById(long ID)
+    public GW2APISpec? GetById(long ID)
     {
-        return _specCache.GetByIdAsync(ID);
+        return _specCache.GetById(ID);
+    }
+
+    public Task<GW2APISpec?> GetByIdAsync(long ID, CancellationToken cancellationToken = default)
+    {
+        return _specCache.GetByIdAsync(ID, cancellationToken);
     }
 
     public async Task WriteAPISpecsToFile(CancellationToken ctx = default)

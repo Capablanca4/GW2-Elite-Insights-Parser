@@ -20,7 +20,7 @@ public class GW2APIController(
     /// <returns></returns>
     public GW2APISkill? GetAPISkill(long id)
     {
-        return skillAPIController.GetById(id).GetAwaiter().GetResult();
+        return skillAPIController.GetById(id);
     }
 
     public Task WriteAPISkillsToFile()
@@ -69,7 +69,7 @@ public class GW2APIController(
 
     private string GetSpecNew(uint id)
     {
-        GW2APISpec? spec = specAPIController.GetById(id).GetAwaiter().GetResult();
+        GW2APISpec? spec = specAPIController.GetById(id);
         if (spec is null)
         {
             return UNKNOWN_SPEC;
@@ -93,7 +93,7 @@ public class GW2APIController(
     /// <returns></returns>
     public GW2APIMap? GetAPIMap(int id)
     {
-        return mapAPIController.GetById(id).GetAwaiter().GetResult();
+        return mapAPIController.GetById(id);
     }
 
     public Task WriteAPIMapsToFile()
@@ -111,7 +111,7 @@ public class GW2APIController(
     /// <returns></returns>
     public GW2APITrait? GetAPITrait(long id)
     {
-        return traitAPIController.GetById(id).GetAwaiter().GetResult();
+        return traitAPIController.GetById(id);
     }
 
     public Task WriteAPITraitsToFile()

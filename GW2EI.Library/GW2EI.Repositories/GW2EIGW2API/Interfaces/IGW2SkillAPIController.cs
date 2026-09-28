@@ -4,6 +4,7 @@ namespace GW2EIGW2API.Interfaces;
 
 public interface IGW2SkillAPIController
 {
-    Task<GW2APISkill?> GetById(long ID);
+    GW2APISkill? GetById(long ID);
+    Task<GW2APISkill?> GetByIdAsync(long ID, CancellationToken cancellationToken = default);
     Task WriteAPISkillsToFile(CancellationToken ctx = default);
 }
