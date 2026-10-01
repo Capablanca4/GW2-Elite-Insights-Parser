@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,11 +18,9 @@ public sealed class GW2DBRepository<T> : IDisposable, IGW2DBRepository<T> where 
     private readonly string _filePositions;
     private readonly string _fileIndex;
     private readonly JsonTypeInfo<T> _typeInfo;
-
     // Memory-mapped positions file (read-only, mapped once for the lifetime of the repository)
     private readonly MemoryMappedFile _mmf;
     private readonly MemoryMappedViewAccessor _view;
-    private readonly long _length;
     private int _disposed;
 
     public GW2DBRepository(string fileIndex, string filePositions)
@@ -31,28 +30,10 @@ public sealed class GW2DBRepository<T> : IDisposable, IGW2DBRepository<T> where 
         _typeInfo = GW2JsonContext.ResolveTypeInfo<T>();
         _indexes = ReadIndexes();
 
-        using FileStream stream = new(filePositions, FileMode.Open, FileAccess.Read, FileShare.Read);
-        try
-        {
-            _mmf = MemoryMappedFile.CreateFromFile(
-                stream,
-                mapName: null,
-                capacity: 0,
-                MemoryMappedFileAccess.Read,
-                HandleInheritability.None,
-                leaveOpen: false); // the mapping now owns the stream
-        }
-        catch
-        {
-            stream.Dispose();
-            throw;
-        }
-
+        _mmf = MemoryMappedFile.CreateFromFile(filePositions, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         _view = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-        _length = _view.Capacity;
     }
 
-    // Everything is served from the mapped memory, there is no I/O to await.
     public Task<T?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -78,17 +59,12 @@ public sealed class GW2DBRepository<T> : IDisposable, IGW2DBRepository<T> where 
             return;
         }
 
-        // The accessor ref-counts its native handle, so a read that is already in flight
-        // finishes safely before the mapping is actually released.
         _view.Dispose();
         _mmf.Dispose();
     }
 
     #region Write to cache
 
-    // NOTE: the positions file is mapped while this instance is alive, so it can't be rewritten
-    // through the same instance. Regenerate the cache before creating the repository
-    // (or dispose it first).
     public void WriteItemsToCache(IList<T> items)
     {
         // Builds positions and index
@@ -182,27 +158,49 @@ public sealed class GW2DBRepository<T> : IDisposable, IGW2DBRepository<T> where 
 
     private T? ReadPosition(IndexRecord entry)
     {
+        var sw = Stopwatch.StartNew();
+
         // +1 skips the leading '['.
         long start = entry.Offset + 1;
-        if (start < 0 || entry.Length < 0 || entry.Length > int.MaxValue || start + entry.Length > _length)
+        if (start < 0 || entry.Length < 0 || start > _view.Capacity || entry.Length > _view.Capacity - start)
         {
             throw new InvalidDataException(
                 $"Index entry {entry.Key} points outside of '{_filePositions}'. The index and positions files are out of sync.");
         }
 
+        TimeSpan boundsTime = sw.Elapsed;
+
         int length = (int)entry.Length;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+
+        TimeSpan rentTime = sw.Elapsed;
 
         try
         {
             // Bounds-checked copy out of the mapped view (a memcpy, no syscall).
             int read = _view.ReadArray(start, buffer, 0, length);
+
+            TimeSpan readTime = sw.Elapsed;
+
             if (read != length)
             {
                 throw new EndOfStreamException("Unexpected end of stream while reading the element.");
             }
 
-            return JsonSerializer.Deserialize(buffer.AsSpan(0, length), _typeInfo);
+            T? result = JsonSerializer.Deserialize(buffer.AsSpan(0, length), _typeInfo);
+
+            TimeSpan deserializeTime = sw.Elapsed;
+
+            //Console.WriteLine(
+            //    $"type={typeof(T).Name}, " +
+            //    $"len={length}, " +
+            //    $"bounds={boundsTime.TotalNanoseconds}, " +
+            //    $"rent={ (rentTime - boundsTime).TotalNanoseconds}, " +
+            //    $"read={ (readTime - rentTime).TotalNanoseconds}, " +
+            //    $"json={ (deserializeTime - readTime).TotalNanoseconds}, " +
+            //    $"total={ (deserializeTime).TotalNanoseconds}");
+
+            return result;
         }
         finally
         {

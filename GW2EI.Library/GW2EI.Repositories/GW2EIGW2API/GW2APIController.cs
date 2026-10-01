@@ -10,17 +10,16 @@ public class GW2APIController(
     IGW2TraitAPIController traitAPIController, 
     IGW2MapAPIController mapAPIController)
 {
-    //----------------------------------------------------------------------------- SKILLS
-    /// <summary>
-    /// Returns GW2APISkill item
-    /// Warning: this method is not thread safe, 
-    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
+    #region SKILLS
+
     public GW2APISkill? GetAPISkill(long id)
     {
         return skillAPIController.GetById(id);
+    }
+
+    public Task<GW2APISkill?> GetAPISkillAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return skillAPIController.GetByIdAsync(id, cancellationToken);
     }
 
     public Task WriteAPISkillsToFile()
@@ -28,15 +27,23 @@ public class GW2APIController(
         return skillAPIController.WriteAPISkillsToFile();
     }
 
-    //----------------------------------------------------------------------------- SPECS
-    /// <summary>
-    /// Returns GW2APISpec item
-    /// Warning: this method is not thread safe, 
-    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
-    /// </summary>
+    #endregion
+
+    #region SPECS
+
     public static readonly string UNKNOWN_SPEC = "Unknown";
 
     public string GetSpec(uint prof, uint elite)
+    {
+        return GetSpecOld(prof, elite) ?? GetSpecNew(elite);
+    }
+
+    public async Task<string> GetSpecAsync(uint prof, uint elite, CancellationToken cancellationToken = default)
+    {
+        return GetSpecOld(prof, elite) ?? await GetSpecNewAsync(elite, cancellationToken);
+    }
+
+    private string? GetSpecOld(uint prof, uint elite)
     {
         return (elite, prof) switch
         {
@@ -63,7 +70,7 @@ public class GW2APIController(
             (1, 8) => "Reaper",
             (1, 9) => "Herald",
             // New way 
-            _ => GetSpecNew(prof)
+            _ => null
         };
     }
 
@@ -77,23 +84,33 @@ public class GW2APIController(
         return spec.Elite ? spec.Name : spec.Profession;
     }
 
+    private async Task<string> GetSpecNewAsync(uint id, CancellationToken cancellationToken = default)
+    {
+        GW2APISpec? spec = await specAPIController.GetByIdAsync(id, cancellationToken);
+        if (spec is null)
+        {
+            return UNKNOWN_SPEC;
+        }
+        return spec.Elite ? spec.Name : spec.Profession;
+    }
 
     public Task WriteAPISpecsToFile()
     {
         return specAPIController.WriteAPISpecsToFile();
     }
 
-    //----------------------------------------------------------------------------- MAPS
-    /// <summary>
-    /// Returns GW2APIMap item
-    /// Warning: this method is not thread safe, 
-    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
+    #endregion
+
+    #region MAPS
+
     public GW2APIMap? GetAPIMap(int id)
     {
         return mapAPIController.GetById(id);
+    }
+
+    public Task<GW2APIMap?> GetAPIMapAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return mapAPIController.GetByIdAsync(id, cancellationToken);
     }
 
     public Task WriteAPIMapsToFile()
@@ -101,21 +118,24 @@ public class GW2APIController(
         return mapAPIController.WriteAPIMapsToFile();
     }
 
-    //----------------------------------------------------------------------------- TRAITS
-    /// <summary>
-    /// Returns GW2APITrait item
-    /// Warning: this method is not thread safe, 
-    /// Make sure to initialize the cache before hand if you intend to call this method from different threads
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
+    #endregion
+
+    #region TRAITS
+
     public GW2APITrait? GetAPITrait(long id)
     {
         return traitAPIController.GetById(id);
+    }
+
+    public Task<GW2APITrait?> GetAPITraitAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return traitAPIController.GetByIdAsync(id, cancellationToken);
     }
 
     public Task WriteAPITraitsToFile()
     {
         return traitAPIController.WriteAPITraitsToFile();
     }
+
+    #endregion
 }

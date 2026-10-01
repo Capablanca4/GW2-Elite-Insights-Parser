@@ -6,13 +6,13 @@ using GW2EIGW2API.Interfaces;
 namespace GW2EIParserBenchmark.GW2EIGWAPI;
 
 [SimpleJob(
-    warmupCount: 5,
-    iterationCount: 10,
+    warmupCount: 10,
+    iterationCount: 20,
     launchCount: 1)]
 [MemoryDiagnoser]
 public class GW2APIControllerBenchmark
 {
-    private GW2APIController? _apiController;
+    private GW2APIController _apiController;
 
     [Params(true, false)]
     public bool UseCachedRepository;
@@ -63,7 +63,14 @@ public class GW2APIControllerBenchmark
     [Benchmark]
     public GW2APISkill? GetAPISkill()
     {
-        var skill = _apiController?.GetAPISkill(5555);
+        var skill = _apiController.GetAPISkill(5555);
+        return skill;
+    }
+
+    [Benchmark]
+    public async Task<GW2APISkill?> GetAPISkillAsync()
+    {
+        var skill = await _apiController.GetAPISkillAsync(5555, CancellationToken.None);
         return skill;
     }
 
@@ -75,6 +82,13 @@ public class GW2APIControllerBenchmark
     }
 
     [Benchmark]
+    public async Task<GW2APIMap?> GetAPIMapAsync()
+    {
+        var map = await _apiController.GetAPIMapAsync(50, CancellationToken.None);
+        return map;
+    }
+
+    [Benchmark]
     public GW2APITrait? GetAPITrait()
     {
         var trait = _apiController?.GetAPITrait(888);
@@ -82,9 +96,23 @@ public class GW2APIControllerBenchmark
     }
 
     [Benchmark]
+    public async Task<GW2APITrait?> GetAPITraitAsync()
+    {
+        var trait = await _apiController.GetAPITraitAsync(888, CancellationToken.None);
+        return trait;
+    }
+
+    [Benchmark]
     public string? GetSpec()
     {
-        var spec = _apiController?.GetSpec(2, 5);
+        var spec = _apiController.GetSpec(2, 5);
+        return spec;
+    }
+
+    [Benchmark]
+    public async Task<string?> GetSpecAsync()
+    {
+        var spec = await _apiController.GetSpecAsync(2, 5, CancellationToken.None);
         return spec;
     }
 }

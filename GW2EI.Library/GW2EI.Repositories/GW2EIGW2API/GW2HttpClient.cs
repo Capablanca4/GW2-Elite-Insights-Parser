@@ -5,7 +5,7 @@ using GW2EIGW2API.Interfaces;
 
 namespace GW2EIGW2API;
 
-public class GW2HttpClient : IGW2HttpClient
+public sealed class GW2HttpClient : IGW2HttpClient
 {
     private static readonly HttpClient _aPIClient = GetAPIClient();
     private static HttpClient GetAPIClient()
