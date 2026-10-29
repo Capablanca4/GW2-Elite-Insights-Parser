@@ -22,15 +22,22 @@ public class CombatReplay
     protected List<ParametricPoint3D> _Rotations = [];
     protected ParametricPoint3D[] _PolledRotations = [];
 
-    internal readonly List<Segment> Hidden = [];
+    internal readonly SingleActor Owner;
+
+    internal IReadOnlyList<Segment> Hidden => _hidden;
+    protected List<Segment> _hidden = [];
     private long _start = -1;
     private long _end = -1;
+
+    internal bool AdditionalDataHandled = false;
+    private bool Finalized = false;
     internal (long start, long end) TimeOffsets => (_start, _end);
     // actors
     internal readonly CombatReplayDecorationContainer Decorations;
 
-    internal CombatReplay(ParsedEvtcLog log)
+    internal CombatReplay(ParsedEvtcLog log, SingleActor owner)
     {
+        Owner = owner;
         _start = log.LogData.LogStart;
         _end = log.LogData.LogEnd;
         //TODO_PERF(Rennorb) @capacity
@@ -49,7 +56,7 @@ public class CombatReplay
         if (velocityInsertTime.HasValue)
         {
             // Add zero velocity after latest event to make sure to stop interpolation ...
-            _Velocities.Add(new(0,0,0, Math.Min(velocityInsertTime.Value + 1, position.Time - 1)));
+            _Velocities.Add(new(0, 0, 0, Math.Min(velocityInsertTime.Value + 1, position.Time - 1)));
             // ... and then restore previous
             _Velocities.Add(new(lastVelocity!.Value.XYZ, position.Time));
         }
@@ -79,10 +86,47 @@ public class CombatReplay
     {
     }
 
-    internal void Trim(long start, long end)
+    internal void Finalize(ParsedEvtcLog log)
     {
-        _start = Math.Max(start, _start);
-        _end = Math.Max(_start, Math.Min(end, _end));
+        if (Finalized)
+        {
+            return;
+        }
+        Finalized = true;
+        long trimStart = Owner.FirstAware;
+        long trimEnd = Owner.LastAware;
+        _hidden.RemoveAll(x => x.IsEmpty());
+        _hidden.Sort((x, y) => x.Start.CompareTo(y.Start));
+        if (Hidden.Count > 0)
+        {
+            // fuse hidden
+            for (var i = 0; i < _hidden.Count - 1; i++)
+            {
+                var cur = Hidden[i];
+                var next = Hidden[i + 1];
+                if (cur.Intersects(next))
+                {
+                    cur.End = next.End;
+                    next.End = next.Start - 1;
+                    _hidden[i + 1] = cur;
+                    _hidden[i] = next;
+                }
+            }
+            _hidden.RemoveAll(x => x.IsEmpty());
+            // Trim if agent is hidden at start or end
+            var first = Hidden[0];
+            var last = Hidden[^1];
+            if (first.Start <= trimStart && first.End > trimStart)
+            {
+                trimStart = first.End;
+            }
+            if (last.End >= trimEnd && last.Start < trimEnd)
+            {
+                trimEnd = last.Start;
+            }
+        }
+        _start = Math.Max(log.LogData.LogStart, Math.Max(trimStart, _start));
+        _end = Math.Max(_start, Math.Min(Math.Min(trimEnd, _end), log.LogData.LogEnd));
         if (_PolledPositions.Length > 0 && (_PolledPositions[0].Time < _start || _PolledPositions[^1].Time > _end))
         {
             _PolledPositions = _PolledPositions.Where(x => x.Time >= _start && x.Time <= _end).ToArray();
@@ -232,7 +276,7 @@ public class CombatReplay
                 HandlePosition(t, ref polledPositionTableIndex, ref positionTableIndex, ref velocityTableIndex, rate);
                 HandleRotation(t, ref polledRotationTableIndex, ref rotationTableIndex, rate);
             }
-        } 
+        }
         else
         {
             for (long t = startOffset; t < logDuration; t += rate)
@@ -247,11 +291,15 @@ public class CombatReplay
     private static uint DebugRadius = 100;
     private static uint DebugOpeningAngle = 120;
     //NOTE(Rennorb): Methods used for debugging purposes. Keep unused variables.
-    internal static void DebugEffects(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugEffects(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, bool ignorePlayerSrc, long start = long.MinValue, long end = long.MaxValue)
     {
         var effectEventsOnAgent = log.CombatData.GetEffectEventsByDst(actor.AgentItem)
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && x.Time >= start && x.Time <= end)
             .ToList();
+        if (ignorePlayerSrc)
+        {
+            effectEventsOnAgent.RemoveAll(x => x.Src.GetFinalMaster().IsPlayer);
+        }
         var effectGUIDsOnAgent = effectEventsOnAgent.Select(x => x.GUIDEvent).ToList();
         var effectGUIDsOnAgentDistinct = effectGUIDsOnAgent.GroupBy(x => x).ToDictionary(x => x.Key, x => x.ToList().Count);
         foreach (EffectEvent effectEvt in effectEventsOnAgent)
@@ -349,7 +397,7 @@ public class CombatReplay
         }
     }
 
-    internal static void DebugUnknownEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugUnknownEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
     {
         var allEffectEvents = log.CombatData.GetEffectEvents()
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && x.Src.IsUnamedSpecies() && x.Time >= start && x.Time <= end && x.EffectID > 0)
@@ -403,7 +451,7 @@ public class CombatReplay
 
     }
 
-    internal static void DebugAllNPCEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllNPCEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
     {
         var allEffectEvents = log.CombatData.GetEffectEvents()
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && !x.Src.GetFinalMaster().IsPlayer && (!x.IsAroundDst || !x.Dst.GetFinalMaster().IsPlayer) && x.Time >= start && x.Time <= end && x.EffectID > 0)
@@ -456,7 +504,7 @@ public class CombatReplay
         }
     }
 
-    internal static void DebugAllEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<GUID> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllEffects(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<Guid> knownEffectIDs, long start = long.MinValue, long end = long.MaxValue)
     {
         var allEffectEvents = log.CombatData.GetEffectEvents()
             .Where(x => !knownEffectIDs.Contains(x.GUIDEvent.GUID) && x.Time >= start && x.Time <= end && x.EffectID > 0)
@@ -513,22 +561,22 @@ public class CombatReplay
 
     #region DEBUG MISSILES
     private static uint DebugMissileRadius = 40;
-    internal static void DebugMissiles(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugMissiles(SingleActor actor, ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<long> knownMissiles, long start = long.MinValue, long end = long.MaxValue)
     {
         var allMissileEvents = log.CombatData.GetMissileEventsBySrc(actor.AgentItem)
-            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0);
+            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && !knownMissiles.Contains(x.SkillID));
         decorations.AddNonHomingMissiles(log, allMissileEvents, Colors.Red, 0.5, DebugMissileRadius);
     }
-    internal static void DebugAllMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<long> knownMissiles, long start = long.MinValue, long end = long.MaxValue)
     {
         var allMissileEvents = log.CombatData.GetMissileEvents()
-            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0);
+            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && !knownMissiles.Contains(x.SkillID));
         decorations.AddNonHomingMissiles(log, allMissileEvents, Colors.Red, 0.5, DebugMissileRadius);
     }
-    internal static void DebugAllNPCMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, long start = long.MinValue, long end = long.MaxValue)
+    internal static void DebugAllNPCMissiles(ParsedEvtcLog log, CombatReplayDecorationContainer decorations, HashSet<long> knownMissiles, long start = long.MinValue, long end = long.MaxValue)
     {
         var allMissileEvents = log.CombatData.GetMissileEvents()
-            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && x.Src.GetFinalMaster().IsNPC);
+            .Where(x => x.Time >= start && x.Time <= end && x.SkillID > 0 && !knownMissiles.Contains(x.SkillID) && x.Src.GetFinalMaster().IsNPC);
         decorations.AddNonHomingMissiles(log, allMissileEvents, Colors.Red, 0.5, DebugMissileRadius);
     }
     #endregion DEBUG MISSILES
@@ -538,26 +586,34 @@ public class CombatReplay
     /// </summary>
     internal void AddHideByBuff(SingleActor actor, ParsedEvtcLog log, long buffID)
     {
-        Hidden.AddRange(actor.GetBuffStatus(log, buffID).Where(x => x.Value > 0));
+        Finalized = false;
+        _hidden.AddRange(actor.GetBuffStatus(log, buffID).Where(x => x.Value > 0));
     }
 
     internal void AddHideByEncounterPhases(IReadOnlyList<EncounterPhaseData> encounterPhases, ParsedEvtcLog log)
     {
+        Finalized = false;
         long nextInvisible = log.LogData.EvtcLogStart;
         for (var i = 0; i < encounterPhases.Count; i++)
         {
             if (i == 0)
             {
-                Hidden.Add(new(log.LogData.EvtcLogStart, encounterPhases[i].Start));
+                _hidden.Add(new(log.LogData.EvtcLogStart, encounterPhases[i].Start));
                 nextInvisible = encounterPhases[i].End;
             }
             if (i < encounterPhases.Count - 1)
             {
-                Hidden.Add(new(encounterPhases[i].End, encounterPhases[i + 1].Start));
+                _hidden.Add(new(encounterPhases[i].End, encounterPhases[i + 1].Start));
                 nextInvisible = encounterPhases[i + 1].End;
             }
         }
-        Hidden.Add(new(nextInvisible, log.LogData.EvtcLogEnd));
+        _hidden.Add(new(nextInvisible, log.LogData.EvtcLogEnd));
+    }
+
+    internal void HideInInterval(Segment hidden)
+    {
+        Finalized = false;
+        _hidden.Add(hidden);
     }
 }
 

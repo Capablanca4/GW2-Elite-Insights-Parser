@@ -1,13 +1,13 @@
 ﻿using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
-using static GW2EIEvtcParser.SkillIDs;
+using GW2EIGW2API;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
+using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using GW2EIGW2API;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -23,7 +23,6 @@ internal class HallOfChainsInstance : HallOfChains
     private readonly IReadOnlyList<HallOfChains> _subLogics;
     public HallOfChainsInstance(int triggerID) : base(triggerID)
     {
-        LogID = LogIDs.LogMasks.Unsupported;
         Icon = InstanceIconHallOfChains;
         Extension = "hallchains";
 
@@ -74,7 +73,7 @@ internal class HallOfChainsInstance : HallOfChains
     {
         var encounterPhases = new List<EncounterPhaseData>();
         var mainPhase = phases[0];
-        if (friendliesByIDs.TryGetValue((int)TargetID.Desmina, out var desminas) 
+        if (friendliesByIDs.TryGetValue((int)TargetID.Desmina, out var desminas)
             && targetsByIDs.TryGetValue((int)TargetID.DummyTarget, out var dummies))
         {
             var dummy = dummies.FirstOrDefault(x => x.Character == "River of Souls");
@@ -84,8 +83,8 @@ internal class HallOfChainsInstance : HallOfChains
                 var chest = log.AgentData.GetStableSpeciesByID(_river.ChestID).FirstOrDefault();
                 foreach (var desmina in desminas)
                 {
-                    var currentEnervators = enervators.Where(x => x.InAwareTimes(desmina));
-                    if (!currentEnervators.Any())
+                    var currentEnervators = enervators.Where(x => x.InAwareTimes(desmina)).ToList();
+                    if (currentEnervators.Count == 0)
                     {
                         continue;
                     }
@@ -117,7 +116,7 @@ internal class HallOfChainsInstance : HallOfChains
                 if (firstCombatCast == null)
                 {
                     continue;
-                } 
+                }
                 long start = firstCombatCast.Time;
                 bool success = false;
                 long end = brokenKing.LastAware;
@@ -147,8 +146,8 @@ internal class HallOfChainsInstance : HallOfChains
                 {
                     continue;
                 }
-                var currentPeasants = peasants.Where(x => x.InAwareTimes(eaterOfSoul));
-                if (!currentPeasants.Any())
+                var currentPeasants = peasants.Where(x => x.InAwareTimes(eaterOfSoul)).ToList();
+                if (currentPeasants.Count == 0)
                 {
                     continue;
                 }
@@ -183,8 +182,8 @@ internal class HallOfChainsInstance : HallOfChains
                 {
                     continue;
                 }
-                var currentLightThieves = lightThieves.Where(x => x.InAwareTimes(eyeOfFate));
-                if (!currentLightThieves.Any())
+                var currentLightThieves = lightThieves.Where(x => x.InAwareTimes(eyeOfFate)).ToList();
+                if (currentLightThieves.Count == 0)
                 {
                     continue;
                 }
@@ -224,7 +223,7 @@ internal class HallOfChainsInstance : HallOfChains
                         continue;
                     }
                     start = currentStart.Time;
-                } 
+                }
                 else
                 {
                     var currentMessengers = messengers.Where(x => x.InAwareTimes(dhuum)).ToList();
@@ -244,7 +243,7 @@ internal class HallOfChainsInstance : HallOfChains
                 if (dhuum.GetAnimatedCastEvents(log).Any(x => (x.SkillID != WeaponStow && x.SkillID != WeaponDraw) && x.Time >= start && x.Time <= start + 40000))
                 {
                     AddInstanceEncounterPhase(log, phases, encounterPhases, [dhuum], [], [], mainPhase, "Dhuum", start, end, success, _dhuum, dhuum.GetHealth(log.CombatData) > 35e6 ? LogData.Mode.CM : LogData.Mode.Normal, LogData.StartStatus.NoPreEvent);
-                } 
+                }
                 else
                 {
                     AddInstanceEncounterPhase(log, phases, encounterPhases, [dhuum], [], [], mainPhase, "Dhuum", start, end, success, _dhuum, dhuum.GetHealth(log.CombatData) > 35e6 ? LogData.Mode.CM : LogData.Mode.Normal);
@@ -261,8 +260,8 @@ internal class HallOfChainsInstance : HallOfChains
         var targetsByIDs = Targets.GroupBy(x => x.ID).ToDictionary(x => x.Key, x => x.ToList());
         var friendliesByIDs = NonSquadFriendlies.Where(x => x.AgentItem.IsNPC).GroupBy(x => x.ID).ToDictionary(x => x.Key, x => x.ToList());
         {
-            var shPhases = ProcessGenericEncounterPhasesForInstance(targetsByIDs, log, phases, TargetID.SoullessHorror, [], "Soulless Horror", _soullessHorror, 
-                (log, soullessHorror) => 
+            var shPhases = ProcessGenericEncounterPhasesForInstance(targetsByIDs, log, phases, TargetID.SoullessHorror, [], "Soulless Horror", _soullessHorror,
+                (log, soullessHorror) =>
                 SoullessHorror.HasFastNecrosis(log.CombatData, soullessHorror.FirstAware, soullessHorror.LastAware) ? LogData.Mode.CM : LogData.Mode.Normal);
             foreach (var shPhase in shPhases)
             {
@@ -354,7 +353,7 @@ internal class HallOfChainsInstance : HallOfChains
             switch (target.ID)
             {
                 case (int)TargetID.SoullessHorror:
-                    SoullessHorror.HandleSoullessHorrorFinalHPUpdate(combatData, target);
+                    SanitizeLastHealthUpdateEvents(target, combatData);
                     break;
                 default:
                     break;

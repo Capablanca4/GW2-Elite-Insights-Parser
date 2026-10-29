@@ -1,5 +1,6 @@
 ﻿using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
+using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.DamageModifierIDs;
 using static GW2EIEvtcParser.EIData.Buff;
 using static GW2EIEvtcParser.EIData.DamageModifiersUtils;
@@ -21,7 +22,7 @@ internal static class TroubadourHelper
             .UsingOrigin(EIData.InstantCastFinder.InstantCastOrigin.Unconditional),
     ];
 
-    internal static readonly IReadOnlyList<DamageModifierDescriptor> OutgoingDamageModifiers = 
+    internal static readonly IReadOnlyList<DamageModifierDescriptor> OutgoingDamageModifiers =
     [
         // Altered Chord
         new BuffOnActorDamageModifier(Mod_AlteredChord, AlteredChord, "Altered Chord", "25%", DamageSource.NoPets, 25.0, DamageType.Strike, DamageType.All, Source.Troubadour, ByPresence, TraitImages.AlteredChord, DamageModifierMode.PvE),
@@ -49,7 +50,7 @@ internal static class TroubadourHelper
             .WithBuilds(GW2Builds.August2025VoEBeta, GW2Builds.OctoberVoERelease),
     ];
 
-    internal static readonly IReadOnlyList<DamageModifierDescriptor> IncomingDamageModifiers = 
+    internal static readonly IReadOnlyList<DamageModifierDescriptor> IncomingDamageModifiers =
     [
         new BuffOnActorDamageModifier(Mod_LoveSong, HarpPlaying, "Love Song", "-10%", DamageSource.Incoming, -10.0, DamageType.Strike, DamageType.All, Source.Troubadour, ByPresence, TraitImages.LoveSong, DamageModifierMode.PvE)
             .WithBuilds(GW2Builds.OctoberVoERelease),
@@ -57,8 +58,9 @@ internal static class TroubadourHelper
             .WithBuilds(GW2Builds.OctoberVoERelease),
     ];
 
-    internal static readonly IReadOnlyList<Buff> Buffs = 
+    internal static readonly IReadOnlyList<Buff> Buffs =
     [
+        new Buff("Number of Notes", NumberOfNotes, Source.Troubadour, BuffStackType.Stacking, 3, BuffClassification.Other, TraitImages.NumberOfNotes),
         new Buff("Harp Playing", HarpPlaying, Source.Troubadour, BuffClassification.Other, SkillImages.HarmoniousHarp),
         new Buff("Drum Playing", DrumPlaying, Source.Troubadour, BuffClassification.Other, SkillImages.DeafeningDrum),
         new Buff("Flute Playing", FlutePlaying, Source.Troubadour, BuffClassification.Other, SkillImages.FlusteringFlute),
@@ -79,6 +81,98 @@ internal static class TroubadourHelper
     {
         return _afterImages.Contains(id);
     }
+
+    public static List<BuffEvent> TransformTroubadourNoteStorage(CombatData combatData, AgentData agentData, SkillData skillData, EvtcVersionEvent evtcVersion)
+    {
+        var noteBuffEvents = new List<BuffEvent>();
+        var noteSkill = skillData.Get(NumberOfNotes);
+        // Buff Applies, each slot redirected under same custom buff
+        uint buffStackID = 0;
+        if (combatData.TryGetEffectEventsByGUIDs([EffectGUIDs.TroubadourNote1, EffectGUIDs.TroubadourNote2, EffectGUIDs.TroubadourNote3], out var notes))
+        {
+            foreach (var note in notes)
+            {
+                noteBuffEvents.Add(new BuffApplyEvent(note.Src, note.Src, note.Time, int.MaxValue, noteSkill, IFF.Friend, ++buffStackID, true));
+            }
+        }
+        // Buff Remove Alls
+        // Instrument Buff Applies are not reliable, casting prof skills or elite will not trigger a buff apply if incoming buff apply duration is lower than what is currently running
+        // That also means we can't find initial state reliably
+        // Effects are always present but we need to keep an eye on this for possible collisions
+        if (combatData.TryGetEffectEventsByGUIDs([EffectGUIDs.TroubadourLivelyLuteWave2, EffectGUIDs.TroubadourFlusteringFluteWave1, EffectGUIDs.TroubadourDeafeningDrumWave2, EffectGUIDs.TroubadourHarmoniusHarpWave4], out var instrumentEffects))
+        {
+            foreach (var instrumentEffect in instrumentEffects)
+            {
+                var troub = instrumentEffect.Src;
+                noteBuffEvents.Add(new BuffRemoveAllEvent(troub, troub, instrumentEffect.Time, int.MaxValue, noteSkill, IFF.Friend, BuffRemoveAllEvent.FullRemoval, int.MaxValue));
+            }
+        }
+        noteBuffEvents.SortByTime();
+        // Buff Initial, this is not 100% reliable due to instrument buff apply situation
+        // First sequence of note applies and first remove, to handle initial state
+        var firstNoteBuffApplyEventsBySrc = noteBuffEvents.GroupBy(x => x.By).ToDictionary(x => x.Key, x => x.OfType<BuffApplyEvent>().Take(3).ToList());
+        var firstNoteBuffRemoveEventsByDst = noteBuffEvents.GroupBy(x => x.To).ToDictionary(x => x.Key, x => x.FirstOrDefault(x => x is BuffRemoveAllEvent));
+        // All instrument buff applies
+        List<BuffApplyEvent> instrumentBuffApplies = [
+            ..combatData.GetBuffApplyData(LutePlaying).OfType<BuffApplyEvent>(),
+            ..combatData.GetBuffApplyData(FlutePlaying).OfType<BuffApplyEvent>(),
+            ..combatData.GetBuffApplyData(DrumPlaying).OfType<BuffApplyEvent>(),
+            ..combatData.GetBuffApplyData(HarpPlaying).OfType<BuffApplyEvent>(),
+        ];
+        // Regroup by time with tolerance, to handle Tale of the August Queen casts
+        var tol = 30f;
+        var groupedBuffApplies = instrumentBuffApplies
+            .GroupBy(x => x.To)
+            .ToDictionary(x => x.Key, x => x
+                .GroupBy(y => MathF.Round(y.Time / tol) * tol).
+                ToDictionary(y => y.Key, y => y.ToList()
+        ));
+        var taleOfTheAugustQueenCasts = combatData.GetAnimatedCastData(TaleOfTheAugustQueen);
+        foreach (var grouped in groupedBuffApplies)
+        {
+            var troub = grouped.Key;
+            var troubQueenCasts = taleOfTheAugustQueenCasts.Where(x => x.Caster.Is(troub)).ToList();
+            foreach (var groupedInstrumentBuffApplies in grouped.Value)
+            {
+                // Keep only intrument buff applies after first aware, ignore the ones applied before log start as their notes couldn't have been consummed during the log
+                var troubInstrumentBuffApplies = groupedInstrumentBuffApplies.Value
+                    .Where(instrumentBuffApply => instrumentBuffApply.Time - (instrumentBuffApply.OriginalAppliedDuration - instrumentBuffApply.AppliedDuration) >= troub.FirstAware)
+                    .ToList();
+                // If more than 1, Tale of the August Queen trigger
+                if (troubInstrumentBuffApplies.Count == 1)
+                {
+                    var instrumentBuffApply = troubInstrumentBuffApplies[0];
+                    // Single buff apply elite cast collision check
+                    if (taleOfTheAugustQueenCasts.Any(x => x.IntersectsActualCastWindow(instrumentBuffApply.Time)))
+                    {
+                        continue;
+                    }
+                    if (firstNoteBuffRemoveEventsByDst.TryGetValue(troub, out var firstRemoveAll) && firstRemoveAll != null && firstRemoveAll.Time + ServerDelayConstant < instrumentBuffApply.Time)
+                    {
+                        // We already consumed notes before apply an instrument buff, initial state unknown
+                        break;
+                    }
+                    // Deduce number of notes used by buff apply
+                    var expectedNoteCount = (int)Math.Round(instrumentBuffApply.OriginalAppliedDuration / 5000.0) - 1;
+                    var missingNotes = expectedNoteCount;
+                    // Keep only note applies before the very first within log instrument buff apply
+                    if (firstNoteBuffApplyEventsBySrc.TryGetValue(troub, out var firstNoteApplies) &&
+                        firstNoteApplies.Where(x => x.Time < instrumentBuffApply.Time).ToList() is List<BuffApplyEvent> restrictedFirstNoteApplies &&
+                        restrictedFirstNoteApplies.Count != expectedNoteCount)
+                    {
+                        missingNotes = expectedNoteCount - restrictedFirstNoteApplies.Count;
+                    }
+                    for (var i = 0; i < missingNotes; i++)
+                    {
+                        noteBuffEvents.Add(new BuffApplyEvent(troub, troub, troub.FirstAware, int.MaxValue, noteSkill, IFF.Friend, ++buffStackID, true, true));
+                    }
+                    break;
+                }
+            }
+        }
+        return noteBuffEvents;
+    }
+
     internal static void AdjustMinionName(AgentItem minion)
     {
         switch (minion.ID)

@@ -5,16 +5,15 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -100,7 +99,7 @@ internal class Xera : StrongholdOfTheFaithful
 
     internal static AgentItem? GetXera2Merge(AgentItem xera)
     {
-        return xera.Merges.FirstOrNull((in AgentItem.MergedAgentItem x) => x.Merged.IsSpecies(TargetID.Xera2))?.Merged;
+        return xera.Merges.FirstOrNull((in x) => x.Merged.IsSpecies(TargetID.Xera2))?.Merged;
     }
 
     internal override void CheckSuccess(CombatData combatData, AgentData agentData, LogData logData, IReadOnlyCollection<AgentItem> playerAgents, LogData.LogSuccessHandler successHandler)
@@ -201,7 +200,7 @@ internal class Xera : StrongholdOfTheFaithful
                     phase2.AddParentPhase(encounterPhase);
                 }
                 phase2.AddTarget(xera, log);
-                phase2.AddTargets(targets.Where(t => t.IsSpecies(TargetID.BloodstoneShardMainFight)), log);
+                phase2.AddTargets(targets.Where(t => t.IsSpecies(TargetID.BloodstoneShardMainFight)), log, PhaseData.TargetPriority.Blocking);
                 //mainTarget.AddCustomCastLog(end, -5, (int)(start - end), ParseEnum.Activation.None, (int)(start - end), ParseEnum.Activation.None, log);
                 phases.Add(phase2);
             }
@@ -247,11 +246,11 @@ internal class Xera : StrongholdOfTheFaithful
             if (agentData.TryGetFirstAgentItem(TargetID.FakeXera, out var fakeXera))
             {
                 long encounterStart = fakeXera.LastAware;
-                CombatItem ?death = combatData.LastOrDefault(x => x.IsStateChange == StateChange.ChangeDead && x.SrcMatchesAgent(fakeXera));
+                CombatItem? death = combatData.LastOrDefault(x => x.IsStateChange == StateChange.ChangeDead && x.SrcMatchesAgent(fakeXera));
                 if (death != null)
                 {
                     encounterStart = death.Time + 1000;
-                } 
+                }
                 else
                 {
                     CombatItem? exitCombat = combatData.LastOrDefault(x => x.IsStateChange == StateChange.ExitCombat && x.SrcMatchesAgent(fakeXera));
@@ -400,7 +399,7 @@ internal class Xera : StrongholdOfTheFaithful
         return LogData.StartStatus.Normal;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -460,13 +459,13 @@ internal class Xera : StrongholdOfTheFaithful
                     if (xeraInvulApply != null)
                     {
                         long hiddenEnd = xeraInvulApply.Time + 14000;
-                        replay.Hidden.Add(new Segment(hiddenStart, hiddenEnd));
+                        replay.HideInInterval(new Segment(hiddenStart, hiddenEnd));
                         var mergedXera2 = GetXera2Merge(activeXera);
                         if (mergedXera2 != null)
                         {
                             var deadEvent = log.CombatData.GetHealthUpdateEvents(target.AgentItem).LastOrDefault(x => x.HealthPercent < 1 && x.Time > activeXera.FirstAware && x.Time < mergedXera2.FirstAware);
                             hiddenStart = deadEvent != null ? deadEvent.Time : mergedXera2.FirstAware;
-                        } 
+                        }
                         else
                         {
                             var nextFakeXera = log.AgentData.GetStableSpeciesByID(TargetID.FakeXera).FirstOrDefault(x => x.FirstAware > hiddenEnd);
@@ -475,7 +474,7 @@ internal class Xera : StrongholdOfTheFaithful
                             hiddenStart = deadEvent != null ? deadEvent.Time : threshold;
                         }
                     }
-                    replay.Hidden.Add(new Segment(hiddenStart, target.LastAware));
+                    replay.HideInInterval(new Segment(hiddenStart, target.LastAware));
                 }
                 break;
             case (int)TargetID.BloodstoneFragment:
@@ -549,8 +548,7 @@ internal class Xera : StrongholdOfTheFaithful
                 // Effect has duration of 4294967295 but the skill lasts only 6000
                 (long, long) lifespan = intervention.ComputeDynamicLifespan(log, 6000);
                 var circle = new CircleDecoration(240, lifespan, Colors.Yellow, 0.3, new PositionConnector(intervention.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.GetBorderDecoration(Colors.LightBlue, 0.4));
+                environmentDecorations.AddWithBorder(circle, Colors.LightBlue, 0.4);
             }
         }
 

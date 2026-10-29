@@ -6,15 +6,14 @@ using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -22,8 +21,8 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
 {
     public CosmicObservatory(int triggerID) : base(triggerID)
     {
-        MechanicList.Add( new MechanicGroup([
-        
+        MechanicList.Add(new MechanicGroup([
+
             new MechanicGroup([
                 new MechanicGroup([
                     new AchievementEligibilityMechanic(Ach_DancedStars, Mech_DancedStarsLost, new (Symbols.TriangleDownOpen, Colors.DarkBlue), new("DancStars.Achiv.L", "Achievement Eligibility: Danced with the Stars Lost", "Danced with the Stars Lost"))
@@ -134,7 +133,7 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
                         case SpinningNebulaCentral:
                         case SpinningNebulaWithTeleport:
                             lifespan = (cast.Time, cast.Time + cast.ActualDuration);
-                            replay.Decorations.AddWithGrowing(new CircleDecoration(300, lifespan, Colors.MidTeal, 0.2, new AgentConnector(target)), lifespan.end);
+                            replay.Decorations.AddWithGrowing(new CircleDecoration(300, lifespan, Colors.LightTeal, 0.2, new AgentConnector(target)), lifespan.end);
                             break;
                         // Shooting Stars - Green Arrow
                         case ShootingStars:
@@ -200,7 +199,7 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
 
         // Tethering the player to the Soul Feast.
         // The buff is applied by Dagda to the player and the Soul Feast follows that player until death.
-        var buffAppliesAll = log.CombatData.GetBuffApplyData(Revealed).OfType<BuffApplyEvent>().Where(x => x.CreditedBy.IsSpecies(TargetID.Dagda));
+        var buffAppliesAll = log.CombatData.GetBuffApplyData(Revealed).OfType<BuffApplyEvent>().Where(x => x.CreditedBy.IsSpecies(TargetID.Dagda)).ToList();
         var buffAppliesPlayer = buffAppliesAll.Where(x => x.To.Is(p.AgentItem));
         var agentsToTether = log.AgentData.GetStableSpeciesByID(TargetID.SoulFeast);
 
@@ -271,9 +270,8 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
                 var rotation = new AngleConnector(effect.Rotation.Z);
                 // Correcting life span for the hit time, 4000 is the entire animation, 2000 looks to be correct
                 lifespan.Item2 -= 2000;
-                var slice = new PieDecoration(1500, 30, lifespan, Colors.Red, 0.2, connector);
-                environmentDecorations.Add(slice.UsingRotationConnector(rotation));
-                environmentDecorations.Add(slice.Copy().UsingGrowingEnd(lifespan.Item2).UsingRotationConnector(rotation));
+                var slice = (PieDecoration)new PieDecoration(1500, 30, lifespan, Colors.Red, 0.2, connector).UsingRotationConnector(rotation);
+                environmentDecorations.AddWithGrowing(slice, lifespan.Item2);
             }
         }
 
@@ -285,8 +283,7 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
                 (long, long) lifespan = effect.ComputeLifespan(log, 3000);
                 var connector = new PositionConnector(effect.Position);
                 var circle = new CircleDecoration(300, lifespan, Colors.Orange, 0.2, connector);
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.Item2));
+                environmentDecorations.AddWithGrowing(circle, lifespan.Item2);
             }
         }
 
@@ -334,7 +331,7 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
 
         // Spinning Nebula - Projectiles
         var spinningNebula = log.CombatData.GetMissileEventsBySkillIDs([SpinningNebulaCentral, SpinningNebulaWithTeleport]);
-        environmentDecorations.AddNonHomingMissiles(log, spinningNebula, Colors.MidTeal, 0.4, 20);
+        environmentDecorations.AddNonHomingMissiles(log, spinningNebula, Colors.LightTeal, 0.4, 20);
 
         // Charging Constellation - Numbers Projectiles
         var chargingConstellation = log.CombatData.GetMissileEventsBySkillID(ChargingConstellationDamage);
@@ -467,28 +464,31 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
-        foreach (SingleActor target in Targets)
+        if (evtcVersion.Build < ArcDPSBuilds.AgentInfoAdded)
         {
-            switch (target.ID)
+            foreach (SingleActor target in Targets)
             {
-                case (int)TargetID.VeteranTheTormented:
-                    target.OverrideName("Veteran " + target.Character);
-                    break;
-                case (int)TargetID.EliteTheTormented:
-                    target.OverrideName("Elite " + target.Character);
-                    break;
-                case (int)TargetID.ChampionTheTormented:
-                    target.OverrideName("Champion " + target.Character);
-                    break;
-                default:
-                    break;
+                switch (target.ID)
+                {
+                    case (int)TargetID.VeteranTheTormented:
+                        target.OverrideName("Veteran " + target.Character);
+                        break;
+                    case (int)TargetID.EliteTheTormented:
+                        target.OverrideName("Elite " + target.Character);
+                        break;
+                    case (int)TargetID.ChampionTheTormented:
+                        target.OverrideName("Champion " + target.Character);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
         SingleActor dagda = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.Dagda)) ?? throw new MissingKeyActorsException("Dagda not found");
         SanitizeLastHealthUpdateEvents(dagda, combatData);
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -528,7 +528,7 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
         if (dagda.GetHealth(combatData) > 50e6)
         {
             // Demonic Aura removed but Timer never applied, not a true CM
-            if (combatData.GetBuffRemoveAllDataByIDByDst(DagdaDemonicAura, dagda.AgentItem).Count > 0 
+            if (combatData.GetBuffRemoveAllDataByIDByDst(DagdaDemonicAura, dagda.AgentItem).Count > 0
                 && combatData.GetBuffApplyDataByIDByDst(DagdaDemonicAuraTimer, dagda.AgentItem).Count == 0)
             {
                 return LogData.Mode.Normal;
@@ -599,7 +599,7 @@ internal class CosmicObservatory : SecretOfTheObscureRaidEncounter
             damageData.SortByTime();
             foreach (var evt in damageData)
             {
-                if (evt.HasHit && evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.HasHit && evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(coCMPhases, dancedStarsEligibilityEvents, evt.Time, Ach_DancedStars, p);
                 }

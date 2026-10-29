@@ -4,7 +4,6 @@ using System.Text;
 using Discord;
 using GW2EIBuilders;
 using GW2EIDiscord;
-using GW2EIWingman;
 using GW2EIDPSReport;
 using GW2EIDPSReport.DPSReportJsons;
 using GW2EIEvtcParser;
@@ -13,6 +12,7 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using GW2EIParserCommons.Exceptions;
+using GW2EIWingman;
 using Tracing;
 
 [assembly: CLSCompliant(false)]
@@ -20,6 +20,13 @@ namespace GW2EIParserCommons;
 
 public sealed class ProgramHelper : IDisposable
 {
+    public enum InspectionMode
+    {
+        EI = 0,
+        Raw = 1,
+        RawWithEIPreProcess = 2,
+        NotApplicable,
+    }
 
     public ProgramHelper(Version parserVersion, ProgramSettings settings)
     {
@@ -84,15 +91,13 @@ public sealed class ProgramHelper : IDisposable
     public readonly ProgramSettings Settings;
     private readonly Version ParserVersion;
 
-#pragma warning disable CA1823 // Avoid unused private fields
-    // Used in RELEASE for wingman
     private static readonly UTF8Encoding NoBOMEncodingUTF8 = new(false);
-#pragma warning restore CA1823 // Avoid unused private fields
 
     public static readonly string SkillAPICacheLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/SkillList.json";
     public static readonly string MapAPICacheLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/MapList.json";
     public static readonly string SpecAPICacheLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/SpecList.json";
     public static readonly string TraitAPICacheLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/TraitList.json";
+    public static readonly string JSONSchemaLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Content/schema.json";
     public static readonly string EILogPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/Logs/";
 
     public static readonly GW2APIController APIController = new(SkillAPICacheLocation, SpecAPICacheLocation, TraitAPICacheLocation, MapAPICacheLocation);
@@ -162,12 +167,12 @@ public sealed class ProgramHelper : IDisposable
                         // First try a garbage collection, if we fall here again in 500ms, kill
                         GCExecuted = true;
                         GC.Collect();
-                    } 
+                    }
                     else
                     {
                         Environment.Exit(2);
                     }
-                } 
+                }
                 else
                 {
                     GCExecuted = false;
@@ -182,7 +187,7 @@ public sealed class ProgramHelper : IDisposable
     public EmbedBuilder GetEmbedBuilder()
     {
         var builder = new EmbedBuilder();
-        builder.WithAuthor("Elite Insights " + ParserVersion.ToString(), "https://github.com/baaron4/GW2-Elite-Insights-Parser/blob/master/GW2EIParserCommons/Content/ArenaNet/LI.png?raw=true", "https://github.com/baaron4/GW2-Elite-Insights-Parser");
+        builder.WithAuthor("Elite Insights " + ParserVersion.ToString(), "https://github.com/baaron4/GW2-Elite-Insights-Parser/blob/master/GW2EICustomAssets/ArenaNet/LI.png?raw=true", "https://github.com/baaron4/GW2-Elite-Insights-Parser");
         return builder;
     }
 
@@ -357,7 +362,7 @@ public sealed class ProgramHelper : IDisposable
             originalLog.ParserSettings.AnonymousPlayers,
             originalLog.ParserSettings.DetailedWvWParse);
             uploadresult[0] = response != null ? response.Permalink ?? "Upload process failed" : "Upload process failed";
-            originalController.DPSReportUploadFailed = response != null && response.Permalink != null;
+            originalController.DPSReportUploadFailed = !(response != null && response.Permalink != null);
             originalController.UpdateProgressWithCancellationCheck("DPSReport: " + uploadresult[0]);
             /*
             if (Properties.Settings.Default.UploadToWingman)
@@ -374,21 +379,20 @@ public sealed class ProgramHelper : IDisposable
             }
             */
         }
-        if (Settings.UploadToWingman)
+        if (Settings.UploadToWingmanInternal)
         {
             originalController.WingmanUploadTentative = true;
             if (originalLog.ParserSettings.AnonymousPlayers)
             {
                 originalController.WingmanUploadRefused = true;
                 originalController.UpdateProgressWithCancellationCheck("Wingman: players and accounts have been anonymized, log not supported");
-            } 
+            }
             else
             {
                 string accName = originalLog.LogMetadata.PoV != null ? originalLog.LogMetadata.PoVAccount : "-";
 
                 if (WingmanController.CheckUploadPossible(fInfo, accName, originalLog.LogData.TriggerID, str => originalController.UpdateProgress("Wingman: " + str)))
                 {
-#if !DEBUG
                     try
                     {
                         var expectedSettings = new EvtcParserSettings(Settings.CustomTooShort, Settings.CustomTooBig)
@@ -460,7 +464,6 @@ public sealed class ProgramHelper : IDisposable
                         originalController.WingmanUploadFailed = true;
                         originalController.UpdateProgressWithCancellationCheck("Wingman: Operation failed " + e.Message);
                     }
-#endif
                 }
                 else
                 {
@@ -474,6 +477,58 @@ public sealed class ProgramHelper : IDisposable
         return uploadresult;
     }
     #endregion UPLOAD
+    public EvtcLog? ParseLogForInspection(OperationController operation, InspectionMode inspectMode)
+    {
+        System.Globalization.CultureInfo before = Thread.CurrentThread.CurrentCulture;
+        Thread.CurrentThread.CurrentCulture =
+                new System.Globalization.CultureInfo("en-US");
+        operation.Reset();
+        try
+        {
+            if (inspectMode == InspectionMode.NotApplicable)
+            {
+                throw new InvalidOperationException("ParseLogForInspection must have a valid inspection mode");
+            }
+            operation.Start();
+            var fInfo = new FileInfo(operation.InputFile);
+
+            var parser = new EvtcParser(new EvtcParserSettings(
+                                            Settings.CustomTooShort,
+                                            Settings.CustomTooBig)
+            {
+                AnonymousPlayers = false,
+                SkipFailedTries = false,
+                ComputePhases = false,
+                ComputeCombatReplay = false,
+                ComputeDamageModifiers = false,
+                ComputeDamage = false,
+                ParseExtensions = true,
+                ComputeCast = false,
+                ComputeBuff = false,
+                ComputeMechanics = false,
+                DetailedWvWParse = true,
+            },
+                                        APIController);
+            ParsingFailureReason? failureReason;
+            EvtcLog? inspectLog = inspectMode switch
+            {
+                InspectionMode.EI => parser.ParseLog(operation, fInfo, out failureReason, false),
+                InspectionMode.RawWithEIPreProcess => parser.ParseRawLog(operation, fInfo, out failureReason, true),
+                _ => parser.ParseRawLog(operation, fInfo, out failureReason, false),
+            };
+            failureReason?.Throw();
+            return inspectLog;
+        }
+        catch (Exception ex)
+        {
+            throw new ProgramException(ex);
+        }
+        finally
+        {
+            operation.Stop();
+            Thread.CurrentThread.CurrentCulture = before;
+        }
+    }
     public void DoWork(OperationController operation)
     {
         System.Globalization.CultureInfo before = Thread.CurrentThread.CurrentCulture;
@@ -505,10 +560,7 @@ public sealed class ProgramHelper : IDisposable
 
             //Process evtc here
             ParsedEvtcLog? log = parser.ParseLog(operation, fInfo, out var failureReason, !Settings.SingleThreaded && HasFormat());
-            if (failureReason != null)
-            {
-                failureReason.Throw();
-            }
+            failureReason?.Throw();
             operation.BasicMetaData = new OperationController.OperationBasicMetaData(log!);
             string[] uploadStrings = UploadOperation(fInfo, log!, operation);
             if (uploadStrings[0].Contains("https"))
@@ -527,7 +579,7 @@ public sealed class ProgramHelper : IDisposable
                         operation.UpdateProgressWithCancellationCheck("Webhook: " + message);
                     }
                 }
-            } 
+            }
             //Creating File
             GenerateFiles(log!, operation, uploadStrings, fInfo);
         }
@@ -564,7 +616,7 @@ public sealed class ProgramHelper : IDisposable
     {
         //save location
         DirectoryInfo? saveDirectory;
-        if (Settings.SaveAtOut || Settings.OutLocation == null)
+        if (Settings.SaveAtOut || string.IsNullOrWhiteSpace(Settings.OutLocation) || string.IsNullOrEmpty(Settings.OutLocation))
         {
             //Default save directory
             saveDirectory = fInfo.Directory;
@@ -598,11 +650,8 @@ public sealed class ProgramHelper : IDisposable
 
             DirectoryInfo saveDirectory = GetSaveDirectory(fInfo);
 
-            string outputFile = Path.Combine(
-            saveDirectory.FullName,
-            $"{fName}.log"
-            );
-            operation.AddFile(outputFile);
+            string outputFile = Path.Combine(saveDirectory.FullName, $"{fName}.log");
+            operation.AddOpenableLogTraceFile(outputFile);
             using (var fs = new FileStream(outputFile, FileMode.Create, FileAccess.Write))
             using (var sw = new StreamWriter(fs))
             {

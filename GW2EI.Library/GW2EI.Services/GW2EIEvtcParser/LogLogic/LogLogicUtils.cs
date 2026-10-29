@@ -52,21 +52,22 @@ internal static class LogLogicUtils
 
     internal static void AddDefaultViewpointOnParentFromChild(CombatReplayMap crMap, CombatReplayMap parentMap, long logID)
     {
-        var xStart = crMap.TopX;
-        var parentXStart = parentMap.TopX;
-        var parentXEnd = parentMap.BottomX;
-        var yStart = crMap.BottomY;
-        var parentYStart = parentMap.BottomY;
-        var parentYEnd = parentMap.TopY;
+        var xStart = crMap.MinX;
+        var parentXStart = parentMap.MinX;
+        var parentXEnd = parentMap.MaxX;
+        // Canvas is Y down
+        var yStart = crMap.MaxY;
+        var parentYStart = parentMap.MaxY;
+        var parentYEnd = parentMap.MinY;
 
-        var xSize = crMap.BottomX - crMap.TopX;
-        var ySize = crMap.BottomY - crMap.TopY;
+        var xSize = crMap.MaxX - crMap.MinX;
+        var ySize = crMap.MaxY - crMap.MinY;
         var delta = xSize - ySize;
 
         if (delta > 0)
         {
             yStart -= delta * 0.5f;
-        } 
+        }
         else if (delta < 0)
         {
             xStart += delta * 0.5f;
@@ -75,8 +76,8 @@ internal static class LogLogicUtils
         var percentX = (xStart - parentXStart) / (parentXEnd - parentXStart) * 100;
         var percentY = (yStart - parentYStart) / (parentYEnd - parentYStart) * 100;
         // scale
-        var scaleX = 1 / ((crMap.TopX - crMap.BottomX) / (parentMap.TopX - parentMap.BottomX));
-        var scaleY = 1 / ((crMap.TopY - crMap.BottomY) / (parentMap.TopY - parentMap.BottomY));
+        var scaleX = 1 / ((crMap.MaxX - crMap.MinX) / (parentMap.MaxX - parentMap.MinX));
+        var scaleY = 1 / ((crMap.MaxY - crMap.MinY) / (parentMap.MaxY - parentMap.MinY));
         parentMap.AddDefaultViewpoint(percentX, percentY, Math.Min(scaleX, scaleY), logID);
     }
 
@@ -114,9 +115,24 @@ internal static class LogLogicUtils
         }
         return new("Missing confusion damage");
     }
-    internal static List<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, long buffID, AgentItem target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd)
+    internal static List<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, long buffID, AgentItem target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd, long minThresholdBetweenGainAndLoss = ServerDelayConstant)
     {
-        return CombatData.GetBuffApplyRemoveSequence(combatData.GetBuffDataByIDByDst(buffID, target), target, beginWithApply, addDummyRemoveAllEventAtEnd);
+        return CombatData.GetBuffApplyRemoveSequence(combatData.GetBuffDataByIDByDst(buffID, target), target, beginWithApply, addDummyRemoveAllEventAtEnd, minThresholdBetweenGainAndLoss);
+    }
+
+    internal static IEnumerable<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, long buffID, SingleActor target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd, long minThresholdBetweenGainAndLoss = ServerDelayConstant)
+    {
+        return GetBuffApplyRemoveSequence(combatData, buffID, target.AgentItem, beginWithApply, addDummyRemoveAllEventAtEnd, minThresholdBetweenGainAndLoss);
+    }
+
+    internal static IEnumerable<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, IEnumerable<long> buffIDs, AgentItem target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd, long minThresholdBetweenGainAndLoss = ServerDelayConstant)
+    {
+        return buffIDs.SelectMany(buffID => GetBuffApplyRemoveSequence(combatData, buffID, target, beginWithApply, addDummyRemoveAllEventAtEnd, minThresholdBetweenGainAndLoss));
+    }
+
+    internal static IEnumerable<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, IEnumerable<long> buffIDs, SingleActor target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd, long minThresholdBetweenGainAndLoss = ServerDelayConstant)
+    {
+        return GetBuffApplyRemoveSequence(combatData, buffIDs, target.AgentItem, beginWithApply, addDummyRemoveAllEventAtEnd, minThresholdBetweenGainAndLoss);
     }
 
     internal static List<List<BuffEvent>> GetBuffApplyRemoveSequencePerInstanceID(CombatData combatData, long buffID, AgentItem target, bool addDummyRemoveAllEventAtEnd)
@@ -138,10 +154,7 @@ internal static class LogLogicUtils
                 {
                     remove = singleRemoves.FirstOrDefault(x => x.Time >= apply.Time);
                 }
-                if (remove == null)
-                {
-                    remove = removeAlls.FirstOrDefault(x => x.Time > apply.Time);
-                }
+                remove ??= removeAlls.FirstOrDefault(x => x.Time > apply.Time);
                 if (remove != null)
                 {
                     instanceSequence.Add(remove);
@@ -161,21 +174,6 @@ internal static class LogLogicUtils
         return filtered;
     }
 
-    internal static IEnumerable<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, long buffID, SingleActor target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd)
-    {
-        return GetBuffApplyRemoveSequence(combatData, buffID, target.AgentItem, beginWithApply, addDummyRemoveAllEventAtEnd);
-    }
-
-    internal static IEnumerable<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, IEnumerable<long> buffIDs, AgentItem target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd)
-    {
-        return buffIDs.SelectMany(buffID => GetBuffApplyRemoveSequence(combatData, buffID, target, beginWithApply, addDummyRemoveAllEventAtEnd));
-    }
-
-    internal static IEnumerable<BuffEvent> GetBuffApplyRemoveSequence(CombatData combatData, IEnumerable<long> buffIDs, SingleActor target, bool beginWithApply, bool addDummyRemoveAllEventAtEnd)
-    {
-        return GetBuffApplyRemoveSequence(combatData, buffIDs, target.AgentItem, beginWithApply, addDummyRemoveAllEventAtEnd);
-    }
-
     internal static bool AtLeastOnePlayerAlive(CombatData combatData, LogData logData, long timeToCheck, IReadOnlyCollection<AgentItem> playerAgents)
     {
         int playerDeadOrDCCount = 0;
@@ -184,8 +182,8 @@ internal static class LogLogicUtils
             if (timeToCheck < playerAgent.FirstAware || timeToCheck > playerAgent.LastAware)
             {
                 playerDeadOrDCCount++;
-            } 
-            else 
+            }
+            else
             {
                 var statusEvents = new List<StatusEvent>();
                 statusEvents.AddRange(combatData.GetAliveEvents(playerAgent.EnglobingAgentItem).Where(x => x.Time <= playerAgent.LastAware));
@@ -228,20 +226,38 @@ internal static class LogLogicUtils
         }
     }
 
+    internal static void NumericallyRenameBasedOnNames(IEnumerable<SingleActor> targets)
+    {
+        NumericallyRenameBasedOnNames(targets, (target) => target.Character);
+    }
+
+    internal static void NumericallyRenameBasedOnNames(IEnumerable<SingleActor> targets, Func<SingleActor, string> getName)
+    {
+        var counts = new Dictionary<string, int>();
+        foreach (var target in targets)
+        {
+            var name = getName(target);
+            var suffix = counts.GetValueOrDefault(name, 1);
+            target.OverrideName(name + " " + suffix);
+            counts[name] = suffix + 1;
+        }
+    }
+
     private static void FindChestGadget(ChestID chestID, AgentData agentData, IEnumerable<KeyValuePair<AgentItem, List<CombatItem>>> gadgetPositions, Vector3 chestPosition, int hitboxWidth)
     {
         if (chestID == ChestID.None)
         {
             return;
         }
-        var gadgetMatchingPositions = gadgetPositions.Where(entry => {
+        var gadgetMatchingPositions = gadgetPositions.Where(entry =>
+        {
             return entry.Value.Any(x => (MovementEvent.GetPoint3D(x) - chestPosition).XY().LengthSquared() < InchDistanceThresholdSquared);
         });
         if (!gadgetMatchingPositions.Any())
         {
             return;
         }
-        var chest = gadgetMatchingPositions.FirstOrNull((in KeyValuePair<AgentItem, List<CombatItem>> x) => x.Key.HitboxWidth == hitboxWidth);
+        var chest = gadgetMatchingPositions.FirstOrNull((in x) => x.Key.HitboxWidth == hitboxWidth);
         chest?.Key.OverrideID(chestID, agentData);
     }
 
@@ -249,7 +265,8 @@ internal static class LogLogicUtils
     {
         var movementData = combatData.Where(x => x.IsGeographical).ToList();
 
-        var nonZeroGadgetVelocities = movementData.Where(evt => {
+        var nonZeroGadgetVelocities = movementData.Where(evt =>
+        {
             if (evt.IsStateChange == StateChange.Velocity)
             {
                 if (MovementEvent.GetPoint3D(evt).Length() < 1e-6)
@@ -273,7 +290,8 @@ internal static class LogLogicUtils
             .GroupBy(x => agentData.GetAgent(x.SrcAgent, x.Time))
             .Where(x => x.Key.Type == AgentItem.AgentType.VolatileSpecies && x.Key.Master == null)
             .ToDictionary(x => x.Key, x => x.ToList());
-        var gadgetPositions = positionDict.Where(entry => {
+        var gadgetPositions = positionDict.Where(entry =>
+        {
 
             if (nonZeroGadgetVelocities.ContainsKey(entry.Key))
             {
@@ -299,7 +317,7 @@ internal static class LogLogicUtils
             var position = MovementEvent.GetPoint3D(positionEvt).XY();
             foreach (var (suffix, expectedPosition) in positionData)
             {
-                if ((position - expectedPosition).LengthSquared() < maxDiff)
+                if ((position - expectedPosition).LengthSquared() < maxDiff * maxDiff)
                 {
                     target.OverrideName(target.Character + " " + suffix);
                     return suffix;
@@ -320,42 +338,11 @@ internal static class LogLogicUtils
     internal static double ComputeCastTimeWithQuickness(ParsedEvtcLog log, SingleActor actor, long startCastTime, long castDuration)
     {
         long expectedEndCastTime = startCastTime + castDuration;
-        Segment? quickness = actor.GetBuffStatus(log, Quickness, startCastTime, expectedEndCastTime).FirstOrNull((in Segment x) => x.Value == 1);
+        Segment? quickness = actor.GetBuffStatus(log, Quickness, startCastTime, expectedEndCastTime).FirstOrNull((in x) => x.Value == 1);
         if (quickness != null)
         {
             long quicknessTimeDuringCast = Math.Min(expectedEndCastTime, quickness.Value.End) - Math.Max(startCastTime, quickness.Value.Start);
             return castDuration - quicknessTimeDuringCast + (quicknessTimeDuringCast * 0.66);
-        }
-        return 0;
-    }
-
-    /// <summary>
-    /// Compute the cast duration while the target has <see cref="MistlockInstabilitySugarRush"/>.
-    /// </summary>
-    /// <param name="castDuration">Duration of the cast.</param>
-    /// <returns>The duration of the cast.</returns>
-    internal static double ComputeCastTimeWithSugarRush(long castDuration)
-    {
-        return castDuration * 0.8;
-    }
-
-    /// <summary>
-    /// Compute the cast duration while the target has <see cref="Quickness"/> and <see cref="MistlockInstabilitySugarRush"/>.
-    /// </summary>
-    /// <param name="log">The log.</param>
-    /// <param name="actor">Actor casting.</param>
-    /// <param name="startCastTime">Starting time of the cast.</param>
-    /// <param name="castDuration">Duration of the cast.</param>
-    /// <returns>The duration of the cast.</returns>
-    internal static double ComputeCastTimeWithQuicknessAndSugarRush(ParsedEvtcLog log, SingleActor actor, long startCastTime, long castDuration)
-    {
-        long expectedEndCastTime = startCastTime + castDuration;
-        Segment? quickness = actor.GetBuffStatus(log, Quickness, startCastTime, expectedEndCastTime).FirstOrNull((in Segment x) => x.Value == 1);
-        if (quickness != null)
-        {
-            long quicknessTimeDuringCast = Math.Min(expectedEndCastTime, quickness.Value.End) - Math.Max(startCastTime, quickness.Value.Start);
-            double castTimeWithSugarRush = ComputeCastTimeWithSugarRush(castDuration);
-            return castTimeWithSugarRush - quicknessTimeDuringCast + (quicknessTimeDuringCast * 0.66 / 0.8);
         }
         return 0;
     }
@@ -373,7 +360,7 @@ internal static class LogLogicUtils
     internal static long ComputeEndCastTimeByBuffApplication(ParsedEvtcLog log, SingleActor actor, long buffID, long startCastTime, long castDuration)
     {
         long end = startCastTime + castDuration;
-        Segment? segment = actor.GetBuffStatus(log, buffID, startCastTime, end).FirstOrNull((in Segment x) => x.Value > 0);
+        Segment? segment = actor.GetBuffStatus(log, buffID, startCastTime, end).FirstOrNull((in x) => x.Value > 0);
         if (segment != null)
         {
             return segment.Value.Start;
@@ -446,14 +433,23 @@ internal static class LogLogicUtils
 
     /// <summary>
     /// Some bosses may have a health update event at the end of the log that heals them back up to 100% HP.<br></br>
-    /// Override the last health event DstAgent (health %) to the previous one.
+    /// Override the src to unknown.
     /// </summary>
     internal static void SanitizeLastHealthUpdateEvents(SingleActor actor, List<CombatItem> combatData)
     {
         var hpUpdates = combatData.Where(x => x.SrcMatchesAgent(actor.AgentItem) && x.IsStateChange == StateChange.HealthUpdate).ToList();
-        if (hpUpdates.Count > 1 && HealthUpdateEvent.GetHealthPercent(hpUpdates.LastOrDefault()!) == 100)
+        var lastNon100Percent = hpUpdates.LastOrDefault(x => HealthUpdateEvent.GetHealthPercent(x) < 100);
+        if (lastNon100Percent != null)
         {
-            hpUpdates.Last().OverrideDstAgent(hpUpdates[^2].DstAgent);
+            for (var i = hpUpdates.Count - 1; i >= 0; i--)
+            {
+                var curHPUpdate = hpUpdates[i];
+                if (curHPUpdate.Time <= lastNon100Percent.Time)
+                {
+                    break;
+                }
+                curHPUpdate.OverrideSrcAgent(_unknownAgent);
+            }
         }
     }
 }

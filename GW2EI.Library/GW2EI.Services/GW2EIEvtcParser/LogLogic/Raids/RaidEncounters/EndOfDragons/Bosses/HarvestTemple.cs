@@ -6,16 +6,15 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -230,7 +229,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     break;
                 case (int)TargetID.TheDragonVoidSooWon:
                     phases[0].AddTarget(target, log);
-                    var killableAmalgamates = Targets.Where(x => x.IsSpecies(TargetID.KillableVoidAmalgamate));
+                    var killableAmalgamates = Targets.Where(x => x.IsSpecies(TargetID.KillableVoidAmalgamate)).ToList();
                     var prevKillableAmalgamates = killableAmalgamates.FirstOrDefault(x => x.FirstAware < phaseStart && x.FirstAware >= log.LogData.LogStart - ServerDelayConstant);
                     if (prevKillableAmalgamates != null)
                     {
@@ -240,7 +239,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     AttackTargetEvent? attackTargetEvent = log.CombatData.GetAttackTargetEventsBySrc(target.AgentItem).FirstOrDefault(x => x.GetTargetableEvents(log).Any(y => y.Targetable && y.Time >= target.FirstAware && y.Time <= target.LastAware));
                     if (attackTargetEvent != null)
                     {
-                        var targetables = attackTargetEvent.GetTargetableEvents(log).Where(x => x.Time >= target.FirstAware && x.Time <= target.LastAware);
+                        var targetables = attackTargetEvent.GetTargetableEvents(log).Where(x => x.Time >= target.FirstAware && x.Time <= target.LastAware).ToList();
                         var targetOns = targetables.Where(x => x.Targetable).ToList();
                         var targetOffs = targetables.Where(x => !x.Targetable);
                         // Starts with 2nd soo won phase
@@ -373,7 +372,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         {
             return LogData.StartStatus.Late;
         }
-        var firstNonZeroVelocity = combatData.GetMovementData(pushableOrb).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 1e-6);
+        var firstNonZeroVelocity = combatData.GetMovementData(pushableOrb).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 1e-6);
         if (firstNonZeroVelocity == null)
         {
             return LogData.StartStatus.Late;
@@ -383,7 +382,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         {
             return LogData.StartStatus.Late;
         }
-        var position = firstPositionAfterVelocity.GetPoint3D();
+        var position = firstPositionAfterVelocity.Point3D;
         if ((position - new Vector3(610.87994f, -20372.885f, -15189.2f)).Length() > 50)
         {
             return LogData.StartStatus.Late;
@@ -505,12 +504,14 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             SingleActor? soowon = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.TheDragonVoidSooWon));
             if (soowon != null)
             {
-                var targetOffs = combatData.GetAttackTargetEventsBySrc(soowon.AgentItem).Select(x => x.GetTargetableEvents(combatData).Where(x => x.Time >= soowon.FirstAware && !x.Targetable)).FirstOrDefault(x => x.Any());
+                var targetOffs = combatData.GetAttackTargetEventsBySrc(soowon.AgentItem)
+                        .Select(x => x.GetTargetableEvents(combatData).Where(x => x.Time >= soowon.FirstAware && !x.Targetable))
+                        .FirstOrDefault(x => x.Any())?.ToList();
                 if (targetOffs == null)
                 {
                     return;
                 }
-                if (targetOffs.Count() == 2)
+                if (targetOffs.Count == 2)
                 {
                     HealthDamageEvent? lastDamageTaken = combatData.GetDamageTakenData(soowon.AgentItem).LastOrDefault(x => (x.HealthDamage > 0) && playerAgents.Any(x.From.IsMasterOrSelf));
                     if (lastDamageTaken != null)
@@ -522,7 +523,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                         }
                         else
                         {
-                            var determinedApplies = combatData.GetBuffApplyData(Determined895).OfType<BuffApplyEvent>().Where(x => x.To.IsPlayer && Math.Abs(x.AppliedDuration - 10000) < ServerDelayConstant);
+                            var determinedApplies = combatData.GetBuffApplyData(Determined895).OfType<BuffApplyEvent>().Where(x => x.To.IsPlayer && Math.Abs(x.AppliedDuration - 10000) < ServerDelayConstant).ToList();
                             IReadOnlyList<AnimatedCastEvent> liftOffs = combatData.GetAnimatedCastData(HarvestTempleLiftOff);
                             foreach (AnimatedCastEvent liffOff in liftOffs)
                             {
@@ -557,11 +558,11 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
     {
         if (effect.IsAroundDst)
         {
-            res.Add(new AnimatedCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur, effect.Dst));
+            res.Add(new AnimatedGadgetCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur, effect.Dst));
         }
         else
         {
-            res.Add(new AnimatedCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur));
+            res.Add(new AnimatedGadgetCastEvent(target.AgentItem, skill, effect.Time - startOffset, dur));
         }
     }
 
@@ -577,7 +578,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     long curNorthBeamTime = int.MinValue;
                     foreach (var northBeam in agentData.GetStableSpeciesByID(TargetID.JormagMovingFrostBeamNorth))
                     {
-                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(northBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(northBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                         if (frostBeamMoveStartVelocity != null && frostBeamMoveStartVelocity.Time - curNorthBeamTime > 1000)
                         {
                             curNorthBeamTime = frostBeamMoveStartVelocity.Time;
@@ -588,7 +589,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     long curCenterBeamTime = int.MinValue;
                     foreach (var centerBeam in agentData.GetStableSpeciesByID(TargetID.JormagMovingFrostBeamCenter))
                     {
-                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(centerBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                        VelocityEvent? frostBeamMoveStartVelocity = combatData.GetMovementData(centerBeam).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                         if (frostBeamMoveStartVelocity != null && frostBeamMoveStartVelocity.Time - curCenterBeamTime > 1000)
                         {
                             curCenterBeamTime = frostBeamMoveStartVelocity.Time;
@@ -750,7 +751,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         return res;
     }
 
-    private static void LegacyHandleCriticalAgents(EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
+    private static void LegacyHandleCriticalAgents(LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
         List<TargetID> idsToUse =
         [
@@ -761,7 +762,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             TargetID.TheDragonVoidZhaitan,
             TargetID.TheDragonVoidSooWon,
         ];
-        var attackTargetEvents = combatData.Where(x => x.IsStateChange == StateChange.AttackTarget).Select(x => new AttackTargetEvent(x, agentData));
+        var attackTargetEvents = combatData.Where(x => x.IsStateChange == StateChange.AttackTarget).Select(x => new AttackTargetEvent(x, agentData)).ToList();
         var targetableEvents = new Dictionary<AgentItem, IEnumerable<TargetableEvent>>();
         foreach (var attackTarget in attackTargetEvents)
         {
@@ -789,15 +790,15 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                 attackTargetSortID[atAgent] = long.MaxValue;
                 continue;
             }
-            var targetOns = targetables.Where(x => x.Targetable);
-            if (!targetOns.Any())
+            var targetOns = targetables.Where(x => x.Targetable).ToList();
+            if (targetOns.Count == 0)
             {
                 attackTargetSortID[atAgent] = long.MaxValue;
                 continue;
             }
             attackTargetSortID[atAgent] = targetOns.Min(x => x.Time);
         }
-        attackTargetEvents = attackTargetEvents.OrderBy(x => attackTargetSortID[x.AttackTarget]);
+        attackTargetEvents = attackTargetEvents.OrderBy(x => attackTargetSortID[x.AttackTarget]).ToList();
         int index = 0;
         HashSet<AgentItem> processedAttackTargets = [];
         long lastLastAware = logData.LogStart;
@@ -865,7 +866,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         }
     }
 
-    internal static void PostMissilesHandleCriticalAgents(EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
+    internal static void PostMissilesHandleCriticalAgents(AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
         HashSet<long> usefulMissileIDs =
         [
@@ -879,7 +880,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             PutridDeluge
         ];
         var usefulMissileEvents = combatData.Where(x => x.IsStateChange == StateChange.MissileCreate && usefulMissileIDs.Contains(x.SkillID)).GroupBy(x => x.SkillID).ToDictionary(x => (long)x.Key, x => x.ToList());
-        HashSet<GUID> usefulEffectGUIDs =
+        HashSet<Guid> usefulEffectGUIDs =
         [
             EffectGUIDs.HarvestTemplePrimordusLavaSlamHitIndicator,
             EffectGUIDs.HarvestTemplePrimordusJawsOfDestructionIndicator,
@@ -899,14 +900,14 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         var usefulEffectEvents = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Effect &&
-                usefulEffectGUIDs.Any(y => y.Equals(x.SrcAgent, x.DstAgent)))
-            .Select(x => new EffectGUIDEvent(x, evtcVersion))
+                usefulEffectGUIDs.Any(y => y.Equals(x.SrcAgent, x.DstAgent, true)))
+            .Select(x => new EffectGUIDEvent(x))
             .DistinctBy(x => x.EffectID)
-            .Select(x => (x, combatData.Where(y => y.IsEffect && y.SkillID == x.EffectID)))
-            .GroupBy(x => x.Item1)
+            .Select(effectGUIDEvent => (effectGUIDEvent, combatData.Where(y => y.IsEffect && y.SkillID == effectGUIDEvent.EffectID)))
+            .GroupBy(x => x.effectGUIDEvent)
             .ToDictionary(x => x.Key.GUID, x => x.SelectMany(x => x.Item2));
         // Attack targets
-        var attackTargetEvents = combatData.Where(x => x.IsStateChange == StateChange.AttackTarget).Select(x => new AttackTargetEvent(x, agentData));
+        var attackTargetEvents = combatData.Where(x => x.IsStateChange == StateChange.AttackTarget).Select(x => new AttackTargetEvent(x, agentData)).ToList();
         var targetableEvents = new Dictionary<AgentItem, IEnumerable<TargetableEvent>>();
         foreach (var attackTarget in attackTargetEvents)
         {
@@ -934,15 +935,15 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                 attackTargetSortID[atAgent] = long.MaxValue;
                 continue;
             }
-            var targetOns = targetables.Where(x => x.Targetable);
-            if (!targetOns.Any())
+            var targetOns = targetables.Where(x => x.Targetable).ToList();
+            if (targetOns.Count == 0)
             {
                 attackTargetSortID[atAgent] = long.MaxValue;
                 continue;
             }
             attackTargetSortID[atAgent] = targetOns.Min(x => x.Time);
         }
-        attackTargetEvents = attackTargetEvents.OrderBy(x => attackTargetSortID[x.AttackTarget]);
+        attackTargetEvents = attackTargetEvents.OrderBy(x => attackTargetSortID[x.AttackTarget]).ToList();
         HashSet<AgentItem> processedAttackTargets = [];
         bool needSortByTime = false;
         var hpEvents = combatData.Where(x => x.IsStateChange == StateChange.HealthUpdate).ToList();
@@ -958,7 +959,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             processedAttackTargets.Add(atAgent);
             var targetOns = targetables.Where(x => x.Targetable).ToList();
             var targetOffs = targetables.Where(x => !x.Targetable).ToList();
-            var dragonVoidHPEvents = hpEvents.Where(x => x.SrcMatchesAgent(dragonVoid));
+            var dragonVoidHPEvents = hpEvents.Where(x => x.SrcMatchesAgent(dragonVoid)).ToList();
             for (var i = 0; i < targetOns.Count; i++)
             {
                 var targetOn = targetOns[i];
@@ -1182,11 +1183,11 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
     {
         if (evtcVersion.Build >= ArcDPSBuilds.MissilesIntroduced)
         {
-            PostMissilesHandleCriticalAgents(evtcVersion, logData, agentData, combatData, extensions);
+            PostMissilesHandleCriticalAgents(agentData, combatData, extensions);
         }
         else
         {
-            LegacyHandleCriticalAgents(evtcVersion, logData, agentData, combatData, extensions);
+            LegacyHandleCriticalAgents(logData, agentData, combatData, extensions);
         }
     }
 
@@ -1195,8 +1196,8 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
         var greenFailSuccGUIDs = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Effect &&
-                (EffectGUIDs.HarvestTempleFailedGreen.Equals(x.SrcAgent, x.DstAgent) || EffectGUIDs.HarvestTempleSuccessGreen.Equals(x.SrcAgent, x.DstAgent) || EffectGUIDs.HarvestTempleGreen.Equals(x.SrcAgent, x.DstAgent)))
-            .Select(x => new EffectGUIDEvent(x, evtcVersion));
+                (EffectGUIDs.HarvestTempleFailedGreen.Equals(x.SrcAgent, x.DstAgent, true) || EffectGUIDs.HarvestTempleSuccessGreen.Equals(x.SrcAgent, x.DstAgent, true) || EffectGUIDs.HarvestTempleGreen.Equals(x.SrcAgent, x.DstAgent, true)))
+            .Select(x => new EffectGUIDEvent(x));
         Dictionary<TargetID, AgentItem> greenAgents = new(16);
         Dictionary<long, EffectGUIDEvent> dummyEffectGUIDs = [];
         List<CombatItem> toAdd = [];
@@ -1587,8 +1588,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             {
                 (long start, long end) lifespan = effect.ComputeLifespan(log, 1750);
                 var circle = new CircleDecoration(150, lifespan, Colors.LightBlue, 0.1, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.end));
+                environmentDecorations.AddWithGrowing(circle, lifespan.end);
             }
         }
     }
@@ -1786,7 +1786,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     {
                         var beamAoE = new CircleDecoration(160, lifespan, Colors.LightBlue, 0.1, connector);
                         replay.Decorations.AddWithBorder(beamAoE, Colors.Red, 0.5);
-                    }, Math.Min(log.LogData.LogEnd, target.LastAware));
+                    });
                 }
                 // Frost Beam - Non-NPC sets
                 var breathOfJormag = log.CombatData.GetMissileEventsBySkillID(BreathOfJormagSouth);
@@ -1798,7 +1798,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     foreach (AgentItem agent in beamAgents)
                     {
                         // Find the closest velocity change event
-                        VelocityEvent? frostBeamVelocity = log.CombatData.GetMovementData(agent).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                        VelocityEvent? frostBeamVelocity = log.CombatData.GetMovementData(agent).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                         if (frostBeamVelocity != null && frostBeamVelocity.Time > breath.Time)
                         {
                             beamAgentSpawnTime = Math.Min(beamAgentSpawnTime, frostBeamVelocity.Time);
@@ -1813,25 +1813,26 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                     {
                         var beamAoE = new CircleDecoration(300, lifespan, Colors.LightBlue, 0.1, connector);
                         replay.Decorations.AddWithBorder(beamAoE, Colors.Red, 0.5);
-                    }, end);
+                    });
                 }
                 break;
             case (int)TargetID.JormagMovingFrostBeam:
             case (int)TargetID.JormagMovingFrostBeamNorth:
             case (int)TargetID.JormagMovingFrostBeamCenter:
-                VelocityEvent? frostBeamMoveStartVelocity = log.CombatData.GetMovementData(target.AgentItem).OfType<VelocityEvent>().FirstOrDefault(x => x.GetPoint3D().Length() > 0);
+                VelocityEvent? frostBeamMoveStartVelocity = log.CombatData.GetMovementData(target.AgentItem).OfType<VelocityEvent>().FirstOrDefault(x => x.Point3D.Length() > 0);
                 // Beams are immobile at spawn for around 3 seconds
                 if (frostBeamMoveStartVelocity != null)
                 {
                     lifespan = (frostBeamMoveStartVelocity.Time, target.LastAware);
-                    replay.Trim(lifespan.start, lifespan.end);
+                    replay.HideInInterval(new(lifespan.end, target.LastAware));
+                    replay.HideInInterval(new(target.FirstAware, lifespan.start));
                     var beamAoE = new CircleDecoration(300, lifespan, Colors.LightBlue, 0.1, new AgentConnector(target));
                     replay.Decorations.AddWithBorder(beamAoE, Colors.Red, 0.5);
                 }
                 else
                 {
                     // Completely hide it
-                    replay.Trim(0, 0);
+                    replay.HideInInterval(new(target.FirstAware, target.LastAware));
                 }
                 break;
             case (int)TargetID.DragonEnergyOrb:
@@ -2873,8 +2874,8 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                 continue;
             }
             lifespan.end = Math.Min((int)dragonVoid.LastAware, lifespan.end);
-            environmentDecorations.Add(new CircleDecoration(radius, lifespan, Colors.Red, 0.2, new PositionConnector(effect.Position)).UsingGrowingEnd(growing));
-            environmentDecorations.Add(new CircleDecoration(radius, lifespan, Colors.Red, 0.2, new PositionConnector(effect.Position)));
+            var circle = new CircleDecoration(radius, lifespan, Colors.Red, 0.2, new PositionConnector(effect.Position));
+            environmentDecorations.AddWithGrowing(circle, growing);
         }
     }
 
@@ -2895,8 +2896,8 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
                 continue;
             }
             lifespan.end = Math.Min((int)dragonVoid.LastAware, lifespan.end);
-            environmentDecorations.Add(new CircleDecoration(180, lifespan, Colors.DarkGreen, 0.4, new PositionConnector(green.Position)));
-            environmentDecorations.Add(new CircleDecoration(180, lifespan, Colors.DarkGreen, 0.4, new PositionConnector(green.Position)).UsingGrowingEnd(growing));
+            var circle = new CircleDecoration(180, lifespan, Colors.DarkGreen, 0.4, new PositionConnector(green.Position));
+            environmentDecorations.AddWithGrowing(circle, growing);
         }
     }
 
@@ -3030,7 +3031,7 @@ internal class HarvestTemple : EndOfDragonsRaidEncounter
             damageData.SortByTime();
             foreach (var evt in damageData)
             {
-                if (evt.HasHit && evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.HasHit && evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(harvestTemplePhases, nopeRopesEligibilityEvents, evt.Time, Ach_NopeRopes, p);
                 }

@@ -1,9 +1,9 @@
 ﻿using System.IO.Compression;
 using System.Text;
-using GW2EIBuilders.HtmlModels;
-using GW2EIEvtcParser;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GW2EIBuilders.HtmlModels;
+using GW2EIEvtcParser;
 using Tracing;
 
 [assembly: CLSCompliant(false)]
@@ -18,7 +18,7 @@ namespace GW2EIBuilders;
     ]
 )]
 [JsonSerializable(typeof(LogDataDto))]
-partial class LogDataDtoSerializerContext : JsonSerializerContext {  }
+partial class LogDataDtoSerializerContext : JsonSerializerContext { }
 
 
 public class HTMLBuilder
@@ -46,17 +46,13 @@ public class HTMLBuilder
     private static string CompressAndBase64(string s)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(s);
-        using (var msi = new MemoryStream(bytes))
+        using var msi = new MemoryStream(bytes);
+        using var mso = new MemoryStream();
+        using (var gs = new GZipStream(mso, CompressionMode.Compress))
         {
-            using (var mso = new MemoryStream())
-            {
-                using (var gs = new GZipStream(mso, CompressionMode.Compress))
-                {
-                    msi.CopyTo(gs);
-                }
-                return Convert.ToBase64String(mso.ToArray());
-            }
+            msi.CopyTo(gs);
         }
+        return Convert.ToBase64String(mso.ToArray());
     }
 
     public HTMLBuilder(ParsedEvtcLog log, HTMLSettings settings, HTMLAssets assets, Version parserVersion, UploadResults uploadResults)
@@ -168,7 +164,7 @@ public class HTMLBuilder
         var (externalPath, cdnPath) = BuildAssetPaths(path);
         _log.UpdateProgressWithCancellationCheck("HTML: replacing global variables");
         html.Replace("${bootstrapTheme}", !_light ? "slate" : "yeti");
-        
+
         // Compression stuff
         html.Replace("<!--${CompressionRequire}-->", _compressJson ? "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.10/pako.min.js\"></script>" : "");
         html.Replace("<!--${CompressionUtils}-->", _compressJson ? Properties.Resources.compressionUtils : "");
@@ -234,11 +230,9 @@ public class HTMLBuilder
 #endif
             try
             {
-                using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                using (var scriptWriter = new StreamWriter(fs, NoBOMEncodingUTF8))
-                {
-                    scriptWriter.Write(content);
-                }
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                using var scriptWriter = new StreamWriter(fs, NoBOMEncodingUTF8);
+                scriptWriter.Write(content);
             }
             catch (IOException)
             {

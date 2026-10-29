@@ -1,0 +1,87 @@
+﻿using System.Collections.Generic;
+using System.Linq;
+using GW2EIEvtcParser;
+using GW2EIEvtcParser.ParsedData;
+
+namespace GW2EIParserAvalonia.Models;
+
+internal sealed class AgentDataModel
+{
+    public ulong Agent => _agentItem.Agent;
+    public ushort InstID => _agentItem.InstID;
+    public string Name => _agentItem.Name;
+    public int ID => _agentItem.ID;
+    // This is EI Logic
+    //public int UniqueID => AgentItem.UniqueID;
+    public AgentItem.AgentType Type => _agentItem.Type;
+    public ParserHelper.Spec Spec => _agentItem.Spec;
+    public ParserHelper.Spec BaseSpec => _agentItem.BaseSpec;
+
+    public readonly AgentDataModel? Master;
+    public long FirstAware => _agentItem.FirstAware;
+    public long LastAware => _agentItem.LastAware;
+    public ushort Toughness => _agentItem.Toughness;
+    public ushort Healing => _agentItem.Healing;
+    public ushort Condition => _agentItem.Condition;
+    public ushort Concentration => _agentItem.Concentration;
+    // Height is defunct, it also never worked according to deltaconnected
+    public uint HitboxWidth => _agentItem.HitboxWidth;
+    public bool IsPlayer => _agentItem.IsPlayer;
+    public bool IsNPC => _agentItem.IsNPC;
+    public bool IsFake => _agentItem.IsFake;
+    public bool IsUnknown => _agentItem.IsUnknown;
+    public bool IsEnglobedAgent => _agentItem.IsEnglobedAgent;
+    public bool IsEnglobingAgent => _agentItem.IsEnglobingAgent;
+    public int EnglobedAgentCount => _agentItem.EnglobedAgentItems.Count;
+    public readonly List<AgentDataModel>? EnglobedAgents;
+    public readonly AgentDataModel? EnglobingAgent;
+    public bool IsNotInSquadFriendlyPlayer => _agentItem.IsNotInSquadFriendlyPlayer;
+    public int MergeCount => _agentItem.Merges.Count;
+    public readonly List<AgentDataModel>? Merges;
+    public int RegroupedCount => _agentItem.Regrouped.Count;
+    public readonly List<AgentDataModel>? Regrouped;
+    private readonly AgentItem _agentItem;
+
+    public readonly AgentDataModel? AttackTargetOwner;
+    public readonly List<AgentDataModel>? AttackTargets;
+
+    public readonly IReadOnlyList<AgentInfoEvent> AgentInfoEvents;
+
+    public AgentDataModel(AgentItem agent, EvtcLog log, int depth = -1)
+    {
+        depth++;
+        _agentItem = agent;
+        if (depth < 5)
+        {
+            if (agent.Master != null)
+            {
+                Master = new AgentDataModel(agent.Master, log, depth);
+            }
+            if (agent.IsEnglobingAgent)
+            {
+                EnglobedAgents = agent.EnglobedAgentItems.Select(x => new AgentDataModel(x, log, depth)).ToList();
+            }
+            if (agent.IsEnglobedAgent)
+            {
+                EnglobingAgent = new AgentDataModel(agent.EnglobingAgentItem, log, depth);
+            }
+            if (agent.IsAttackTarget(log))
+            {
+                AttackTargetOwner = new AgentDataModel(agent.GetAttackTargetOwner(log), log, depth);
+            }
+            if (agent.HasAttackTargets(log))
+            {
+                AttackTargets = agent.GetAttackTargets(log).Select(x => new AgentDataModel(x, log, depth)).ToList();
+            }
+            if (MergeCount > 0)
+            {
+                Merges = agent.Merges.Where(x => x.Merged != agent).Select(x => new AgentDataModel(x.Merged, log, depth)).ToList();
+            }
+            if (RegroupedCount > 0)
+            {
+                Regrouped = agent.Regrouped.Select(x => new AgentDataModel(x.Merged, log, depth)).ToList();
+            }
+        }
+        AgentInfoEvents = log.CombatData.GetAgentInfoEvents(agent);
+    }
+}

@@ -1,0 +1,56 @@
+name: Release Linux-x64 Packages
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Target Release Tag"
+        required: true
+        type: string
+
+jobs:
+  build-linux-installers:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install FPM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev rpm
+          sudo gem install fpm
+
+      - name: Build Application & Packages for linux64
+        run: |
+          dotnet publish GW2EI.Executables/GW2EI.Applications/GW2EIParserAvalonia/GW2EIParserAvalonia.csproj \
+          -c Release-Linux \
+          -o ./packaging/usr/lib/elite-insights
+
+          cd ./packaging
+
+          fpm -t deb -a amd64 -p GW2EI-linux_amd64.deb -v "$RELEASE_TAG"
+          fpm -t rpm -a x86_64 -p GW2EI-linux.x86_64.rpm -v "$RELEASE_TAG"
+
+      - name: Verify Output Files
+        run: ls -lh ./packaging
+
+      - name: Upload .deb and .rpm to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: |
+            **/*.deb
+            **/*.rpm
+          fail_on_unmatched_files: true

@@ -7,13 +7,9 @@ using GW2EIGW2API;
 
 namespace GW2EIEvtcParser;
 
-public class ParsedEvtcLog
+public class ParsedEvtcLog : EvtcLog
 {
-    public readonly LogMetadata LogMetadata;
     public readonly LogData LogData;
-    public readonly AgentData AgentData;
-    public readonly SkillData SkillData;
-    public readonly CombatData CombatData;
     public readonly IReadOnlyList<Player> PlayerList;
     public readonly IReadOnlyList<SingleActor> Friendlies;
     public readonly IReadOnlyCollection<AgentItem> PlayerAgents;
@@ -22,34 +18,45 @@ public class ParsedEvtcLog
     public readonly IReadOnlyDictionary<ParserHelper.Spec, IReadOnlyList<SingleActor>> FriendliesListBySpec;
     public readonly DamageModifiersContainer DamageModifiers;
     public readonly BuffsContainer Buffs;
-    public readonly EvtcParserSettings ParserSettings;
     public bool CanCombatReplay => ParserSettings.ComputeCombatReplay && CombatData.HasMovementData;
 
     public readonly MechanicData MechanicData;
     public readonly StatisticsHelper StatisticsHelper;
 
-    private readonly ParserController _operation;
-
     private Dictionary<AgentItem, SingleActor>? _agentToActorDictionary;
 
+    internal static void AddRankToSpecies(CombatData combatData, SingleActor singleActor)
+    {
+        var rank = combatData.GetNPCRankPrefix(singleActor.AgentItem);
+        if (rank != null)
+        {
+            singleActor.OverrideName(rank + singleActor.Character);
+        }
+    }
+
+    private static void AddRankToSpecies(CombatData combatData, IEnumerable<SingleActor> singleActors)
+    {
+        foreach (var target in singleActors)
+        {
+            AddRankToSpecies(combatData, target);
+        }
+    }
+
     internal ParsedEvtcLog(EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, SkillData skillData,
-            IReadOnlyList<CombatItem> combatItems, IReadOnlyList<Player> playerList, IReadOnlyDictionary<uint, ExtensionHandler> extensions, EvtcParserSettings parserSettings, GW2APIController apiController, ParserController operation)
+            IReadOnlyList<CombatItem> combatItems, IReadOnlyList<Player> playerList, IReadOnlyDictionary<uint, ExtensionHandler> extensions, EvtcParserSettings parserSettings, GW2APIController apiController, ParserController operation) : base(agentData, skillData, [], parserSettings, operation)
     {
         LogData = logData;
-        AgentData = agentData;
-        SkillData = skillData;
-        ParserSettings = parserSettings;
-        _operation = operation;
-        
+
         _operation.UpdateProgressWithCancellationCheck("Parsing: Creating GW2EI Combat Events");
-        CombatData = new CombatData(combatItems, LogData, AgentData, SkillData, playerList, operation, extensions, evtcVersion, parserSettings, apiController);
-        
+        CombatData = new CombatData(combatItems, LogData, AgentData, SkillData, playerList, operation, extensions, evtcVersion, parserSettings, apiController)
+            .WithExtraProcessing(LogData, AgentData, SkillData, playerList, operation, evtcVersion);
+
         operation.UpdateProgressWithCancellationCheck("Parsing: Checking Log Status");
         LogData.ProcessLogStatus(CombatData, AgentData);
 
         operation.UpdateProgressWithCancellationCheck("Parsing: Setting Log Name");
         LogData.CompleteLogName(CombatData, AgentData, apiController);
-        
+
         _operation.UpdateProgressWithCancellationCheck("Parsing: Checking Success");
         var successHandler = new LogData.LogSuccessHandler(LogData);
         LogData.Logic.CheckSuccess(CombatData, AgentData, LogData, agentData.GetAgentByType(AgentItem.AgentType.Player), successHandler);
@@ -65,7 +72,7 @@ public class ParsedEvtcLog
         {
             throw new SkipException();
         }
-        
+
         _operation.UpdateProgressWithCancellationCheck("Parsing: Handling active players");
         List<Player> activePlayers = [];
         var playerMinions = agentData.GetAgentByType(AgentItem.AgentType.StableSpecies).Where(x => x.Master != null && x.Master.IsPlayer).GroupBy(x => x.Master).ToDictionary(x => x.Key!, x => x.ToList());
@@ -74,14 +81,14 @@ public class ParsedEvtcLog
             if (p.LastAware <= LogData.LogStart)
             {
                 operation.UpdateProgressWithCancellationCheck($"Parsing: Removing player {p.AgentItem.InstID} from player list - despawned before Log start");
-            } 
+            }
             else if (p.FirstAware < LogData.LogEnd)
             {
                 if (CombatData.GetDamageTakenData(p.EnglobingAgentItem).Any(x => !x.ToFriendly) ||
                     CombatData.GetDamageData(p.EnglobingAgentItem).Any(x => !x.ToFriendly) ||
                     CombatData.GetBuffDataBySrc(p.EnglobingAgentItem).Any(x => !p.AgentItem.IsMasterOfOrSelf(x.To)) ||
                     (
-                        playerMinions.TryGetValue(p.EnglobingAgentItem, out var minions) && 
+                        playerMinions.TryGetValue(p.EnglobingAgentItem, out var minions) &&
                         minions.Any(x => CombatData.GetDamageData(x).Any(x => !x.ToFriendly)
                     )
                         ))
@@ -104,7 +111,7 @@ public class ParsedEvtcLog
         }
         PlayerList = activePlayers.OrderBy(a => a.Group).ToList();
         PlayerAgents = new HashSet<AgentItem>(PlayerList.Select(x => x.AgentItem));
-        
+
         _operation.UpdateProgressWithCancellationCheck("Parsing: Handling friendlies");
         var friendlies = new List<SingleActor>();
         friendlies.AddRange(PlayerList);
@@ -112,15 +119,24 @@ public class ParsedEvtcLog
         Friendlies = friendlies;
         FriendliesListBySpec = friendlies.GroupBy(x => x.Spec).ToDictionary(x => x.Key, x => (IReadOnlyList<SingleActor>)x.ToList());
         FriendlyAgents = new HashSet<AgentItem>(Friendlies.Select(x => x.AgentItem));
-        
+
         _operation.UpdateProgressWithCancellationCheck("Parsing: Player count: " + PlayerList.Count);
         _operation.UpdateProgressWithCancellationCheck("Parsing: Friendlies count: " + LogData.Logic.NonSquadFriendlies.Count);
         _operation.UpdateProgressWithCancellationCheck("Parsing: Targets count: " + LogData.Logic.Targets.Count);
         _operation.UpdateProgressWithCancellationCheck("Parsing: Trash Mobs count: " + LogData.Logic.TrashMobs.Count);
-        
+
+        if (CombatData.HasAgentInfo)
+        {
+            _operation.UpdateProgressWithCancellationCheck("Parsing: adding ranks to names");
+            AddRankToSpecies(CombatData, LogData.Logic.Targets);
+            AddRankToSpecies(CombatData, LogData.Logic.TrashMobs);
+            AddRankToSpecies(CombatData, LogData.Logic.NonSquadFriendlies);
+        }
+
+
         _operation.UpdateProgressWithCancellationCheck("Parsing: Creating GW2EI Log Meta Data");
         LogMetadata = new LogMetadata(evtcVersion, CombatData, LogData.EvtcLogEnd - LogData.EvtcLogStart, playerList, extensions, operation);
-        
+
         _operation.UpdateProgressWithCancellationCheck("Parsing: Creating Buff Container");
         Buffs = new BuffsContainer(CombatData, SkillData, operation);
 
@@ -135,11 +151,6 @@ public class ParsedEvtcLog
 
         _operation.UpdateProgressWithCancellationCheck("Parsing: Find sources for buff extension events");
         CombatData.TryFindSrc(this);
-    }
-
-    public void UpdateProgressWithCancellationCheck(string status)
-    {
-        _operation.UpdateProgressWithCancellationCheck(status);
     }
 
     private void AddToDictionary(SingleActor actor)
@@ -192,7 +203,7 @@ public class ParsedEvtcLog
             }
             else
             {
-                actor = new NPC(agentItem);
+                actor = new NPC(agentItem, this);
             }
             _agentToActorDictionary[agentItem] = actor;
             //throw new EIException("Requested actor with id " + a.ID + " and name " + a.Name + " is missing");
@@ -200,26 +211,11 @@ public class ParsedEvtcLog
         return actor;
     }
 
-    /// <summary>
-    /// Find the corresponding actor, creates one otherwise
-    /// </summary>
-    /// <param name="agentItem"><see cref="AgentItem"/> to find an <see cref="SingleActor"/> for</param>
-    /// <param name="excludePlayers">returns null if true and agentItem is a player or has a player master</param>
-    /// <returns></returns>
-    public SingleActor? FindActor(AgentItem agentItem, bool excludePlayers)
-    {
-        if (excludePlayers && agentItem.GetFinalMaster().Type == AgentItem.AgentType.Player)
-        {
-            return null;
-        }
-        return FindActor(agentItem);
-    }
 
-
-    public 
+    public
         (
         List<SingleActorCombatReplayDescription> actors,
-        List<CombatReplayRenderingDescription> decorationRendering, 
+        List<CombatReplayRenderingDescription> decorationRendering,
         List<CombatReplayMetadataDescription> decorationMetadata
         ) GetCombatReplayDescriptions(Dictionary<long, SkillItem> usedSkills, Dictionary<long, Buff> usedBuffs)
     {

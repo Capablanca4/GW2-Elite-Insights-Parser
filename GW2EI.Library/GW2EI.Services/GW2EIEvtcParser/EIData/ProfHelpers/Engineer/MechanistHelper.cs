@@ -17,6 +17,7 @@ internal static class MechanistHelper
         new EffectCastFinder(ShiftSignetSkill, EffectGUIDs.MechanistShiftSignet1)
             .UsingSrcSpecChecker(Spec.Mechanist),
         new MinionCastCastFinder(OverclockSignetSkill, JadeBusterCannon)
+            .WithTarget()
             .UsingDisableWithEffectData()
             .UsingNotAccurate(),
         new EffectCastFinderByDst(OverclockSignetSkill, EffectGUIDs.MechanistOverclockSignet)
@@ -32,15 +33,18 @@ internal static class MechanistHelper
                 var pos = combatData.GetMovementData(spawn.Src).OfType<PositionEvent>().FirstOrDefault(evt => evt.Time + ServerDelayConstant >= spawn.Time);
                 if (pos != null && combatData.TryGetEffectEventsByGUID(EffectGUIDs.MechanistCrashDownImpact, out var effects))
                 {
-                    return CombatData.FindRelatedEvents(effects, spawn.Time + 800).Any(effect => (pos.GetPointXY() - effect.Position.XY()).Length() < 10.0f);
+                    return CombatData.FindRelatedEvents(effects, spawn.Time + 800).Any(effect => (pos.Point2D - effect.Position.XY()).Length() < 10.0f);
                 }
                 return false;
             }) // intersect first position after spawn with delayed effect
             .UsingNotAccurate(),
         // Mech F1
-        new MinionCastCastFinder(RoilingSmash, RoilingSmash),
-        new MinionCastCastFinder(ExplosiveKnuckle, ExplosiveKnuckle),
-        new MinionCastCastFinder(SparkRevolver, SparkRevolver),
+        new MinionCastCastFinder(RoilingSmash, RoilingSmash)
+            .WithTarget(),
+        new MinionCastCastFinder(ExplosiveKnuckle, ExplosiveKnuckle)
+            .WithTarget(),
+        new MinionCastCastFinder(SparkRevolver, SparkRevolver)
+            .WithTarget(),
         // Mech F2
         new BuffGainCastFinder(DischargeArray, DischargeArrayBuff)
             .WithMinions(),
@@ -50,11 +54,15 @@ internal static class MechanistHelper
             .UsingChecker((effect, combatData, agentData, skillData) => effect.Dst.IsSpecies(MinionID.JadeMech)),
         new MinionCastCastFinder(CoreReactorShot, CoreReactorShot),
         // Mech F3
-        new MinionCastCastFinder(JadeMortar, JadeMortar),
-        new MinionCastCastFinder(BarrierBurst, BarrierBurst),
-        new MinionCastCastFinder(SkyCircus, SkyCircus),
+        new MinionCastCastFinder(JadeMortar, JadeMortar)
+            .WithTarget(),
+        new MinionCastCastFinder(BarrierBurst, BarrierBurst)
+            .WithTarget(),
+        new MinionCastCastFinder(SkyCircus, SkyCircus)
+            .WithTarget(),
         // Mech Passives
         new MissileCastFinder(RocketPunchMech, RocketPunchMech)
+            .WithTarget()
             .WithMinions(),
         new BuffGainCastFinder(ExigencyProtocol, ExigencyProtocol)
             .WithMinions()
@@ -111,7 +119,7 @@ internal static class MechanistHelper
     [
         (int)MinionID.JadeMech,
     ];
-    
+
     internal static bool IsKnownMinionID(int id)
     {
         return Minions.Contains(id);

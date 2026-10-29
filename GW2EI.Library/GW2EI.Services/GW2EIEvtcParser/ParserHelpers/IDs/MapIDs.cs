@@ -63,6 +63,7 @@ public static class MapIDs
     public const int SirensReefFractal = 1309;
     public const int SnowblindFractal = 948;
     public const int SolidOceanFractal = 958;
+    public const int SolitaryThroneFractal = 1636;
     public const int SwamplandFractal = 949;
     public const int ThaumanovaFractal = 957;
     public const int TwilightOasisFractal = 1267;
@@ -76,6 +77,8 @@ public static class MapIDs
     public const int OuterNayosPrivateConvergence = 1527;
     public const int MountBalriorPublicConvergence = 1571;
     public const int MountBalriorPrivateConvergence = 1562;
+    public const int NexusOfEternityPublicConvergence = 1627;
+    public const int NexusOfEternityPrivateConvergence = 1629;
     #endregion
     #region Story
     public const int HeartsAndMinds = 1040; // Mordremoth

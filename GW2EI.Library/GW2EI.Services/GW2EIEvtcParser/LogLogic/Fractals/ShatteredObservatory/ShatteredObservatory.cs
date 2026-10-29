@@ -2,13 +2,12 @@
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
-using static GW2EIEvtcParser.SkillIDs;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogCategories;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
-using static GW2EIEvtcParser.EIData.Mechanic;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
 using static GW2EIEvtcParser.MechanicIDs;
+using static GW2EIEvtcParser.SkillIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -48,8 +47,8 @@ internal abstract class ShatteredObservatory : FractalLogic
         {
             return false;
         }
-        var invulsTarget = GetBuffApplyRemoveSequence(combatData, buffID, target, true, false).Where(x => x.Time >= 0);
-        if (invulsTarget.Count() == count)
+        var invulsTarget = GetBuffApplyRemoveSequence(combatData, buffID, target, true, false).Where(x => x.Time >= 0).ToList();
+        if (invulsTarget.Count == count)
         {
             BuffEvent last = invulsTarget.Last();
             if (last is not BuffApplyEvent)

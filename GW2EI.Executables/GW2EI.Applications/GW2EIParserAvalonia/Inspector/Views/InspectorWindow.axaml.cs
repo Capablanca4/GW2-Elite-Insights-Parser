@@ -1,0 +1,83 @@
+﻿using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using GW2EIEvtcParser;
+using GW2EIParserAvalonia.Services;
+using GW2EIParserAvalonia.ViewModels;
+
+namespace GW2EIParserAvalonia;
+
+internal partial class InspectorWindow : Window
+{
+    private readonly IApplicationTrace _trace = null!;
+
+    public InspectorWindow()
+    {
+        InitializeComponent();
+
+        CombatEventsTreeView.AddHandler(
+            PointerPressedEvent,
+            OnEventFilterNodePressed,
+            RoutingStrategies.Tunnel
+         );
+    }
+
+    public InspectorWindow(EvtcLog log, IApplicationTrace trace) : this()
+    {
+        _trace = trace;
+
+        DataContext = new InspectorViewModel(log);
+    }
+
+    private void OnEventFilterNodePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is not InspectorViewModel inspectorViewModel)
+        {
+            return;
+        }
+        if (sender is TreeView treeView && e.Source is Avalonia.Visual visual && e.GetCurrentPoint(treeView).Properties.IsRightButtonPressed)
+        {
+            var treeViewItem = visual.FindAncestorOfType<TreeViewItem>();
+            if (treeViewItem?.DataContext is EventTypeFilterNodeModel selectedItem)
+            {
+                var isChecked = selectedItem.IsChecked ?? false;
+                inspectorViewModel.SetCheckStateOnAllRoots(isChecked);
+                selectedItem.IsChecked = !isChecked;
+            }
+        }
+    }
+
+    private async void CopyValue_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { CommandParameter: { } value })
+        {
+            return;
+        }
+
+        var clipboard = GetTopLevel(this)?.Clipboard;
+
+        if (clipboard is not null)
+        {
+            await clipboard.SetTextAsync(value.ToString() ?? string.Empty);
+        }
+    }
+
+    private async void Filter_GotFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not AutoCompleteBox autoCompleteBox ||
+            DataContext is not InspectorViewModel inspectorViewModel)
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            inspectorViewModel.DropdownFilterTriggered = true;
+            autoCompleteBox.IsDropDownOpen = true;
+            inspectorViewModel.DropdownFilterTriggered = false;
+        });
+    }
+}

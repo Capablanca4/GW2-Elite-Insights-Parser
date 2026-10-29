@@ -36,8 +36,7 @@ public abstract class Actor
 
     protected Actor(AgentItem agent)
     {
-        string[] name = agent.Name.Split('\0');
-        Character = name[0];
+        Character = agent.FirstName;
         AgentItem = agent;
     }
     #region Initializers
@@ -191,7 +190,7 @@ public abstract class Actor
     {
         if (!_typedHitDamageEvents.TryGetValue(damageType, out var hitDamageEventsPerPhasePerTarget))
         {
-            hitDamageEventsPerPhasePerTarget = new (AgentItem, log);
+            hitDamageEventsPerPhasePerTarget = new(AgentItem, log);
             _typedHitDamageEvents[damageType] = hitDamageEventsPerPhasePerTarget;
         }
 

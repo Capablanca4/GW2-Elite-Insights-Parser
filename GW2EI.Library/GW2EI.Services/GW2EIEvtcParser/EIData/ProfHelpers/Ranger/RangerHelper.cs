@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using GW2EIEvtcParser.Extensions;
+﻿using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
@@ -98,8 +97,8 @@ internal static class RangerHelper
         (int)MinionID.JuvenileCarrionDevourer,
         (int)MinionID.JuvenileLashtailDevourer,
         (int)MinionID.JuvenileWhiptailDevourer,
-    ]; 
-    
+    ];
+
     private static readonly HashSet<int> JuvenileCaninePetIDs =
     [
         (int)MinionID.JuvenileAlpineWolf,
@@ -122,7 +121,7 @@ internal static class RangerHelper
         (int)MinionID.JuvenileFireWywern,
     ];
 
-    private static readonly HashSet<int> JuvenilePetIDs = new HashSet<int> { 
+    private static readonly HashSet<int> JuvenilePetIDs = new HashSet<int> {
         (int)MinionID.JuvenileArmorFish,
         (int)MinionID.JuvenileBristleback,
         (int)MinionID.JuvenileFangedIboga,
@@ -137,6 +136,7 @@ internal static class RangerHelper
         (int)MinionID.JuvenileSpinegazer,
         (int)MinionID.JuvenileJanthiriBee,
         (int)MinionID.JuvenileRiverOtter,
+        (int)MinionID.JuvenileLeyVampireBat,
     }
     .Union(JuvenileFelinePetIDs)
     .Union(JuvenileAvianPetIDs)
@@ -150,6 +150,14 @@ internal static class RangerHelper
     .Union(JuvenileJellyfishPetIDs)
     .Union(JuvenileWyvernPetIDs)
     .ToHashSet();
+
+    /// <summary>
+    /// Special minions tied to Ranger only but not part of the skillset.
+    /// </summary>
+    private static readonly HashSet<int> SpecialMinionIDs =
+    [
+        (int)MinionID.SpiritOfNatureNexusOfEternityConvergenceSAK,
+    ];
 
     internal static bool IsJuvenileFelinePet(AgentItem agentItem)
     {
@@ -262,7 +270,7 @@ internal static class RangerHelper
 
     internal static bool IsKnownMinionID(int id)
     {
-        return IsJuvenilePetID(id) || SpiritIDs.Contains(id);
+        return IsJuvenilePetID(id) || SpiritIDs.Contains(id) || SpecialMinionIDs.Contains(id);
     }
 
     internal static readonly List<InstantCastFinder> InstantCastFinder =
@@ -270,9 +278,11 @@ internal static class RangerHelper
         //new DamageCastFinder(12573,12573), // Hunter's Shot
         //new DamageCastFinder(12507,12507), // Crippling Shot
         new BuffGainCastFinder(SicEmSkill, SicEmBuff)
-            .WithMinions(),
+            .WithMinions()
+            .WithTarget(),
         new BuffGainCastFinder(LesserSicEm, LesserSicEm)
             .WithMinions()
+            .WithTarget()
             .WithBuilds(GW2Builds.January2026Balance),
         new BuffGainCastFinder(SicEmSkill, SicEmPvPBuff)
             .WithMinions(),
@@ -300,6 +310,7 @@ internal static class RangerHelper
             .UsingChecker(((evt, combatData, agentData, skillData) => Math.Abs(evt.AppliedDuration - 4000) < ServerDelayConstant))
             .UsingOrigin(EIData.InstantCastFinder.InstantCastOrigin.Trait),
         new BuffGiveCastFinder(SearchAndRescueSkill, SearchAndRescueBuff)
+            .WithTarget()
             .UsingICD(1100)
             .UsingNotAccurate(),
         new EffectCastFinder(LightningReflexes, EffectGUIDs.RangerLightningReflexes)
@@ -374,6 +385,7 @@ internal static class RangerHelper
         new MinionCommandCastFinder(BloodthirstyCharge, MinionID.JuvenileWallow),
         new MinionCommandCastFinder(HeadToss, MinionID.JuvenileRockGazelle),
         new MinionCommandCastFinder(InnocentDisplayJuvenileRiverOtter, MinionID.JuvenileRiverOtter),
+        new MinionCommandCastFinder(EchoingOutburst, MinionID.JuvenileLeyVampireBat),
         new MinionCommandCastFinder(FeedingFrenzy, MinionID.JuvenileShark),
         new MinionCommandCastFinder(HunkerDown_Turtle, MinionID.JuvenileSiegeTurtle),
         new MinionCommandCastFinder(SmokeCloud, MinionID.JuvenileSmokescale),
@@ -487,7 +499,7 @@ internal static class RangerHelper
         // Nature Magic
         // - Bountiful Hunter
         new BuffOnActorDamageModifier(Mod_BountifulHunterWithPet, NumberOfBoons, "Bountiful Hunter", "1% per boon (player and pet)", DamageSource.All, 1.0, DamageType.Strike, DamageType.All, Source.Ranger, ByStack, TraitImages.BountifulHunter, DamageModifierMode.All),
-        
+
         // Wilderness Survival
         // - Survival Instincts
         new DamageLogDamageModifier(Mod_SurvivalInstinctsOutgoing5_Incoming10, "Survival Instincts (Outgoing)", "5% if hp < 50%", DamageSource.NoPets, 5.0, DamageType.Strike, DamageType.All, Source.Ranger, TraitImages.SurvivalInstincts, FromHPChecker(0, 50), DamageModifierMode.All)
@@ -530,7 +542,7 @@ internal static class RangerHelper
                 return !a.GetMinions(log).Any(x => IsJuvenilePet(x.ReferenceAgentItem));
             })
             .WithBuilds(GW2Builds.January2026Balance),
-        
+
         // Mace
         new BuffOnActorDamageModifier(Mod_ForceOfNature, ForceOfNature, "Force of Nature", "25%", DamageSource.NoPets, 25.0, DamageType.Strike, DamageType.All, Source.Ranger, ByPresence, BuffImages.ForceOfNature, DamageModifierMode.All)
             .WithBuilds(GW2Builds.February2024NewWeapons, GW2Builds.March2024BalanceAndCerusLegendary),
@@ -558,6 +570,7 @@ internal static class RangerHelper
 
     internal static readonly IReadOnlyList<Buff> Buffs =
     [
+        new Buff("Number of Ranger Pets", NumberOfRangerPets, Source.Ranger, BuffStackType.Stacking, 99, BuffClassification.Other, BuffImages.RangerPets),
         new Buff("Counterattack (Ranger Sword)", CounterattackRangerSwordBuff, Source.Ranger, BuffClassification.Other, SkillImages.Counterattack),
         // Signets
         new Buff("Signet of Renewal", SignetOfRenewalBuff, Source.Ranger, BuffClassification.Other, SkillImages.SignetOfRenewal),
@@ -624,7 +637,18 @@ internal static class RangerHelper
             .WithBuilds(GW2Builds.February2024NewWeapons),
         // Spear
         new Buff("Hunter's Prowess", HuntersProwess, Source.Ranger, BuffStackType.Queue, 9, BuffClassification.Other, SkillImages.HuntersProwess),
+        // Special Nexus of Eternity convergence buffs
+        new Buff("Forest Call", ForestCall, Source.EncounterSpecific, BuffClassification.Other, SkillImages.WildWrath),
+        new Buff("Moon Call", MoonCall, Source.EncounterSpecific, BuffClassification.Other, SkillImages.WildWrath),
+        new Buff("Wild Call", WildCall, Source.EncounterSpecific, BuffClassification.Other, SkillImages.WildWrath),
+        new Buff("Nurturing Bloom (1)", NurturingBloom1, Source.EncounterSpecific, BuffClassification.Other, SkillImages.WildWrath),
+        new Buff("Nurturing Bloom (2)", NurturingBloom2, Source.EncounterSpecific, BuffClassification.Other, SkillImages.WildWrath),
     ];
+
+    public static List<BuffEvent> TransformRangerPetCount(CombatData combatData, AgentData agentData, SkillData skillData, EvtcVersionEvent evtcVersion)
+    {
+        return CreateBuffApplyAndRemovesBasedOnMinionLifespan(combatData, agentData, skillData, JuvenilePetIDs, NumberOfRangerPets, evtcVersion);
+    }
 
     public static void ProcessGadgets(IReadOnlyList<AgentItem> players, CombatData combatData)
     {
@@ -632,8 +656,8 @@ internal static class RangerHelper
         // entangle works fine already
         HashSet<AgentItem> jacarandaEmbraces = GetOffensiveGadgetAgents(combatData, JacarandasEmbraceMinion, playerAgents);
         HashSet<AgentItem> blackHoles = GetOffensiveGadgetAgents(combatData, BlackHoleMinion, playerAgents);
-        var rangers = players.Where(x => x.BaseSpec == Spec.Ranger);
-        var rangersCount = rangers.Count();
+        var rangers = players.Where(x => x.BaseSpec == Spec.Ranger).ToList();
+        var rangersCount = rangers.Count;
         // if only one ranger, could only be that one
         if (rangersCount == 1)
         {
@@ -754,7 +778,7 @@ internal static class RangerHelper
             {
                 foreach (EffectEvent effect in sublimeConversions1)
                 {
-                    if (sublimeConversions2.Any(x => Math.Abs(x.Time - effect.Time) < ServerDelayConstant))
+                    if (sublimeConversions2.Any(x => x.IsAtTime(effect)))
                     {
                         (long, long) lifespan = effect.ComputeLifespan(log, 5000);
                         var connector = new PositionConnector(effect.Position);

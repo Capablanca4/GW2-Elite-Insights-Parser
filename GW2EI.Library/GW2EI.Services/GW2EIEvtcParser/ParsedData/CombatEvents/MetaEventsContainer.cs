@@ -22,33 +22,35 @@ internal class MetaEventsContainer
 
     public readonly Dictionary<AgentItem, List<GuildEvent>> GuildEvents = [];
 
-    public readonly Dictionary<long, BuffInfoEvent> BuffInfoEvents = [];
+    public readonly Dictionary<long, BuffInfoEvent> BuffInfoEventByBuffID = [];
     public readonly Dictionary<byte, List<BuffInfoEvent>> BuffInfoEventsByCategory = [];
 
-    public readonly Dictionary<long, SkillInfoEvent> SkillInfoEvents = [];
+    public readonly List<SkillInfoEvent> SkillInfoEvents = [];
+
+    public readonly Dictionary<long, SkillInfoEvent> SkillInfoEventBySkillID = [];
 
     public readonly List<ErrorEvent> ErrorEvents = [];
 
     public readonly Dictionary<long, EffectGUIDEvent> EffectGUIDEventsByEffectID = [];
-    public readonly Dictionary<GUID, EffectGUIDEvent> EffectGUIDEventsByGUID = [];
+    public readonly Dictionary<Guid, EffectGUIDEvent> EffectGUIDEventsByGUID = [];
 
     public readonly Dictionary<long, MarkerGUIDEvent> MarkerGUIDEventsByMarkerID = [];
-    public readonly Dictionary<GUID, MarkerGUIDEvent> MarkerGUIDEventsByGUID = [];
+    public readonly Dictionary<Guid, MarkerGUIDEvent> MarkerGUIDEventsByGUID = [];
 
     public readonly Dictionary<long, SpeciesGUIDEvent> SpeciesGUIDEventsBySpeciesID = [];
-    public readonly Dictionary<GUID, SpeciesGUIDEvent> SpeciesGUIDEventsByGUID = [];
+    public readonly Dictionary<Guid, SpeciesGUIDEvent> SpeciesGUIDEventsByGUID = [];
 
     public readonly Dictionary<long, SkillGUIDEvent> SkillGUIDEventsBySkillID = [];
-    public readonly Dictionary<GUID, SkillGUIDEvent> SkillGUIDEventsByGUID = [];
+    public readonly Dictionary<Guid, SkillGUIDEvent> SkillGUIDEventsByGUID = [];
 
     public readonly Dictionary<long, EmoteGUIDEvent> EmoteGUIDEventsByEmoteID = [];
-    public readonly Dictionary<GUID, EmoteGUIDEvent> EmoteGUIDEventsByGUID = [];
+    public readonly Dictionary<Guid, EmoteGUIDEvent> EmoteGUIDEventsByGUID = [];
 
     public readonly Dictionary<ulong, TeamGUIDEvent> TeamGUIDEventsByTeamID = [];
-    public readonly Dictionary<GUID, TeamGUIDEvent> TeamGUIDEventsByGUID = [];
+    public readonly Dictionary<Guid, TeamGUIDEvent> TeamGUIDEventsByGUID = [];
 
     public readonly Dictionary<long, TransformationGUIDEvent> TransformationGUIDEventsByTransformationID = [];
-    public readonly Dictionary<GUID, TransformationGUIDEvent> TransformationGUIDEventsByGUID = [];
+    public readonly Dictionary<Guid, TransformationGUIDEvent> TransformationGUIDEventsByGUID = [];
 
     public readonly List<AttackTargetEvent> AttackTargetEvents = [];
     public readonly Dictionary<AgentItem, List<AttackTargetEvent>> AttackTargetEventsBySrc = [];

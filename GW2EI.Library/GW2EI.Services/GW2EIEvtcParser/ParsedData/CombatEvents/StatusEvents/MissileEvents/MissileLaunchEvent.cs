@@ -36,10 +36,13 @@ public class MissileLaunchEvent : TimeCombatEvent
 
     public readonly float Speed;
     public readonly float MotionRadius;
+    // Only relevant for non homing missiles
+    public long ExpectedEndTime => (long)((TargetPosition.XY() - LaunchPosition.XY()).Length() / Speed) + Time;
 
     public bool IsFirstLaunch { get; private set; }
     public readonly byte LaunchType;
     public readonly uint LaunchFlags;
+    public IReadOnlyList<int> LaunchFlagsAsBits => GetIndividualFlagsAsBits(LaunchFlags);
     public bool MaybeReflected => Missile.Src.Is(TargetedAgent) && !IsFirstLaunch;
     public MissileEvent Missile { get; internal set; }
     internal MissileLaunchEvent(CombatItem evtcItem, AgentData agentData) : base(evtcItem.Time)
@@ -111,9 +114,11 @@ public class MissileLaunchEvent : TimeCombatEvent
     public ParametricPoint3D GetFinalPosition(long start, long end)
     {
         var velocity = Speed;
-        var direction = (TargetPosition - LaunchPosition);
+        var direction = (TargetPosition.XY() - LaunchPosition.XY());
         direction /= Math.Max(direction.Length(), 1e-6f);
-        return new ParametricPoint3D(LaunchPosition + (velocity * direction) * (end - start), end);
+        var zDirection = TargetPosition.Z - LaunchPosition.Z;
+        var zVelocity = zDirection / (ExpectedEndTime - Time);
+        return new ParametricPoint3D(LaunchPosition + new Vector3(velocity * direction, zVelocity * zDirection) * (end - start), end);
     }
     /// <summary>
     /// Assumes that the missile goes from LaunchPosition to TargetPosition

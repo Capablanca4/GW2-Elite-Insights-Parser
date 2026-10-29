@@ -60,7 +60,7 @@ partial class SingleActor
             var allBuffApplies = log.CombatData.GetBuffApplyDataByDst(AgentItem);
             PresentApplyOnBuffIDs = [.. allBuffApplies.Select(x => x.BuffID)];
         }
-        _buffApplyByIDAccelerator ??= new (AgentItem, log);
+        _buffApplyByIDAccelerator ??= new(AgentItem, log);
         var creditedByAgentItem = creditedBy?.AgentItem;
         if (!_buffApplyByIDAccelerator.TryGetValue(start, end, creditedByAgentItem, out var dict))
         {
@@ -147,7 +147,7 @@ partial class SingleActor
             var allBuffRemoves = log.CombatData.GetBuffRemoveAllDataBySrc(AgentItem);
             PresentRemovedByBuffIDs = [.. allBuffRemoves.Select(x => x.BuffID)];
         }
-        _buffRemoveAllByByIDAccelerator ??= new (AgentItem, log);
+        _buffRemoveAllByByIDAccelerator ??= new(AgentItem, log);
         var removedFromAgentItem = removedFrom?.AgentItem;
         if (!_buffRemoveAllByByIDAccelerator.TryGetValue(start, end, removedFromAgentItem, out var dict))
         {
@@ -165,13 +165,13 @@ partial class SingleActor
                     {
                         dict[pair.Key] = pair.Value.Where(x => x.Time >= removedFrom.FirstAware && x.Time <= removedFrom.LastAware).ToList();
                     }
-                } 
+                }
                 else
                 {
                     dict = [];
                 }
                 _buffRemoveAllByByIDAccelerator.Set(start, end, removedFromAgentItem, dict);
-            } 
+            }
             else
             {
                 if (!(_buffRemoveAllByByIDAccelerator.TryGetValue(start, end, removedFromAgentItem, out dict)))
@@ -242,7 +242,7 @@ partial class SingleActor
             var allBuffRemoves = log.CombatData.GetBuffRemoveAllDataByDst(AgentItem);
             PresentRemovedFromBuffIDs = [.. allBuffRemoves.Select(x => x.BuffID)];
         }
-        _buffRemoveAllFromByIDAccelerator ??= new (AgentItem, log);
+        _buffRemoveAllFromByIDAccelerator ??= new(AgentItem, log);
         var removedByAgentItem = removedBy?.AgentItem;
         if (!_buffRemoveAllFromByIDAccelerator.TryGetValue(start, end, removedByAgentItem, out var dict))
         {
@@ -319,7 +319,7 @@ partial class SingleActor
             if (AgentItem.IsEnglobedAgent)
             {
                 value = log.FindActor(EnglobingAgentItem).GetBuffDistribution(log, Math.Max(start, FirstAware), Math.Min(end, LastAware));
-            } 
+            }
             else
             {
                 value = ComputeBuffDistribution(log, _buffSimulators, start, end);
@@ -376,7 +376,7 @@ partial class SingleActor
                 if (AgentItem.IsEnglobedAgent)
                 {
                     value = log.FindActor(EnglobingAgentItem).GetBuffPresence(log, Math.Max(start, Math.Max(FirstAware, by.FirstAware)), Math.Min(end, Math.Min(LastAware, by.LastAware)), byActor);
-                } 
+                }
                 else
                 {
                     value = ComputeBuffPresence(log, _buffSimulators, Math.Max(start, by.FirstAware), Math.Min(end, by.LastAware), byActor);
@@ -462,7 +462,7 @@ partial class SingleActor
             var graphs = log.FindActor(EnglobingAgentItem).GetBuffGraphs(log);
             foreach (var graph in graphs)
             {
-                BuffGraph buffGraph = graph.Value;    
+                BuffGraph buffGraph = graph.Value;
                 _buffGraphs[graph.Key] = BuildBuffGraphInAwareTimesFromEnglobingGraph(log, buffGraph, FirstAware, LastAware);
             }
         }
@@ -630,7 +630,7 @@ partial class SingleActor
 
     private static IReadOnlyList<Segment> GetBuffStatus(long buffID, long start, long end, IReadOnlyDictionary<long, BuffGraph> bgms)
     {
-        return bgms.TryGetValue(buffID, out var bgm) ? bgm.GetBuffStatus(start, end).ToList() : [ _emptySegment ];
+        return bgms.TryGetValue(buffID, out var bgm) ? bgm.GetBuffStatus(start, end).ToList() : [_emptySegment];
     }
 
     /// <exception cref="InvalidOperationException"></exception>
@@ -877,7 +877,7 @@ partial class SingleActor
             if (AgentItem.IsEnglobedAgent)
             {
                 _trackedBuffs = log.FindActor(EnglobingAgentItem).GetTrackedBuffs(log).ToHashSet();
-            } 
+            }
             else
             {
                 ComputeBuffMap(log);
@@ -948,8 +948,8 @@ partial class SingleActor
         {
             log.FindActor(EnglobingAgentItem).SimulateBuffsAndComputeGraphs(log);
             _buffGraphs = [];
-            _buffDistribution = new (log);
-            _buffPresenceBy = new (AgentItem, log);
+            _buffDistribution = new(log);
+            _buffPresenceBy = new(AgentItem, log);
             _buffSimulators = [];
             return;
         }
@@ -962,16 +962,14 @@ partial class SingleActor
         _buffGraphs = new Dictionary<long, BuffGraph>(trackedBuffs.Count + 5);
         var boonPresenceGraph = new BuffGraph(log.Buffs.BuffsByIDs[SkillIDs.NumberOfBoons]);
         var activeCombatMinionsGraph = new BuffGraph(log.Buffs.BuffsByIDs[SkillIDs.NumberOfActiveCombatMinions]);
-        var numberOfClonesGraph = ProfHelper.CanSummonClones(Spec) ? new BuffGraph(log.Buffs.BuffsByIDs[SkillIDs.NumberOfClones]) : null;
-        var numberOfRangerPets = ProfHelper.CanUseRangerPets(Spec) ? new BuffGraph(log.Buffs.BuffsByIDs[SkillIDs.NumberOfRangerPets]) : null;
         var condiPresenceGraph = new BuffGraph(log.Buffs.BuffsByIDs[SkillIDs.NumberOfConditions]);
         var boonIDs = new HashSet<long>(log.Buffs.BuffsByClassification[BuffClassification.Boon].Select(x => x.ID));
         var condiIDs = new HashSet<long>(log.Buffs.BuffsByClassification[BuffClassification.Condition].Select(x => x.ID));
 
         // Init status
         _buffDistribution = new(log);
-        _buffPresenceBy   = new(AgentItem, log);
-        _buffSimulators   = new(trackedBuffs.Count * 2);
+        _buffPresenceBy = new(AgentItem, log);
+        _buffSimulators = new(trackedBuffs.Count * 2);
         var buffStackItemPool = new BuffStackItemPool();
         foreach (Buff buff in trackedBuffs)
         {
@@ -985,7 +983,7 @@ partial class SingleActor
                     {
                         buffEvents.RemoveAll(x => !x.IsBuffSimulatorCompliant(false));
                         simulator = buff.CreateSimulator(log, buffStackItemPool, true);
-                    } 
+                    }
                     else
                     {
                         simulator = buff.CreateSimulator(log, buffStackItemPool, false);
@@ -1041,37 +1039,15 @@ partial class SingleActor
         _buffGraphs[SkillIDs.NumberOfConditions] = condiPresenceGraph;
         foreach (Minions minions in GetMinions(log))
         {
-            IReadOnlyList<IReadOnlyList<Segment>> segments = minions.GetLifeSpanSegments(log);
+            IReadOnlyList<IReadOnlyList<Segment>> segments = minions.GetLifeSpanAsSegmentsPerMinion(log);
             foreach (IReadOnlyList<Segment> minionsSegments in segments)
             {
                 activeCombatMinionsGraph.MergePresenceInto(minionsSegments);
-            }
-            if (numberOfClonesGraph != null && MesmerHelper.IsClone(minions.ReferenceAgentItem))
-            {
-                foreach (IReadOnlyList<Segment> minionsSegments in segments)
-                {
-                    numberOfClonesGraph.MergePresenceInto(minionsSegments);
-                }
-            }
-            if (numberOfRangerPets != null && RangerHelper.IsJuvenilePet(minions.ReferenceAgentItem))
-            {
-                foreach (IReadOnlyList<Segment> minionsSegments in segments)
-                {
-                    numberOfRangerPets.MergePresenceInto(minionsSegments);
-                }
             }
         }
         if (activeCombatMinionsGraph.Values.Any())
         {
             _buffGraphs[SkillIDs.NumberOfActiveCombatMinions] = activeCombatMinionsGraph;
-        }
-        if (numberOfClonesGraph != null && numberOfClonesGraph.Values.Any())
-        {
-            _buffGraphs[SkillIDs.NumberOfClones] = numberOfClonesGraph;
-        }
-        if (numberOfRangerPets != null && numberOfRangerPets.Values.Any())
-        {
-            _buffGraphs[SkillIDs.NumberOfRangerPets] = numberOfRangerPets;
         }
     }
     #endregion COMPUTE
@@ -1112,7 +1088,7 @@ partial class SingleActor
                 long time = ba.Time;
                 if (time <= log.LogData.LogEnd)
                 {
-                    Consumable? existing = _consumeList.Find(x => Math.Abs(x.Time - time) < ServerDelayConstant && x.Buff.ID == consumable.ID);
+                    Consumable? existing = _consumeList.Find(x => x.IsAtTime(ba) && x.Buff.ID == consumable.ID);
                     if (existing != null)
                     {
                         existing.Stack++;

@@ -2,11 +2,10 @@
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogCategories;
-using static GW2EIEvtcParser.SkillIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
 using static GW2EIEvtcParser.MechanicIDs;
+using static GW2EIEvtcParser.SkillIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -21,7 +20,7 @@ internal abstract class Nightmare : FractalLogic
         ]));
     }
 
-    protected static void AddCascadeOfTormentDecoration(ParsedEvtcLog log, CombatReplayDecorationContainer environmentDecorations, GUID guid, uint innerRadius, uint outerRadius)
+    protected static void AddCascadeOfTormentDecoration(ParsedEvtcLog log, CombatReplayDecorationContainer environmentDecorations, Guid guid, uint innerRadius, uint outerRadius)
     {
         int duration = 1000;
         if (log.CombatData.TryGetEffectEventsByGUID(guid, out var cascadeOfTorment))

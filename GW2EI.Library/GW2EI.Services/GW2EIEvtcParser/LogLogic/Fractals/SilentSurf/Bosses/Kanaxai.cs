@@ -2,16 +2,15 @@
 using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -93,7 +92,7 @@ internal class Kanaxai : SilentSurf
         return crMap;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -102,7 +101,7 @@ internal class Kanaxai : SilentSurf
         ];
     }
 
-    internal static readonly IReadOnlyList<TargetID> Aspects = 
+    internal static readonly IReadOnlyList<TargetID> Aspects =
     [
         TargetID.AspectOfTorment,
         TargetID.AspectOfLethargy,
@@ -145,7 +144,7 @@ internal class Kanaxai : SilentSurf
         var phases = new List<SubPhasePhaseData>(5);
         // Phases
         var mainPhases = GetSubPhasesByInvul(log, DeterminedToDestroy, kanaxai, true, true, encounterPhase.Start, encounterPhase.End);
-        var worldCleaverPhaseStarts = log.CombatData.GetBuffApplyDataByIDByDst(DeterminedToDestroy, kanaxai.AgentItem).OfType<BuffApplyEvent>().Select(x => x.Time);
+        var worldCleaverPhaseStarts = log.CombatData.GetBuffApplyDataByIDByDst(DeterminedToDestroy, kanaxai.AgentItem).OfType<BuffApplyEvent>().Select(x => x.Time).ToList();
         int worldCleaverCount = 0;
         int repeatedCount = 0;
         var isRepeatedWorldCleaverPhase = new List<bool>();
@@ -201,7 +200,7 @@ internal class Kanaxai : SilentSurf
                         if (log.CombatData.GetBuffRemoveAllDataByIDByDst(Determined762, aspect.AgentItem).Any(x => x.Time >= curPhase.Start && x.Time <= curPhase.End))
                         {
                             curPhase.AddTarget(aspect, log);
-                        } 
+                        }
                         else
                         {
                             curPhase.AddTarget(aspect, log, PhaseData.TargetPriority.NonBlocking);
@@ -259,7 +258,7 @@ internal class Kanaxai : SilentSurf
     {
         SingleActor kanaxai = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.KanaxaiScytheOfHouseAurkusCM)) ?? throw new MissingKeyActorsException("Kanaxai not found");
         BuffApplyEvent? invul762Gain = combatData.GetBuffApplyDataByIDByDst(Determined762, kanaxai.AgentItem).OfType<BuffApplyEvent>().FirstOrDefault(x => x.Time > 0);
-        if (invul762Gain != null && !combatData.GetDespawnEvents(kanaxai.AgentItem).Any(x => Math.Abs(x.Time - invul762Gain.Time) < ServerDelayConstant))
+        if (invul762Gain != null && !combatData.GetDespawnEvents(kanaxai.AgentItem).Any(x => x.IsAtTime(invul762Gain)))
         {
             successHandler.SetSuccess(true, invul762Gain.Time);
         }
@@ -279,7 +278,7 @@ internal class Kanaxai : SilentSurf
 
         // Orange Tether from Aspect to player
         IEnumerable<BuffEvent> tethers = log.CombatData.GetBuffDataByIDByDst(AspectTetherBuff, player.AgentItem);
-        IEnumerable<BuffApplyEvent> tetherApplies = tethers.OfType<BuffApplyEvent>();
+        IEnumerable<BuffApplyEvent> tetherApplies = tethers.OfType<BuffApplyEvent>().ToList();
         IEnumerable<BuffRemoveAllEvent> tetherRemoves = tethers.OfType<BuffRemoveAllEvent>();
         AgentItem tetherAspect = _unknownAgent;
         foreach (BuffApplyEvent apply in tetherApplies)
@@ -450,8 +449,7 @@ internal class Kanaxai : SilentSurf
             {
                 (long start, long end) lifespan = (aoe.Time, aoe.Time + 1500);
                 var circle = new CircleDecoration(380, lifespan, Colors.Red, 0.2, new PositionConnector(aoe.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().UsingFilled(false));
+                environmentDecorations.AddWithBorder(circle);
             }
         }
 
@@ -495,8 +493,7 @@ internal class Kanaxai : SilentSurf
             {
                 (long start, long end) lifespan = harrowshot.ComputeLifespan(log, 3000);
                 var circle = new CircleDecoration(280, lifespan, Colors.Orange, 0.2, new PositionConnector(harrowshot.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.end));
+                environmentDecorations.AddWithGrowing(circle, lifespan.end);
             }
         }
     }
@@ -538,8 +535,7 @@ internal class Kanaxai : SilentSurf
         int start = (int)aoe.Time;
         int effectEnd = start + duration;
         var circle = new CircleDecoration(180, (start, effectEnd), Colors.Red, 0.2, new PositionConnector(aoe.Position));
-        environmentDecorations.Add(circle);
-        environmentDecorations.Add(circle.Copy().UsingFilled(false));
+        environmentDecorations.AddWithBorder(circle);
     }
 
     /// <summary>

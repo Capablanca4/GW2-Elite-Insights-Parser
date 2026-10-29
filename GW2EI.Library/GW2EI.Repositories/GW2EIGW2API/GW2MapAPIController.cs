@@ -31,7 +31,7 @@ internal class GW2MapAPIController
         fcreate.Close();
 
         var mapList = GetGW2APIMaps();
-        using(var writer = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+        using (var writer = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.Read))
         {
             JsonSerializer.Serialize(writer, mapList, GW2APIUtilities.SerializerSettings);
         }
@@ -46,11 +46,9 @@ internal class GW2MapAPIController
         if (fi.Exists && fi.Length != 0)
         {
             Console.WriteLine("Reading MapList");
-            using (var reader = fi.Open(FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                var mapList = JsonSerializer.Deserialize<List<GW2APIMap>>(reader, GW2APIUtilities.DeserializerSettings);
-                _apiMaps = new GW2APIUtilities.APIItems<GW2APIMap>(mapList);
-            }
+            using var reader = fi.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
+            var mapList = JsonSerializer.Deserialize<List<GW2APIMap>>(reader, GW2APIUtilities.DeserializerSettings);
+            _apiMaps = new GW2APIUtilities.APIItems<GW2APIMap>(mapList);
         }
         else
         {

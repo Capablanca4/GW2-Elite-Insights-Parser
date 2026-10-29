@@ -26,6 +26,7 @@ internal static class LogImages
     internal const string EncounterIconCerusAndDeimos = "https://i.imgur.com/fzqnnCR.png";
     internal const string EncounterIconEparch = "https://render.guildwars2.com/file/FD77A5D3AFB8B00A27A94FC73B7A213B6E0CC66C/3301393.png";
     internal const string EncounterIconWhisperingShadow = "https://i.imgur.com/4Xtgr4D.jpeg";
+    internal const string EncounterIconEternalTyrant = "https://render.guildwars2.com/file/7597125D7CA89E250CE997349F61939996E90C27/3122211.png";
 
     // Instances
     internal const string InstanceIconNightmare = "https://i.imgur.com/p8ckAUC.png";
@@ -36,6 +37,7 @@ internal static class LogImages
     internal const string EncounterIconSunquaPeak = "https://i.imgur.com/3mlCdI9.png";
     internal const string InstanceIconSilentSurf = "https://i.imgur.com/09jNNri.jpg";
     internal const string InstanceIconKinfall = "https://i.imgur.com/jJXcGeE.png";
+    internal const string InstanceIconSolitaryThrone = "https://i.imgur.com/gHUyQ9F.png";
 
     // Combat Replay Maps
     internal const string CombatReplayMAMA = "https://i.imgur.com/zs03mc8.png";
@@ -53,6 +55,7 @@ internal static class LogImages
     internal const string CombatReplaySilentSurf = "https://wiki.guildwars2.com/images/f/f9/Silent_Surf_Fractal_map.jpg";
     internal const string CombatReplayEparch = "https://i.imgur.com/begYkfC.png";
     internal const string CombatReplayKinfall = "https://wiki.guildwars2.com/images/3/31/Kinfall_Fractal_map.jpg";
+    internal const string CombatReplaySolitaryThrone = "https://wiki.guildwars2.com/images/5/55/Solitary_Throne_Fractal_map.jpg";
 
     #endregion FRACTALS
 
@@ -167,6 +170,7 @@ internal static class LogImages
     internal const string EncounterIconCosmicObservatory = "https://i.imgur.com/v6vjRsH.png";
     internal const string EncounterIconTempleOfFebe = "https://i.imgur.com/1cGN1UT.png";
     internal const string EncounterIconGuardiansGlade = "https://i.imgur.com/7O8666G.png";
+    internal const string EncounterIconNexusOfEternity = "https://i.imgur.com/V8R8mrF.png";
 
     // Combat Replay Maps
     internal const string CombatReplayFreezie = "";
@@ -186,6 +190,7 @@ internal static class LogImages
     internal const string CombatReplayCosmicObservatory = "https://i.imgur.com/mODYp42.png";
     internal const string CombatReplayTempleOfFebe = "https://i.imgur.com/bgiL46C.png";
     internal const string CombatReplayGuardiansGlade = "https://i.imgur.com/Eg0LxdA.png";
+    internal const string CombatReplayNexusOfEternity = "https://i.imgur.com/YFmuDeA.png";
 
     #endregion RAID ENCOUNTERS
 
@@ -249,6 +254,7 @@ internal static class LogImages
     #region CONVERGENCES
     // Instance Icons
     internal const string InstanceIconOuterNayos = "https://i.imgur.com/CRqdnan.png";
+    internal const string InstanceIconNexusOfEternityConvergence = "https://i.imgur.com/JRvuzIa.png";
 
     // Combat Replay Maps
     internal const string CombatReplayOuterNayos = "https://i.imgur.com/UFueycy.jpeg";

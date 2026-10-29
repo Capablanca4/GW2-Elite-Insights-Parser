@@ -9,14 +9,15 @@ internal static class MechanicHelper
     {
         if (log.LogData.Logic.TargetAgents.Contains(a))
         {
-            return log.FindActor(a, true);
+            return log.FindActor(a);
         }
         // We regroup trash mobs by their ID
         if (log.LogData.Logic.TrashMobAgents.Contains(a))
         {
             if (!regroupedMobs.TryGetValue(a.ID, out var amp))
             {
-                amp = log.LogData.Logic.TrashMobs.First(x => x.AgentItem.Is(a));
+                // Create a dummy NPC for trash mobs so that they don't get their renamings
+                amp = new NPC(log.LogData.Logic.TrashMobs.First(x => x.AgentItem.Is(a)).AgentItem, log);
                 regroupedMobs.Add(amp.ID, amp);
             }
             return amp;

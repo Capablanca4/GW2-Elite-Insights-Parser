@@ -1,4 +1,5 @@
-﻿using GW2EIEvtcParser.EIData;
+﻿using System.Diagnostics.CodeAnalysis;
+using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
@@ -78,10 +79,10 @@ public partial class CombatData
 
     private readonly List<RewardEvent> _rewardEvents = [];
     // EXTENSIONS
-    public EXTHealingCombatData EXTHealingCombatData { get; internal set; }
-    public EXTBarrierCombatData EXTBarrierCombatData { get; internal set; }
-    public bool HasEXTHealing => EXTHealingCombatData != null;
-    public bool HasEXTBarrier => EXTBarrierCombatData != null;
+    public EXTHealingCombatData EXTHealingCombatData { get; internal set; } = new();
+    public EXTBarrierCombatData EXTBarrierCombatData { get; internal set; } = new();
+    public bool HasEXTHealing => !EXTHealingCombatData.Empty;
+    public bool HasEXTBarrier => !EXTBarrierCombatData.Empty;
 
     internal readonly bool UseBuffInstanceSimulator = false;
 
@@ -93,10 +94,14 @@ public partial class CombatData
     public readonly bool HasMarkerData = false;
     public readonly bool HasEmoteData = false;
     public readonly bool HasGadgetInteractData = false;
+    public readonly bool HasGadgetAnimData = false;
     public readonly bool HasSpeciesAndSkillGUIDs = false;
     public readonly bool HasMissileData = false;
+    public readonly bool HasAgentInfo = false;
 
-    private void EIBuffParse(IReadOnlyList<AgentItem> players, SkillData skillData, LogData logData, EvtcVersionEvent evtcVersion)
+    public bool HasExtraProcessing { get; private set; }
+
+    private void EIBuffParse(IReadOnlyList<AgentItem> players, AgentData agentData, SkillData skillData, LogData logData, EvtcVersionEvent evtcVersion)
     {
         //TODO_PERF(Rennorb) @find average complexity
         var toAdd = new List<BuffEvent>(players.Count * 10);
@@ -127,6 +132,9 @@ public partial class CombatData
                 ElementalistHelper.RemoveDualBuffs(GetBuffDataByDst(p), _buffData, skillData);
             }
         }
+        toAdd.AddRange(MesmerHelper.TransformMesmerCloneStorage(this, agentData, skillData, evtcVersion));
+        toAdd.AddRange(TroubadourHelper.TransformTroubadourNoteStorage(this, agentData, skillData, evtcVersion));
+        toAdd.AddRange(RangerHelper.TransformRangerPetCount(this, agentData, skillData, evtcVersion));
         if (cleanLethalTempo)
         {
             _buffData[LethalTempo].RemoveAll(x => x.BuffID == NoBuff);
@@ -456,7 +464,7 @@ public partial class CombatData
         ProfHelper.ProcessRacialGadgets(players, this);
         // Custom events
         operation.UpdateProgressWithCancellationCheck("Parsing: Creating Custom Buff Events");
-        EIBuffParse(players, skillData, logData, evtcVersion);
+        EIBuffParse(players, agentData, skillData, logData, evtcVersion);
         operation.UpdateProgressWithCancellationCheck("Parsing: Creating Custom Damage Events");
         EIDamageParse(skillData, agentData, logData);
         operation.UpdateProgressWithCancellationCheck("Parsing: Creating Custom Cast Events");
@@ -477,8 +485,9 @@ public partial class CombatData
         {
             var dictExtensions = events.OfType<BuffExtensionEvent>()
                 .Where(x => x.BuffInstance != 0)
-                .GroupBy(x => x.BuffInstance);
-            if (dictExtensions.Any())
+                .GroupBy(x => x.BuffInstance)
+                .ToDictionary(x => x.Key, x => x.ToList());
+            if (dictExtensions.Count != 0)
             {
                 var dictApply = events.OfType<BuffApplyEvent>()
                     .Where(x => x.BuffInstance != 0)
@@ -493,7 +502,7 @@ public partial class CombatData
                 {
                     if (!dictApply.TryGetValue(extensionEventsPerID.Key, out var appliesPerBuffID)) { continue; }
 
-                    foreach (var extensionEvents in extensionEventsPerID.GroupBy(y => y.BuffID))
+                    foreach (var extensionEvents in extensionEventsPerID.Value.GroupBy(y => y.BuffID))
                     {
                         if (!appliesPerBuffID.TryGetValue(extensionEvents.Key, out var applies)) { continue; }
 
@@ -555,8 +564,7 @@ public partial class CombatData
             if (combatItem.IsEssentialMetadata)
             {
                 AddStateChangeEvent(logData.EvtcLogOffset, combatItem, agentData,
-                    skillData, wepSwaps, buffEvents, stunBreakData,
-                    evtcVersion, settings, apiController);
+                    skillData, wepSwaps, buffEvents, stunBreakData, settings, apiController);
             }
         }
         foreach (CombatItem combatItem in combatEvents)
@@ -569,11 +577,11 @@ public partial class CombatData
             {
                 if (combatItem.IsBuffApplyEvent())
                 {
-                    AddBuffApplyEvent(combatItem, buffEvents, agentData, skillData, evtcVersion);
+                    AddBuffApplyEvent(combatItem, buffEvents, agentData, skillData);
                 }
                 else
                 {
-                    AddBuffRemoveEvent(combatItem, buffEvents, agentData, skillData, evtcVersion);
+                    AddBuffRemoveEvent(combatItem, buffEvents, agentData, skillData);
                 }
             }
             else if (combatItem.IsDamageEvent())
@@ -584,7 +592,7 @@ public partial class CombatData
                 }
                 else if (combatItem.IsBuffDamageEvent())
                 {
-                    AddBuffDamageDamageEvent(combatItem, damageData, brkDamageData, brkRecoveredData, crowdControlData, stunBreakData, agentData, skillData, evtcVersion);
+                    AddBuffDamageDamageEvent(combatItem, damageData, brkDamageData, brkRecoveredData, crowdControlData, stunBreakData, agentData, skillData);
                 }
             }
             else if (combatItem.IsStateChange != StateChange.Combat)
@@ -603,8 +611,7 @@ public partial class CombatData
                 else
                 {
                     AddStateChangeEvent(logData.EvtcLogOffset, combatItem, agentData, skillData,
-                        wepSwaps, buffEvents, stunBreakData,
-                        evtcVersion, settings, apiController);
+                        wepSwaps, buffEvents, stunBreakData, settings, apiController);
                 }
             }
         }
@@ -620,19 +627,18 @@ public partial class CombatData
         HasCrowdControlData = crowdControlData.Count != 0;
         HasSpeciesAndSkillGUIDs = evtcVersion.Build >= ArcDPSBuilds.SpeciesSkillGUIDs;
         HasMissileData = _statusEvents.MissileEvents.Count != 0;
-
-        operation.UpdateProgressWithCancellationCheck("Parsing: Combining SkillInfo with SkillData");
-        skillData.CombineWithSkillInfo(_metaDataEvents.SkillInfoEvents);
+        HasGadgetAnimData = _gadgetAnimationEventsByGadget.Count > 0;
+        HasAgentInfo = evtcVersion.Build >= ArcDPSBuilds.AgentInfoAdded;
 
         operation.UpdateProgressWithCancellationCheck("Parsing: Creating Cast Events");
-        List<AnimatedCastEvent> animatedCastData = CreateCastEvents(evtcVersion, castCombatEvents, agentData, skillData, logData, _metaDataEvents.EmoteGUIDEventsByEmoteID);
+        List<AnimatedCastEvent> animatedCastData = CreateCastEvents(castCombatEvents, agentData, skillData, logData, _metaDataEvents.EmoteGUIDEventsByEmoteID);
         _weaponSwapData = wepSwaps.GroupBy(x => x.Caster).ToDictionary(x => x.Key, x => x.ToList());
         _animatedCastData = animatedCastData.GroupBy(x => x.Caster).ToDictionary(x => x.Key, x => x.ToList());
         //TODO_PERF(Rennorb)
         _instantCastData = [];
         _instantCastDataByID = [];
         _animatedCastDataByID = animatedCastData.GroupBy(x => x.SkillID).ToDictionary(x => x.Key, x => x.ToList());
-        if (evtcVersion.Build >= ArcDPSBuilds.EmoteAndGadgetInteractionAdded && _animatedCastDataByID.TryGetValue(ArcDPSGenericEmote, out var emoteCasts))
+        if (evtcVersion.Build >= ArcDPSBuilds.EmoteAndGadgetInteractionAdded && _animatedCastDataByID.TryGetValue(ArcDPSEmote, out var emoteCasts))
         {
             operation.UpdateProgressWithCancellationCheck("Parsing: Creating Emote Events");
             var emotes = emoteCasts.OfType<EmoteEvent>().ToList();
@@ -664,7 +670,6 @@ public partial class CombatData
         _buffDataByDst = buffEvents.GroupBy(x => x.To).ToDictionary(x => x.Key, x => x.ToList());
         _buffDataBySrc = buffEvents.Where(x => x is not BuffExtensionEvent).GroupBy(x => x.By).ToDictionary(x => x.Key, x => x.ToList());
         _buffData = buffEvents.GroupBy(x => x.BuffID).ToDictionary(x => x.Key, x => x.ToList());
-        OffsetBuffExtensionEvents(evtcVersion);
         // damage events
         operation.UpdateProgressWithCancellationCheck("Parsing: Creating Damage Events");
         _damageData = damageData.GroupBy(x => x.From).ToDictionary(x => x.Key, x => x.ToList());
@@ -689,21 +694,33 @@ public partial class CombatData
         {
             handler.AttachToCombatData(this, operation, GetGW2BuildEvent().Build);
         }
-        operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting player specs and groups based on Enter Combat events");
-        logData.Logic.UpdatePlayersSpecAndGroup(players, this, logData);
-
-        operation.UpdateProgressWithCancellationCheck("Parsing: Creating Custom Events");
-        EIExtraEventProcess(skillData, agentData, logData, operation, evtcVersion);
 
 #if DEBUG
         foreach (var effectGUID in _metaDataEvents.EffectGUIDEventsByGUID.Keys)
         {
             if (!TryGetEffectEventsByGUID(effectGUID, out var effectEvents))
             {
-                operation.UpdateProgressWithCancellationCheck("Parsing: Found orphan GUID: " + effectGUID.ToHex());
+                operation.UpdateProgressWithCancellationCheck("Parsing: Found orphan GUID: " + effectGUID.ToString("N"));
             }
         }
 #endif
+    }
+
+    internal CombatData WithExtraProcessing(LogData logData, AgentData agentData, SkillData skillData, IReadOnlyList<Player> players, ParserController operation, EvtcVersionEvent evtcVersion)
+    {
+        if (HasExtraProcessing)
+        {
+            return this;
+        }
+        HasExtraProcessing = true;
+        operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting Buff Extension Events");
+        OffsetBuffExtensionEvents(evtcVersion);
+        operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting player specs and groups based on Enter Combat events");
+        logData.Logic.UpdatePlayersSpecAndGroup(players, this, logData);
+
+        operation.UpdateProgressWithCancellationCheck("Parsing: Creating Custom Events");
+        EIExtraEventProcess(skillData, agentData, logData, operation, evtcVersion);
+        return this;
     }
 
     internal void TryFindSrc(ParsedEvtcLog log)
@@ -714,6 +731,19 @@ public partial class CombatData
         }
     }
 
+    [MemberNotNull(nameof(_buffRemoveAllData))]
+    [MemberNotNull(nameof(_buffRemoveAllDataByIDBySrc))]
+    [MemberNotNull(nameof(_buffRemoveAllDataByIDByDst))]
+    [MemberNotNull(nameof(_buffRemoveSingleDataByIDByDst))]
+    [MemberNotNull(nameof(_buffDataByIDByDst))]
+    [MemberNotNull(nameof(_buffApplyData))]
+    [MemberNotNull(nameof(_buffApplyDataByDst))]
+    [MemberNotNull(nameof(_buffRemoveAllDataByDst))]
+    [MemberNotNull(nameof(_buffApplyDataByIDBySrc))]
+    [MemberNotNull(nameof(_buffApplyDataByIDByDst))]
+    [MemberNotNull(nameof(_buffRemoveAllDataBySrc))]
+    [MemberNotNull(nameof(_buffExtensionData))]
+    [MemberNotNull(nameof(_buffDataByInstanceID))]
     private void BuildBuffDependentContainers()
     {
         _buffRemoveAllData = _buffData.ToDictionary(x => x.Key, x => x.Value.OfType<BuffRemoveAllEvent>().ToList());

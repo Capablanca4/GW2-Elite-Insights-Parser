@@ -1,0 +1,21 @@
+﻿namespace GW2EIEvtcParser.ParsedData;
+
+public class BundlePickUpEvent : AnimatedCastEvent
+{
+    public readonly long BundleID;
+    public AgentItem BundleGadget => Target;
+    internal BundlePickUpEvent(CombatItem? startItem, AgentData agentData, SkillData skillData,
+        CombatItem? endItem, long maxEnd) : base(startItem, agentData, skillData, endItem, maxEnd)
+    {
+        // Break the link
+        Caster = ParserHelper._unknownAgent;
+        if (startItem != null)
+        {
+            BundleID = startItem.OverstackValue;
+        }
+    }
+    internal BundlePickUpEvent(AgentItem caster, SkillItem skill, long start, long dur, AgentItem target, AnimationStatus status = AnimationStatus.Full) : base(caster, skill, start, dur, target, status)
+    {
+    }
+
+}

@@ -19,7 +19,6 @@ internal class MythwrightGambitInstance : MythwrightGambit
     private readonly IReadOnlyList<MythwrightGambit> _subLogics;
     public MythwrightGambitInstance(int triggerID) : base(triggerID)
     {
-        LogID = LogIDs.LogMasks.Unsupported;
         Icon = InstanceIconMythwrightGambit;
         Extension = "mythgamb";
 
@@ -63,9 +62,9 @@ internal class MythwrightGambitInstance : MythwrightGambit
     {
         var encounterPhases = new List<EncounterPhaseData>();
         var mainPhase = phases[0];
-        if (targetsByIDs.TryGetValue((int)TargetID.ConjuredAmalgamate, out var conjuredAmalgamates) && 
-            targetsByIDs.TryGetValue((int)TargetID.CALeftArm, out var leftArms) && 
-            targetsByIDs.TryGetValue((int)TargetID.CARightArm, out var rightArms) && 
+        if (targetsByIDs.TryGetValue((int)TargetID.ConjuredAmalgamate, out var conjuredAmalgamates) &&
+            targetsByIDs.TryGetValue((int)TargetID.CALeftArm, out var leftArms) &&
+            targetsByIDs.TryGetValue((int)TargetID.CARightArm, out var rightArms) &&
             log.CombatData.TryGetEffectEventsByGUID(EffectGUIDs.CAArmSmash, out var armSmashes))
         {
             var chest = log.AgentData.GetStableSpeciesByID(_conjuredAmalgamate.ChestID).FirstOrDefault();
@@ -95,7 +94,7 @@ internal class MythwrightGambitInstance : MythwrightGambit
                         if (prevHPUpdate < hpUpdate.HealthPercent)
                         {
                             end = hpUpdate.Time;
-                        } 
+                        }
                         else
                         {
                             prevHPUpdate = hpUpdate.HealthPercent;
@@ -226,7 +225,7 @@ internal class MythwrightGambitInstance : MythwrightGambit
                 phases.AddRange(Qadim.ComputePhases(log, nikare, Targets, qadimPhase, requirePhases));
             }
         }
-        
+
         return phases;
     }
 
@@ -284,7 +283,7 @@ internal class MythwrightGambitInstance : MythwrightGambit
             .Select(x => new MaxHealthUpdateEvent(x, agentData))
             .GroupBy(x => x.MaxHealth).ToDictionary(x => x.Key, x => x.ToList());
         Qadim.FindPlateforms(evtcVersion, maxHPUpdates, agentData, combatData);
-        Qadim.FindLamps(evtcVersion, maxHPUpdates, agentData, combatData);
+        Qadim.FindLamps(maxHPUpdates, agentData, combatData);
         Qadim.FindPyres(gw2Build, agentData, combatData);
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         Qadim.RenamePyres(Targets);
@@ -294,7 +293,7 @@ internal class MythwrightGambitInstance : MythwrightGambit
             {
                 case (int)TargetID.Kenut:
                 case (int)TargetID.Nikare:
-                    TwinLargos.AdjustFinalHPEvents(combatData, actor.AgentItem);
+                    SanitizeLastHealthUpdateEvents(actor, combatData);
                     break;
             }
         }

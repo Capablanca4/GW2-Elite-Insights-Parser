@@ -67,6 +67,50 @@ const reactiveLogdata = {
     activeEncounterPhaseData: [],
 };
 
+
+const formatterCache = {
+    zeroZero: new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }),
+    zeroOne: new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1
+    }),
+    zeroTwo: new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }),
+    zeroThree: new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 3
+    }),
+    twoTwo: new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }),
+    percentZeroZero: new Intl.NumberFormat(undefined, {
+        style: "percent",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }),
+    percentZeroOne: new Intl.NumberFormat(undefined, {
+        style: "percent",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1
+    }),
+    percentZeroTwo: new Intl.NumberFormat(undefined, {
+        style: "percent",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }),
+    percentZeroThree: new Intl.NumberFormat(undefined, {
+        style: "percent",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 3
+    }),
+}
+
 let IsMultiEncounterLog = false;
 const mainComponentWidth =  Math.max(Math.min(0.9 * window.screen.width, 1600), 1450);
 const maxMechColumns = Math.floor((mainComponentWidth - 150) / 210);
@@ -92,8 +136,8 @@ if (!String.prototype.includes) {
 }
 
 const themes = {
-    "yeti": "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.1.1/yeti/bootstrap.min.css",
-    "slate": "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.1.1/slate/bootstrap.min.css"
+    "yeti": "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.2.1/yeti/bootstrap.min.css",
+    "slate": "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.2.1/slate/bootstrap.min.css"
 };
 
 const WeaponIcons = {
@@ -305,7 +349,8 @@ const RotationStatus = {
     REDUCED: 1,
     CANCEL: 2,
     FULL: 3,
-    INSTANT: 4
+    INSTANT: 4,
+    CUSTOM_MOVEMENT: 5
 };
 
 const PhaseTypes = {

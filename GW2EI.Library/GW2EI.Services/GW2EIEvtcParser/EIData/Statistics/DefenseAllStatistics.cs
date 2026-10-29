@@ -24,7 +24,7 @@ public class DefenseAllStatistics : DefensePerTargetStatistics
             {
                 var vaporFormRemoves = log.CombatData.GetBuffRemoveAllDataByIDByDst(SkillIDs.VaporForm, actor.AgentItem).Where(brae => brae.Time >= start && brae.Time <= end);
                 var downEvents = log.CombatData.GetBuffDataByIDByDst(SkillIDs.Downed, actor.AgentItem).Where(be => be.Time >= start && be.Time <= end && be is BuffApplyEvent);
-                DownCount = downEvents.Count(downEvent => !vaporFormRemoves.Any(vaporRemove => Math.Abs(vaporRemove.Time - downEvent.Time) < ParserHelper.ServerDelayConstant));
+                DownCount = downEvents.Count(downEvent => !vaporFormRemoves.Any(vaporRemove => vaporRemove.IsAtTime(downEvent)));
             }
             else
             {
@@ -42,7 +42,7 @@ public class DefenseAllStatistics : DefensePerTargetStatistics
         DeadDuration = (long)dead.Sum(x => x.IntersectingArea(start, end));
         DcDuration = (long)dc.Sum(x => x.IntersectingArea(start, end));
 
-        foreach (StunBreakEvent sbe in log.CombatData.GetStunBreakReceivedData(actor.AgentItem))
+        foreach (StunBreakEvent sbe in log.CombatData.GetStunBreakReceivedData(actor.AgentItem).Where(x => x.Time >= start && x.Time <= end))
         {
             StunBreakCount++;
             RemovedStunDuration += sbe.RemainingDuration;

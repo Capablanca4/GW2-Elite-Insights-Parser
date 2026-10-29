@@ -30,6 +30,7 @@ internal static class GuardianHelper
 
         // Meditations
         new DamageCastFinder(JudgesIntervention, JudgesIntervention)
+            .WithTarget()
             .UsingDisableWithEffectData(),
         new BuffGainCastFinder(JudgesIntervention, MercifulAndJudgesInterventionSelfBuff)
             .UsingChecker((evt, combatData, agentData, skillData) => combatData.HasRelatedEffectDst(EffectGUIDs.GuardianGenericTeleport2, evt.To, evt.Time + 120))
@@ -101,6 +102,7 @@ internal static class GuardianHelper
 
         //new DamageCastFinder(9097,9097), // Symbol of Blades
         new DamageCastFinder(GlacialHeart, GlacialHeart)
+            .WithTarget()
             .UsingOrigin(InstantCastOrigin.Trait)
             .WithBuilds(GW2Builds.StartOfLife, GW2Builds.March2024BalanceAndCerusLegendary),
         new EXTHealingCastFinder(GlacialHeartHeal, GlacialHeartHeal)
@@ -561,7 +563,7 @@ internal static class GuardianHelper
         }
     }
 
-    internal static void AddSymbolDecorations(PlayerActor player, ParsedEvtcLog log, CombatReplay replay, SkillModeDescriptor skill, (GUID regular, GUID large) effects, long duration, string icon)
+    internal static void AddSymbolDecorations(PlayerActor player, ParsedEvtcLog log, CombatReplay replay, SkillModeDescriptor skill, (Guid regular, Guid large) effects, long duration, string icon)
     {
         var durationLarge = duration + 2000;
         if (log.CombatData.TryGetEffectEventsBySrcWithGUID(player.AgentItem, effects.regular, out var symbols))
@@ -582,7 +584,7 @@ internal static class GuardianHelper
         }
     }
 
-    internal static void AddSymbolDecorationsWithLesserUncertainty(List<AnimatedCastEvent> mainSkillCasts, PlayerActor player, ParsedEvtcLog log, CombatReplay replay, SkillModeDescriptor mainSkill, SkillModeDescriptor lesserSkill, SkillModeDescriptor uncertainSkill, GUID effectGUID, uint radius, long duration, string icon)
+    internal static void AddSymbolDecorationsWithLesserUncertainty(List<AnimatedCastEvent> mainSkillCasts, PlayerActor player, ParsedEvtcLog log, CombatReplay replay, SkillModeDescriptor mainSkill, SkillModeDescriptor lesserSkill, SkillModeDescriptor uncertainSkill, Guid effectGUID, uint radius, long duration, string icon)
     {
         if (log.CombatData.TryGetEffectEventsBySrcWithGUID(player.AgentItem, effectGUID, out var symbols))
         {
@@ -639,7 +641,7 @@ internal static class GuardianHelper
         }
     }
 
-    internal static void AddSymbolDecorationsWithLesserUncertainty(PlayerActor player, ParsedEvtcLog log, CombatReplay replay, SkillModeDescriptor mainSkill, SkillModeDescriptor lesserSkill, SkillModeDescriptor uncertainSkill, (GUID regular, GUID large) effects, long duration, string icon)
+    internal static void AddSymbolDecorationsWithLesserUncertainty(PlayerActor player, ParsedEvtcLog log, CombatReplay replay, SkillModeDescriptor mainSkill, SkillModeDescriptor lesserSkill, SkillModeDescriptor uncertainSkill, (Guid regular, Guid large) effects, long duration, string icon)
     {
         var durationLarge = duration + 2000;
         var mainSkillCasts = player.GetAnimatedCastEvents(log).Where(x => x.SkillID == mainSkill.SkillID && !x.IsInterrupted).ToList();

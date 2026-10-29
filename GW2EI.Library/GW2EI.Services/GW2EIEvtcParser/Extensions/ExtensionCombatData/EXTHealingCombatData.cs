@@ -14,6 +14,16 @@ public class EXTHealingCombatData
 
     private readonly IReadOnlyCollection<long> _hybridHealIDs;
 
+    internal bool Empty => _healData.Count == 0;
+
+    internal EXTHealingCombatData()
+    {
+        _healData = [];
+        _healReceivedData = [];
+        _healDataByID = [];
+        _hybridHealIDs = [];
+    }
+
     internal EXTHealingCombatData(Dictionary<AgentItem, List<EXTHealingEvent>> healData, Dictionary<AgentItem, List<EXTHealingEvent>> healReceivedData, Dictionary<long, List<EXTHealingEvent>> healDataByID, IReadOnlyCollection<long> hybridHealIDs)
     {
         _healData = healData;
@@ -68,6 +78,17 @@ public class EXTHealingCombatData
     public EXTHealingType GetHealingType(Buff buff, ParsedEvtcLog log)
     {
         return GetHealingType(buff.ID, log);
+    }
+
+    public IReadOnlyList<TimeCombatEvent> GetAllTimeCombatEvents()
+    {
+        var events = new List<CombatEvent>();
+        var seen = new HashSet<CombatEvent>();
+
+        CombatData.FillFromManyRangeUnique(events, seen, _healData.Values);
+        CombatData.FillFromManyRangeUnique(events, seen, _healReceivedData.Values);
+
+        return events.OfType<TimeCombatEvent>().ToList();
     }
 
 }

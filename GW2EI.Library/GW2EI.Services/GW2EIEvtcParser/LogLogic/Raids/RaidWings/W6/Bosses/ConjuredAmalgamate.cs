@@ -5,15 +5,14 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -84,14 +83,14 @@ internal class ConjuredAmalgamate : MythwrightGambit
             .Select(x => new AttackTargetEvent(x, agentData))
             .ToList();
         var positionEvents = combatData.Where(x => x.IsPosition);
-        var attackTargetPositions = positionEvents.Where(x => attackTargetEvents.Any(y => x.SrcMatchesAgent(y.AttackTarget)));
+        var attackTargetPositions = positionEvents.Where(x => attackTargetEvents.Any(y => x.SrcMatchesAgent(y.AttackTarget))).ToList();
         foreach (var positionEvent in attackTargetPositions)
         {
             var position = new PositionEvent(positionEvent, agentData);
             var attackTargetEvent = attackTargetEvents.First(x => position.Src.Is(x.AttackTarget));
             var atAgent = attackTargetEvent.AttackTarget;
             var agent = attackTargetEvent.Src;
-            var atPos = position.GetPoint3D();
+            var atPos = position.Point3D;
             if (agent.Type == AgentItem.AgentType.VolatileSpecies)
             {
                 if ((atPos - BodyAttackTargetPos).Length() < 5)
@@ -116,7 +115,7 @@ internal class ConjuredAmalgamate : MythwrightGambit
             var attackTargetEvent = attackTargetEvents.First(x => position.Src.Is(x.AttackTarget));
             var atAgent = attackTargetEvent.AttackTarget;
             var agent = attackTargetEvent.Src;
-            var atPos = position.GetPoint3D();
+            var atPos = position.Point3D;
             if (agent.IsSpecies(TargetID.CALeftArm) && (atPos - LeftArmAttackTargetPosForDamage).Length() < 5)
             {
                 atAgent.OverrideID(TargetID.CALeftArmAttackTarget, agentData);
@@ -138,10 +137,10 @@ internal class ConjuredAmalgamate : MythwrightGambit
     internal override long GetLogOffset(EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData)
     {
         // time starts at first smash
-        var effectIDToGUIDs = combatData.Where(x => x.IsStateChange == StateChange.IDToGUID);
-        if (effectIDToGUIDs.Any())
+        var effectIDToGUIDs = combatData.Where(x => x.IsStateChange == StateChange.IDToGUID).ToList();
+        if (effectIDToGUIDs.Count != 0)
         {
-            CombatItem? armSmashGUID = effectIDToGUIDs.FirstOrDefault(x => new GUID(x.SrcAgent, x.DstAgent) == EffectGUIDs.CAArmSmash);
+            CombatItem? armSmashGUID = effectIDToGUIDs.FirstOrDefault(x => EffectGUIDs.CAArmSmash.Equals(x.SrcAgent, x.DstAgent, true));
             if (armSmashGUID != null)
             {
                 CombatItem? firstArmSmash = combatData.FirstOrDefault(x => x.IsEffect && x.SkillID == armSmashGUID.SkillID);
@@ -254,31 +253,31 @@ internal class ConjuredAmalgamate : MythwrightGambit
                 }
                 if (finalCAEncounter != null)
                 {
-                    replay.Hidden.Add(new Segment(finalCAEncounter.End, log.LogData.LogEnd));
+                    replay.HideInInterval(new Segment(finalCAEncounter.End, log.LogData.LogEnd));
                 }
                 break;
             case (int)TargetID.CALeftArm:
             case (int)TargetID.CARightArm:
                 if (finalCAEncounter != null)
                 {
-                    replay.Hidden.Add(new Segment(finalCAEncounter.End, log.LogData.LogEnd));
+                    replay.HideInInterval(new Segment(finalCAEncounter.End, log.LogData.LogEnd));
                 }
                 break;
             case (int)TargetID.CABodyAttackTarget:
                 var bodyTargetableEvent = log.CombatData.GetTargetableEventsBySrc(target.AgentItem);
-                var body = log.CombatData.GetAttackTargetEventByAttackTarget(target.AgentItem)?.Src;
+                var body = target.AgentItem.GetAttackTargetOwner(log);
                 var bodyInvulStatus = body?.GetBuffStatus(log, CAInvul).Where(x => x.Value == 0) ?? [];
                 var bodyAtHideStart = log.LogData.LogStart;
                 foreach (var noInvul in bodyInvulStatus)
                 {
-                    replay.Hidden.Add(new Segment(bodyAtHideStart, noInvul.Start));
+                    replay.HideInInterval(new Segment(bodyAtHideStart, noInvul.Start));
                     bodyAtHideStart = noInvul.End;
                 }
                 if (finalCAEncounter != null)
                 {
                     bodyAtHideStart = Math.Min(bodyAtHideStart, finalCAEncounter.End);
                 }
-                replay.Hidden.Add(new Segment(bodyAtHideStart, log.LogData.LogEnd));
+                replay.HideInInterval(new Segment(bodyAtHideStart, log.LogData.LogEnd));
                 break;
             case (int)TargetID.CALeftArmAttackTarget:
             case (int)TargetID.CARightArmAttackTarget:
@@ -288,7 +287,7 @@ internal class ConjuredAmalgamate : MythwrightGambit
                 {
                     if (targetable.Targetable)
                     {
-                        replay.Hidden.Add(new Segment(armAtHideStart, targetable.Time));
+                        replay.HideInInterval(new Segment(armAtHideStart, targetable.Time));
                     }
                     else
                     {
@@ -299,7 +298,7 @@ internal class ConjuredAmalgamate : MythwrightGambit
                 {
                     armAtHideStart = Math.Min(armAtHideStart, finalCAEncounter.End);
                 }
-                replay.Hidden.Add(new Segment(armAtHideStart, log.LogData.LogEnd));
+                replay.HideInInterval(new Segment(armAtHideStart, log.LogData.LogEnd));
                 break;
             case (int)TargetID.ConjuredGreatsword:
                 break;

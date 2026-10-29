@@ -36,6 +36,7 @@ public class LogCategories
         SilentSurf,
         LonelyTower,
         Kinfall,
+        SolitaryThrone,
         //
         Grothmar,
         Bjora,
@@ -61,6 +62,7 @@ public class LogCategories
         //
         OuterNayosConvergence,
         MountBalriorConvergence,
+        NexusOfEternityConvergence,
         //
         UnknownEncounter,
         Unknown

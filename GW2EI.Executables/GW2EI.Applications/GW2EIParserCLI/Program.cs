@@ -1,15 +1,17 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using GW2EIBuilders;
 using GW2EIParserCommons;
 using GW2EIParserCommons.Properties;
 using GW2EIUpdater;
 
 [assembly: CLSCompliant(false)]
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 internal static class Program
 {
+    private const int ArgFaulty = 1;
     [STAThread]
     private static int Main(string[] args)
     {
@@ -40,7 +42,7 @@ internal static class Program
                 Updater.UpdateInfo? _info = Updater.CheckForUpdate("GW2EICLI.zip", traces).GetAwaiter().GetResult();
                 if (_info == null)
                 {
-                    Console.WriteLine("Update check has failed");
+                    Console.WriteLine("Update tentative has failed, please try again later or update manually.");
                     traces.ForEach(x => Console.WriteLine(x));
                     return 0;
                 }
@@ -71,12 +73,24 @@ internal static class Program
                 return 0;
             }
 
+            if (args.Contains("-v"))
+            {
+                Console.WriteLine($"v{Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty}");
+                return 0;
+            }
+
             if (args.Contains("-cache"))
             {
                 ProgramHelper.APIController.WriteAPISkillsToFile(ProgramHelper.SkillAPICacheLocation);
                 ProgramHelper.APIController.WriteAPIMapsToFile(ProgramHelper.MapAPICacheLocation);
                 ProgramHelper.APIController.WriteAPITraitsToFile(ProgramHelper.TraitAPICacheLocation);
                 ProgramHelper.APIController.WriteAPISpecsToFile(ProgramHelper.SpecAPICacheLocation);
+                parserArgOffset += 1;
+            }
+
+            if (args.Contains("-schema"))
+            {
+                RawFormatBuilder.CreateJSONSchema(ProgramHelper.JSONSchemaLocation);
                 parserArgOffset += 1;
             }
 
@@ -88,7 +102,7 @@ internal static class Program
                 {
                     var duration = long.Parse(args[argPos + 2]);
                     logFiles.AddRange(ProgramHelper.FetchSupportedFormatsFrom(addPath, duration, DateTime.Now));
-                } 
+                }
                 catch (Exception)
                 {
                     PrintHelp();
@@ -140,13 +154,13 @@ internal static class Program
         using var programHelper = new ProgramHelper(thisAssembly.GetName().Version, settings);
         if (logFiles.Count > 0 || pathToWatch != null)
         {
-            var consoleProgram = new ConsoleProgram(programHelper, batchDiscord, pathToWatch);
+            using var consoleProgram = new ConsoleProgram(programHelper, batchDiscord, pathToWatch);
             return consoleProgram.ParseAll(logFiles);
         }
         else
         {
             PrintHelp();
-            return 1;
+            return ArgFaulty;
         }
     }
 
@@ -156,10 +170,12 @@ internal static class Program
         Console.WriteLine("");
         Console.WriteLine("-c [config path] : use another config file");
         Console.WriteLine("-h : help");
+        Console.WriteLine("-v : show current version");
         Console.WriteLine("-watch [path to watch] : will put the application in watch mode where evtc files added to the path will be automatically parsed");
         Console.WriteLine("-populate_from [path] [duration] : evtcs inside and under path will be added to the list of logs to be parsed. Duration, in hours, is used to limit the age of the logs, 0 for infinite");
         Console.WriteLine("-discord_batch : will upload logs uploaded to dps.report to the provided discord webhook. Will do nothing without a webhook or no dps.report urls");
         Console.WriteLine("-cache : will update the API caches");
+        Console.WriteLine("-schema : will generate JSON schema matching GW2EIJson.JsonLog");
         Console.WriteLine("-update : will check for the latest update available on GitHub and restart the application");
     }
 }

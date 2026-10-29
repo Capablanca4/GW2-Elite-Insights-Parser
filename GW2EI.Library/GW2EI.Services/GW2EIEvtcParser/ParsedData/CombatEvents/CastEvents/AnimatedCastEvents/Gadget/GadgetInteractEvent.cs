@@ -1,0 +1,36 @@
+﻿using static GW2EIEvtcParser.ArcDPSEnums;
+
+namespace GW2EIEvtcParser.ParsedData;
+
+public class GadgetInteractEvent : AnimatedCastEvent
+{
+
+    public AgentItem Gadget => Target;
+
+    internal GadgetInteractEvent(CombatItem? startItem, AgentData agentData, SkillData skillData,
+        CombatItem? endItem, long maxEnd) : base(startItem, agentData, skillData, endItem, maxEnd)
+    {
+        if (startItem != null && startItem.IsStateChange != StateChange.AnimationStart)
+        {
+            Target = agentData.GetAgentByInstID((ushort)startItem.Pad, startItem.Time);
+        }
+        // Bandaid, may not be perfect
+        if (AnimStart == AnimationStart.GadgetInteract) // Sanity check
+        {
+            if (AnimStop != AnimationStop.GadgetViaReset && AnimStop != AnimationStop.Ended && Status != AnimationStatus.Interrupted)
+            {
+                Status = AnimationStatus.Interrupted;
+                SavedDuration = -ActualDuration;
+            }
+            ExpectedDuration = UnapplyTimeScale(ExpectedDuration);
+            if (Status == AnimationStatus.Reduced)
+            {
+                SavedDuration = Math.Max(ExpectedScaledDuration - ActualDuration, 0);
+            }
+        }
+    }
+
+    internal GadgetInteractEvent(AgentItem caster, SkillItem skill, long start, long dur, AgentItem target, AnimationStatus status = AnimationStatus.Full) : base(caster, skill, start, dur, target, status)
+    {
+    }
+}

@@ -133,7 +133,7 @@ internal static class ChronomancerHelper
             {
                 boonGivingShatters = [];
             }
-            var skillDict = new Dictionary<GUID, SkillItem>()
+            var skillDict = new Dictionary<Guid, SkillItem>()
             {
                 { EffectGUIDs.ChronomancerSplitSecond, skillData.Get(SplitSecondOrSplitSecondAmmo)},
                 { EffectGUIDs.ChronomancerRewinder, skillData.Get(Rewinder)},
@@ -161,7 +161,7 @@ internal static class ChronomancerHelper
             foreach (var shatter in shatters)
             {
                 var boonGivingShattersInFrame = boonGivingShatters
-                    .Where(x => Math.Abs(x.Time - shatter.Time) < ServerDelayConstant)
+                    .Where(x => x.IsAtTime(shatter))
                     .ToList();
                 var skill = skillDict[shatter.GUIDEvent.GUID];
                 HashSet<long> skillIDs;
@@ -172,12 +172,12 @@ internal static class ChronomancerHelper
                     if (combatData.GetDamageData(SplitSecondAmmo).Any(x => x.CreditedFrom.Is(player) && Math.Abs(x.Time - shatter.Time) < 2000))
                     {
                         skill = skillData.Get(SplitSecondAmmo);
-                    } 
+                    }
                     else if (combatData.GetDamageData(SplitSecond).Any(x => x.CreditedFrom.Is(player) && Math.Abs(x.Time - shatter.Time) < 2000))
                     {
                         skill = skillData.Get(SplitSecond);
                     }
-                } 
+                }
                 else
                 {
                     skillIDs = [skill.ID];
@@ -188,7 +188,7 @@ internal static class ChronomancerHelper
                     )
                 {
                     res.Add(new InstantCastEvent(shatter.Time, skill, shatter.Src));
-                } 
+                }
                 else
                 {
                     if (boonGivingShattersInFrame.Count > 0)
@@ -196,8 +196,8 @@ internal static class ChronomancerHelper
                         continue;
                     }
                     // Find dead clone in window, without killing blow or killing blow with skill id matching the effect
-                    var deadClone = pClonesDead.LastOrDefault(x => 
-                        x!.Time >= shatter.Time && 
+                    var deadClone = pClonesDead.LastOrDefault(x =>
+                        x!.Time >= shatter.Time &&
                         x!.Time - shatter.Time < 2 * ServerDelayConstant &&
                         (!cloneKillingBlowsDict.TryGetValue(x.Src, out var killingBlows) ||
                             killingBlows.Any(x => skillIDs.Contains(x.SkillID))
@@ -207,7 +207,7 @@ internal static class ChronomancerHelper
                     {
                         // Safety check
                         if (chronoShatters.Any(x =>
-                                Math.Abs(x.Time - shatter.Time) < ServerDelayConstant &&
+                                x.IsAtTime(shatter) &&
                                 (x.Position.XY() - shatter.Position.XY()).LengthSquared() < 1e-6)
                             )
                         {
@@ -240,7 +240,7 @@ internal static class ChronomancerHelper
             }
         }
         // Well of Eternity - Pulses
-        if (log.CombatData.TryGetEffectEventsBySrcWithGUIDs(player.AgentItem, [ EffectGUIDs.ChronomancerWellOfEternityPulse, EffectGUIDs.ChronomancerWellOfEternityExplosion ], out var wellsOfEternityPulses))
+        if (log.CombatData.TryGetEffectEventsBySrcWithGUIDs(player.AgentItem, [EffectGUIDs.ChronomancerWellOfEternityPulse, EffectGUIDs.ChronomancerWellOfEternityExplosion], out var wellsOfEternityPulses))
         {
             var skill = new SkillModeDescriptor(player, Spec.Chronomancer, WellOfEternity, SkillModeCategory.Heal);
             foreach (EffectEvent effect in wellsOfEternityPulses)

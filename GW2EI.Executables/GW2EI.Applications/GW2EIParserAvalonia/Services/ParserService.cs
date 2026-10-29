@@ -1,0 +1,134 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using GW2EIDiscord;
+using GW2EIParserCommons;
+using static GW2EIParserCommons.ProgramHelper;
+
+namespace GW2EIParserAvalonia.Services;
+
+internal sealed class ParserService : IDisposable
+{
+    private readonly ProgramHelper _programHelper;
+    public ProgramSettings Settings { get; }
+
+    public ParserService(ProgramSettings settings)
+    {
+        Settings = settings;
+        var version = typeof(App).Assembly.GetName().Version ?? new Version(0, 0, 0, 0);
+        _programHelper = new ProgramHelper(version, Settings);
+    }
+
+    internal delegate void OnTaskRun();
+
+    public async Task ParseAsync(AvaloniaOperationController operation, OnTaskRun onTaskRun)
+    {
+        var cancellationTokenSource = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                operation.ToRunState(cancellationTokenSource);
+                onTaskRun();
+                _programHelper.DoWork(operation);
+            }, cancellationTokenSource.Token);
+        }
+        finally
+        {
+            cancellationTokenSource.Dispose();
+        }
+    }
+
+    public async Task InspectParseAsync(InspectorOperationController operation, OnTaskRun onTaskRun, InspectionMode inspectMode = InspectionMode.RawWithEIPreProcess)
+    {
+        if (operation.InspectLog != null || operation.Errored || inspectMode == InspectionMode.NotApplicable)
+        {
+            return;
+        }
+        var cancellationTokenSource = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                onTaskRun();
+                operation.InspectLog = _programHelper.ParseLogForInspection(operation, inspectMode);
+            }, cancellationTokenSource.Token)
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        operation.InspectLog = null;
+                        operation.Errored = true;
+                    }
+                }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+        finally
+        {
+            cancellationTokenSource.Dispose();
+        }
+    }
+
+    public void InspectParseSync(InspectorOperationController operation, InspectionMode inspectMode = InspectionMode.RawWithEIPreProcess)
+    {
+        if (operation.InspectLog != null || operation.Errored || inspectMode == InspectionMode.NotApplicable)
+        {
+            return;
+        }
+        try
+        {
+            operation.InspectLog = _programHelper.ParseLogForInspection(operation, inspectMode);
+        }
+        catch
+        {
+            operation.InspectLog = null;
+            operation.Errored = true;
+        }
+    }
+
+    public bool ParseMultipleLogs()
+    {
+        return _programHelper.ParseMultipleLogs();
+    }
+
+    public int GetMaxParallelRunning()
+    {
+        return _programHelper.GetMaxParallelRunning();
+    }
+
+    public void ExecuteMemoryCheckTask()
+    {
+        _programHelper.ExecuteMemoryCheckTask();
+    }
+
+    public void GenerateTraceFile(AvaloniaOperationController operation)
+    {
+        _programHelper.GenerateTraceFile(operation);
+    }
+
+    public string HandleBatchedDiscordEmbed(List<ulong> ids, List<OperationController> operations, BatchedDiscordTraceHandler traceHandler)
+    {
+        foreach (ulong id in ids)
+        {
+            traceHandler("Discord: deleting existing message " + id);
+            try
+            {
+                WebhookController.DeleteMessage(_programHelper.Settings.WebhookURL, id, out string message);
+                traceHandler("Discord: deleted existing message " + message);
+            }
+            catch (Exception ex)
+            {
+                traceHandler("Discord: couldn't deleted existing message " + ex.Message);
+            }
+        }
+        ids.Clear();
+        return _programHelper.HandleBatchedDiscordEmbed(ids, operations, traceHandler);
+    }
+
+    public void Dispose()
+    {
+        _programHelper.Dispose();
+    }
+}

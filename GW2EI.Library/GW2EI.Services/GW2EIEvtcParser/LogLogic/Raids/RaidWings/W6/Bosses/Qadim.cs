@@ -7,16 +7,15 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -125,7 +124,7 @@ internal class Qadim : MythwrightGambit
     }
 
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -187,13 +186,13 @@ internal class Qadim : MythwrightGambit
         }
     }
 
-    internal static void FindLamps(EvtcVersionEvent evtcVersion, IReadOnlyDictionary<int, List<MaxHealthUpdateEvent>> maxHPUpdates, AgentData agentData, List<CombatItem> combatData)
+    internal static void FindLamps(IReadOnlyDictionary<int, List<MaxHealthUpdateEvent>> maxHPUpdates, AgentData agentData, List<CombatItem> combatData)
     {
         var qadimLampMarkerGUID = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Marker &&
-                MarkerGUIDs.QadimLampMarker.Equals(x.SrcAgent, x.DstAgent))
-            .Select(x => new MarkerGUIDEvent(x, evtcVersion))
+                MarkerGUIDs.QadimLampMarker.Equals(x.SrcAgent, x.DstAgent, true))
+            .Select(x => new MarkerGUIDEvent(x))
             .FirstOrDefault();
         if (qadimLampMarkerGUID != null)
         {
@@ -256,7 +255,7 @@ internal class Qadim : MythwrightGambit
             .Select(x => new MaxHealthUpdateEvent(x, agentData))
             .GroupBy(x => x.MaxHealth).ToDictionary(x => x.Key, x => x.ToList());
         FindPlateforms(evtcVersion, maxHPUpdates, agentData, combatData);
-        FindLamps(evtcVersion, maxHPUpdates, agentData, combatData);
+        FindLamps(maxHPUpdates, agentData, combatData);
         FindPyres(gw2Build, agentData, combatData);
         // Pyres
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
@@ -272,7 +271,7 @@ internal class Qadim : MythwrightGambit
         if (combatData.HasMovementData)
         {
             var qadimInitialPosition = new Vector3(-9742.406f, 12075.2627f, -4731.031f);
-            var positions = combatData.GetMovementData(qadim).Where(x => x is PositionEvent pe && pe.Time < qadim.FirstAware + MinimumInCombatDuration).Select(x => x.GetPoint3D());
+            var positions = combatData.GetMovementData(qadim).Where(x => x is PositionEvent pe && pe.Time < qadim.FirstAware + MinimumInCombatDuration).Select(x => x.Point3D);
             if (!positions.Any(x => (x - qadimInitialPosition).XY().Length() < 150))
             {
                 return LogData.StartStatus.Late;
@@ -400,7 +399,7 @@ internal class Qadim : MythwrightGambit
         phases[0].AddTarget(qadim, log);
         phases[0].AddTargets(Targets.Where(x => x.IsAnySpecies(SecondaryTargetIDs)), log, PhaseData.TargetPriority.Blocking);
         phases.AddRange(ComputePhases(log, qadim, Targets, (EncounterPhaseData)phases[0], requirePhases));
-       
+
         return phases;
     }
 
@@ -572,7 +571,7 @@ internal class Qadim : MythwrightGambit
         long qadimStart = qadim.FirstAware;
         long qadimEnd = qadim.LastAware;
         bool isCM = qadim.GetHealth(log.CombatData) > 21e6;
-        int velocityIndex = 0; 
+        int velocityIndex = 0;
         switch (plateform.Character)
         {
             case "00":
@@ -985,9 +984,10 @@ internal class Qadim : MythwrightGambit
                                 if (target.TryGetCurrentFacingDirection(log, start + 1000, out var facing) && target.TryGetCurrentPosition(log, start + 1000, out var targetPosition))
                                 {
                                     var position = new Vector3(targetPosition.Value.X + facing.Value.X * spellCenterDistance, targetPosition.Value.Y + facing.Value.Y * spellCenterDistance, targetPosition.Value.Z);
-                                    replay.Decorations.Add(new CircleDecoration(impactRadius, (start, start + delay), Colors.Orange, 0.1, new PositionConnector(position)));
-                                    replay.Decorations.Add(new CircleDecoration(impactRadius, (start + delay - 10, start + delay + 100), Colors.Orange, 0.5, new PositionConnector(position)));
-                                    replay.Decorations.Add(new CircleDecoration(maxRadius, (start + delay, start + delay + duration), Colors.Yellow, 0.5, new PositionConnector(position)).UsingFilled(false).UsingGrowingEnd(start + delay + duration));
+                                    var connector = new PositionConnector(position);
+                                    replay.Decorations.Add(new CircleDecoration(impactRadius, (start, start + delay), Colors.Orange, 0.1, connector));
+                                    replay.Decorations.Add(new CircleDecoration(impactRadius, (start + delay - 10, start + delay + 100), Colors.Orange, 0.5, connector));
+                                    replay.Decorations.AddShockwave(connector, (start + delay, start + delay + duration), Colors.Yellow, 0.5, maxRadius);
                                 }
                             }
                             break;
@@ -1030,14 +1030,49 @@ internal class Qadim : MythwrightGambit
                     return;
                 }
                 var opacities = new List<ParametricPoint1D> { new(VisibleOpacity, target.FirstAware) };
-                foreach (var qadimAgent in log.AgentData.GetStableSpeciesByID(TargetID.Qadim))
+                var gadgetAnimationData = log.CombatData.GetGadgetAnimationData(target.AgentItem);
+                if (gadgetAnimationData.Count > 0)
                 {
-                    AnimatePlateforms(log, replay, target, opacities, qadimAgent);
+                    var destroyToken = new Token("destroy");
+                    var warningToken = new Token("warning");
+                    var plateformInFlamesToken = new Token("danger");
+                    var plateformFacingConnector = new AgentFacingConnector(target);
+                    var plateformConnector = new AgentConnector(target);
+                    foreach (var gadgetAnimation in gadgetAnimationData)
+                    {
+                        if (gadgetAnimation.AnimationToken == destroyToken)
+                        {
+                            opacities.Add(new(HiddenOpacity, gadgetAnimation.Time));
+                        }
+                        else
+                        {
+                            if (gadgetAnimation.AnimationToken == warningToken)
+                            {
+                                var triangleDecoration = (RegularPolygonDecoration)(new RegularPolygonDecoration(1050, 3, (gadgetAnimation.Time, gadgetAnimation.LoopEnd), Colors.Orange, 0.3, plateformConnector)
+                                    .UsingRotationConnector(plateformFacingConnector));
+                                replay.Decorations.AddWithGrowing(triangleDecoration, gadgetAnimation.LoopEnd);
+                            }
+                            else if (gadgetAnimation.AnimationToken == plateformInFlamesToken)
+                            {
+                                var triangleDecoration = (RegularPolygonDecoration)(new RegularPolygonDecoration(1050, 3, (gadgetAnimation.Time, gadgetAnimation.LoopEnd), Colors.Orange, 0.7, plateformConnector)
+                                    .UsingRotationConnector(plateformFacingConnector));
+                                replay.Decorations.Add(triangleDecoration);
+                            }
+                            opacities.Add(new(VisibleOpacity, gadgetAnimation.Time));
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var qadimAgent in log.AgentData.GetStableSpeciesByID(TargetID.Qadim))
+                    {
+                        AnimatePlateforms(log, replay, target, opacities, qadimAgent);
+                    }
                 }
                 var platformDecoration = new BackgroundIconDecoration(
-                    ParserIcons.QadimPlatform, 0, 2247, 
-                    opacities, replay.Positions.Select(x => new ParametricPoint1D(x.XYZ.Z, x.Time)), 
-                    (target.FirstAware, target.LastAware), 
+                    ParserIcons.QadimPlatform, 0, 2247,
+                    opacities, replay.Positions.Select(x => new ParametricPoint1D(x.XYZ.Z, x.Time)),
+                    (target.FirstAware, target.LastAware),
                     new AgentConnector(target)
                 );
                 RotationConnector platformRotationConnector = new AgentFacingConnector(target, 180, AgentFacingConnector.RotationOffsetMode.AddToMaster);
@@ -1062,7 +1097,7 @@ internal class Qadim : MythwrightGambit
     {
         float threshold = 1f;
         for (int velocityIndex = startIndex; velocityIndex < velocities.Count; velocityIndex++)
-        { 
+        {
             var velocity = velocities[velocityIndex];
             if (velocity.Time < startOffset)
             {

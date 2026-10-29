@@ -7,15 +7,14 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -95,7 +94,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
         return "Aetherblade Hideout";
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -181,7 +180,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 if (lastHPUpdate != null)
                 {
                     long maiTrinEnd = lastHPUpdate.Time;
-                    replay.Trim(replay.TimeOffsets.start, maiTrinEnd);
+                    replay.HideInInterval(new(maiTrinEnd, target.LastAware));
                 }
                 break;
             case (int)TargetID.MaiTrinRaidDuringEcho:
@@ -217,7 +216,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 var initialPoint = new Vector3(3138.17456f, 1639.60657f, -1852.15894f); // The first cirle always spawns on the bomb on north east.
 
                 // Filted bombs to select only 1 bomb per puzzle, with the max last aware
-                var groupedBombs = AgentData.GetGroupedAgentsByTimeCondition(Targets.Where(x => x.IsSpecies(TargetID.FerrousBomb)).Select(x => x.AgentItem), (agent) => agent.FirstAware);
+                var groupedBombs = AgentData.GetGroupedAgentsByTimeCondition(Targets.Where(x => x.IsSpecies(TargetID.FerrousBomb)).Select(x => x.AgentItem).ToList(), (agent) => agent.FirstAware);
                 var filteredBombs = groupedBombs.Select(x => x.MaxBy(y => y.LastAware));
 
                 // Filter the detonations, we use them only for the end time
@@ -235,8 +234,8 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                     (long start, long end) lifespanFirstCircle = (0, 0);
 
                     // In normal mode, the Echo gains Determined but in challenge mode it doesn't, we use the HP updates instead.
-                    Segment? last60HpUpdate = target.GetHealthUpdates(log).FirstOrNull((in Segment x) => x.Value > 58 && x.Value <= 60);
-                    Segment? last20HpUpdate = target.GetHealthUpdates(log).FirstOrNull((in Segment x) => x.Value > 18 && x.Value <= 20);
+                    Segment? last60HpUpdate = target.GetHealthUpdates(log).FirstOrNull((in x) => x.Value > 58 && x.Value <= 60);
+                    Segment? last20HpUpdate = target.GetHealthUpdates(log).FirstOrNull((in x) => x.Value > 18 && x.Value <= 20);
 
                     if (last60HpUpdate != null && Math.Abs(bomb.FirstAware - last60HpUpdate.Value.Start) < threshold)
                     {
@@ -404,10 +403,8 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 uint radius = 240;
                 (long start, long end) lifespan = effect.ComputeLifespan(log, duration);
                 long growing = effect.Time + duration;
-                var baseCircle = new CircleDecoration(radius, lifespan, Colors.LightOrange, 0.2, new PositionConnector(effect.Position));
-                var growingCircle = (CircleDecoration)new CircleDecoration(radius, lifespan, Colors.LightOrange, 0.2, new PositionConnector(effect.Position)).UsingGrowingEnd(growing);
-                environmentDecorations.Add(baseCircle);
-                environmentDecorations.Add(growingCircle);
+                var circle = new CircleDecoration(radius, lifespan, Colors.LightOrange, 0.2, new PositionConnector(effect.Position));
+                environmentDecorations.AddWithGrowing(circle, growing);
             }
         }
         // Ley Breach - Red Puddles
@@ -435,8 +432,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
 
                 var rotationConnector = new AngleConnector(effect.Rotation.Z);
                 var rectangle = (RectangleDecoration)new RectangleDecoration(600, 150, lifespan, Colors.LightOrange, 0.2, new PositionConnector(effect.Position)).UsingRotationConnector(rotationConnector);
-                environmentDecorations.Add(rectangle);
-                environmentDecorations.Add(rectangle.GetBorderDecoration(Colors.LightOrange, 0.2));
+                environmentDecorations.AddWithBorder(rectangle, Colors.LightOrange, 0.2);
             }
         }
 
@@ -466,7 +462,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 SingleActor? phantom = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.ScarletPhantomBeamNM) && effect.Time <= x.LastAware);
                 if (echo != null && phantom != null)
                 {
-                    if (echo.TryGetCurrentPosition(log, effect.Time, out var echoPosition) 
+                    if (echo.TryGetCurrentPosition(log, effect.Time, out var echoPosition)
                         && phantom.TryGetCurrentFacingDirection(log, effect.Time + 100, out var phantomFacing, effect.Duration)
                         && phantom.TryGetCurrentPosition(log, effect.Time, out var phantomPosition))
                     {
@@ -564,7 +560,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 if (buffApply != null && buffApply.Time > echoOfScarlet.FirstAware)
                 {
                     successHandler.SetSuccess(true, buffApply.Time);
-                } 
+                }
                 else
                 {
                     successHandler.SetSuccess(false, echoOfScarlet.LastAware);
@@ -612,7 +608,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 phases.Add(maiTrinPhase);
 
                 // Candidate phases
-                var maiPhases = GetSubPhasesByInvul(log, Untargetable, maiTrin, true, true, maiTrinStart, maiTrinEnd, false);
+                var maiPhases = GetSubPhasesByInvul(log, Untargetable, maiTrin, true, true, maiTrinStart, maiTrinEnd, ServerDelayConstant, false);
                 List<PhaseData> candidateMainPhases = [];
                 List<PhaseData> candidateSplitPhases = [];
                 for (int i = 0; i < maiPhases.Count; i++)
@@ -641,8 +637,8 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                     {
                         candidateSplitPhase.Name = "Mai Trin Split Phase " + (splitPhaseCount++);
                         phases.Add(candidateSplitPhase);
-                    } 
-                    else if (scarletPhantoms.Any(x => x.FirstAware < candidateSplitPhase.Start) && scarletPhantoms.Any(x => x.LastAware > candidateSplitPhase.End)) 
+                    }
+                    else if (scarletPhantoms.Any(x => x.FirstAware < candidateSplitPhase.Start) && scarletPhantoms.Any(x => x.LastAware > candidateSplitPhase.End))
                     {
                         randomUntargetableStart = Math.Min(randomUntargetableStart, candidateSplitPhase.Start);
                         randomUntargetableEnd = Math.Max(randomUntargetableEnd, candidateSplitPhase.End);
@@ -650,14 +646,14 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 }
                 // Main phases
                 var mainPhaseCount = 1;
-                foreach(var candidateMainPhase in candidateMainPhases)
+                foreach (var candidateMainPhase in candidateMainPhases)
                 {
                     var hasScarletPhantomsAround = scarletPhantoms.Any(x => x.FirstAware < candidateMainPhase.Start) && scarletPhantoms.Any(x => x.LastAware > candidateMainPhase.End);
                     if (!hasScarletPhantomsAround)
                     {
                         candidateMainPhase.Name = "Mai Trin Phase " + (mainPhaseCount++);
                         phases.Add(candidateMainPhase);
-                    } 
+                    }
                     else
                     {
                         randomUntargetableStart = Math.Min(randomUntargetableStart, candidateMainPhase.Start);
@@ -682,7 +678,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
             echoPhase.AddTarget(echoOfScarlet, log);
             echoPhase.AddTargets(eliteScarletHPPhantoms, log, PhaseData.TargetPriority.Blocking);
             phases.Add(echoPhase);
-            var beamNPCs = TrashMobs.Where(x => x.IsAnySpecies([TargetID.ScarletPhantomBeamNM, TargetID.ScarletPhantomDeathBeamCM, TargetID.ScarletPhantomDeathBeamCM2]));
+            var beamNPCs = TrashMobs.Where(x => x.IsAnySpecies([TargetID.ScarletPhantomBeamNM, TargetID.ScarletPhantomDeathBeamCM, TargetID.ScarletPhantomDeathBeamCM2])).ToList();
             var bombs = Targets.Where(x => x.IsSpecies(TargetID.FerrousBomb));
             var echoPhases = GetSubPhasesByInvul(log, Untargetable, echoOfScarlet, true, true, echoStart, log.LogData.LogEnd);
             for (int i = 0; i < echoPhases.Count; i++)
@@ -694,7 +690,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                     var phaseID = ((i / 2) + 1);
                     subPhase.Name = "Echo Phase " + phaseID;
                     subPhase.AddTarget(echoOfScarlet, log);
-                    if (beamNPCs.Any(x => subPhase.IntersectsWindow(x.FirstAware, x.LastAware))) 
+                    if (beamNPCs.Any(x => subPhase.IntersectsWindow(x.FirstAware, x.LastAware)))
                     {
                         var prePuzzleStart = subPhase.Start;
                         var prePuzzleEnd = beamNPCs.Where(x => subPhase.IntersectsWindow(x.FirstAware, x.LastAware)).Min(x => x.FirstAware);
@@ -715,12 +711,12 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                                 postPuzzlePhase.AddParentPhase(subPhase);
                                 postPuzzlePhase.AddTarget(echoOfScarlet, log);
                                 phases.Add(postPuzzlePhase);
-                            } 
+                            }
                             else
                             {
                                 puzzleEnd = subPhase.End;
                             }
-                        } 
+                        }
                         else
                         {
                             puzzleEnd = subPhase.End;
@@ -763,21 +759,42 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
         }
     }
 
-    internal static void RenameScarletPhantoms(IReadOnlyList<SingleActor> targets)
+    internal static void RenameScarletPhantoms(IReadOnlyList<SingleActor> targets, EvtcVersionEvent evtcVersion)
     {
-        foreach (SingleActor target in targets)
+        if (evtcVersion.Build < ArcDPSBuilds.AgentInfoAdded)
         {
-            switch (target.ID)
+            foreach (SingleActor target in targets)
             {
-                case (int)TargetID.ScarletPhantomBreakbar:
-                    target.OverrideName("Elite CC " + target.Character);
-                    break;
-                case (int)TargetID.ScarletPhantomHP:
-                case (int)TargetID.ScarletPhantomHPCM:
-                    target.OverrideName("Elite HP " + target.Character);
-                    break;
-                default:
-                    break;
+                switch (target.ID)
+                {
+                    case (int)TargetID.ScarletPhantomBreakbar:
+                        target.OverrideName("Elite CC " + target.Character);
+                        break;
+                    case (int)TargetID.ScarletPhantomHP:
+                    case (int)TargetID.ScarletPhantomHPCM:
+                        target.OverrideName("Elite HP " + target.Character);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        else
+        {
+            foreach (SingleActor target in targets)
+            {
+                switch (target.ID)
+                {
+                    case (int)TargetID.ScarletPhantomBreakbar:
+                        target.OverrideName("CC " + target.Character);
+                        break;
+                    case (int)TargetID.ScarletPhantomHP:
+                    case (int)TargetID.ScarletPhantomHPCM:
+                        target.OverrideName("HP " + target.Character);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -803,7 +820,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
         }
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         EchoOfScarletSanitizeLastHealthUpdateEvents(Targets, combatData);
-        RenameScarletPhantoms(Targets);
+        RenameScarletPhantoms(Targets, evtcVersion);
     }
 
     /// <summary>
@@ -870,8 +887,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
             var connector = new AgentConnector(target);
             var rotation = new AngleConnector(facingDirection.Value);
             var pie = (PieDecoration)new PieDecoration(radius, angle, lifespan, Colors.Orange, 0.2, connector).UsingRotationConnector(rotation);
-            replay.Decorations.AddWithGrowing(pie, growing);
-            replay.Decorations.Add(pie.GetBorderDecoration());
+            replay.Decorations.AddWithGrowingWithBorder(pie, growing, Colors.Orange, 0.2);
 
             // If the indicator lifespan matches the growing or the side Mai Trin is casting, add the shockwave.
             if ((target.IsSpecies(TargetID.MaiTrinRaid) && lifespan.end == growing) || target.IsSpecies(TargetID.MaiTrinRaidDuringEcho))
@@ -937,7 +953,7 @@ internal class AetherbladeHideout : EndOfDragonsRaidEncounter
                 long growing = effect.Time + duration;
 
                 // If the Echo is stunned, end the effect early.
-                Segment? stun = target.GetBuffStatus(log, Stun, lifespan.start, lifespan.end).FirstOrNull((in Segment x) => x.Value == 1);
+                Segment? stun = target.GetBuffStatus(log, Stun, lifespan.start, lifespan.end).FirstOrNull((in x) => x.Value == 1);
                 if (stun != null)
                 {
                     lifespan.end = Math.Min(stun.Value.Start, lifespan.end);

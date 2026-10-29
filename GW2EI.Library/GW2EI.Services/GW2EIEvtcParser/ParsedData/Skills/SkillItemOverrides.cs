@@ -9,6 +9,9 @@ public static class SkillItemOverrides
     internal static readonly Dictionary<long, string> OverridenSkillNames = new()
     {
         { WeaponSwap, "Weapon Swap" },
+        { Jumping, "Jumping" },
+        { FlyTo, "Fly To" },
+        { Gliding, "Gliding" },
         { Resurrect, "Resurrect" },
         { Resurrect2, "Resurrect" },
         { Bandage, "Bandage" },
@@ -20,8 +23,28 @@ public static class SkillItemOverrides
         { ArcDPSDodge20220307, "Dodge" },
         { ArcDPSGenericBreakbar, "Generic Breakbar" },
         { ArcDPSGenericBreakbar20220307, "Generic Breakbar" },
+        { ArcDPSGenericKill, "Generic Kill" },
+        { ArcDPSGenericDown, "Generic Down" },
+        { ArcDPSGenericEvade, "Generic Evade" },
+        { ArcDPSGenericInterrupt, "Generic Interrupt" },
+        { ArcDPSGenericAbsorb, "Generic Absorb" },
+        { ArcDPSGenericMiss, "Generic Miss" },
+        { ArcDPSGenericKnockdown, "Generic Knockdown" },
+        { ArcDPSGenericKnockbackPull, "Generic Knockdown or Pull" },
+        { ArcDPSGenericFloat, "Generic Float" },
+        { ArcDPSGenericLaunch, "Generic Launch" },
+        { ArcDPSGenericWaterFloatSinkDefunc, "Generic Float or Sink (Water)" },
+        { ArcDPSGenericCCBuff, "Generic CC Buff" },
+        { ArcDPSGenericStagger, "Generic Stagger" },
+        { ArcDPSGenericInvalid, "Invalid" },
         { ArcDPSGenericGadgetInteract, "Gadget Interaction" },
-        { ArcDPSGenericEmote, "Emote" },
+        { ArcDPSEmote, "Emote" },
+        { ArcDPSGenericFloatWater, "Generic Float (Water)" },
+        { ArcDPSGenericSink, "Generic Sink" },
+        { ArcDPSGenericLockOut, "Generic Lock Out" },
+        { ArcDPSGenericFear, "Generic Fear" },
+        { ArcDPSPickUp, "Pick Up" },
+        { ArcDPSGenericFallDown, "Generic Fall Down" },
 #endregion
         { WaterBlastCombo1, "Water Blast Combo" },
         { WaterBlastCombo2, "Water Blast Combo" },
@@ -155,6 +178,7 @@ public static class SkillItemOverrides
         { HarmoniousHarpAfterimage, "Harmonious Harp (Afterimage)" },
         { MindWrackOrMindWrackAmmo, "Mind Wrack" },
         { SplitSecondOrSplitSecondAmmo, "Split Second" },
+        { MirageMirrorShatter, "Mirage Mirror Shatter" },
         #endregion Mesmer
         #region Necromancer
         { DesertEmpowerment, "Desert Empowerment" },
@@ -250,6 +274,7 @@ public static class SkillItemOverrides
         { HarriersTossAdrenalineLevel2, "Harrier's Toss (Adrenaline Level 2)" },
         { HarriersTossAdrenalineLevel3, "Harrier's Toss (Adrenaline Level 3)" },
         { BerserkEndSkill, "Berserk (End)" },
+        { RendFollowUpDamage, "Rend (Follow Up)" },
         #endregion Warrior
         // Special Forces Training Area
         { MushroomKingsBlessing, "Mushroom King's Blessing (PoV Only)" },
@@ -428,6 +453,8 @@ public static class SkillItemOverrides
     internal static readonly Dictionary<long, string> OverridenSkillIcons = new()
     {
         { WeaponSwap, SkillImages.WeaponSwap },
+        //{ Jumping, SkillImages.Jumping }, Icon for jumping?
+        { Gliding, ItemImages.BasicGlider },
         { WeaponStow, SkillImages.WeaponStow },
         { WeaponDraw, SkillImages.WeaponDraw },
         { Resurrect, SkillImages.Resurrect },
@@ -435,13 +462,24 @@ public static class SkillItemOverrides
         { Bandage, SkillImages.Bandage },
         { LevelUp, ParserIcons.LevelUp },
         { LevelUp2, ParserIcons.LevelUp },
-        { ArcDPSGenericBreakbar, ParserIcons.Breakbar },
-        { ArcDPSDodge, SkillImages.Dodge },
-        { ArcDPSGenericBreakbar20220307, ParserIcons.Breakbar },
-        { ArcDPSDodge20220307, SkillImages.Dodge },
         { Poisoned, BuffImages.Poison },
         { RescueProtocol, SkillImages.RescueProtocol },
         { PetRevive, SkillImages.LickWounds },
+        { ArcDPSDodge, SkillImages.Dodge },
+        { ArcDPSDodge20220307, SkillImages.Dodge },
+        { ArcDPSGenericBreakbar, ParserIcons.Breakbar },
+        { ArcDPSGenericBreakbar20220307, ParserIcons.Breakbar },
+        { ArcDPSGenericEvade, BuffImages.Evade },
+        { ArcDPSGenericAbsorb, BuffImages.Determined },
+        { ArcDPSGenericMiss, BuffImages.Blind },
+        { ArcDPSGenericKnockdown, BuffImages.KnockdownPull },
+        { ArcDPSGenericKnockbackPull, BuffImages.Knockback },
+        { ArcDPSGenericFloat, BuffImages.Float },
+        { ArcDPSGenericLaunch, BuffImages.Launch },
+        { ArcDPSGenericWaterFloatSinkDefunc, BuffImages.Float },
+        { ArcDPSGenericFloatWater, BuffImages.Float },
+        { ArcDPSGenericSink, BuffImages.Sink },
+        { ArcDPSGenericFear, BuffImages.Fear },
         #region ComboIcons
         // Combos
         { WaterBlastCombo1, ParserIcons.Healing },
@@ -518,6 +556,7 @@ public static class SkillItemOverrides
         { SkyscaleFireballSkill, SkillImages.SkyscaleFireball },
         { SkyscaleFireballDamage, SkillImages.SkyscaleFireball },
         { SkyscaleBlastSkill, SkillImages.SkyscaleBlast },
+        { SkyscaleBlastDamage, SkillImages.SkyscaleBlast },
         // Raptor
         { RaptorTailSpin, SkillImages.RaptorTailSpin },
         // Warclaw
@@ -535,6 +574,7 @@ public static class SkillItemOverrides
         { WarclawDashWildClaws, SkillImages.WarclawDash },
         // Jackal
         { JackalPounceDamage, SkillImages.JackalPounce },
+        { JackalPounceBarrier, SkillImages.JackalPounce },
         // Griffon
         { GriffonSwoopDamage, SkillImages.GriffonSwoop },
         // Beetle
@@ -588,6 +628,8 @@ public static class SkillItemOverrides
         { RelicOfTheForestDwellerMissileDamage, ItemImages.RelicOfTheForestDweller },
         { RelicOfGaldraSkill, ItemImages.RelicOfGaldra },
         { RelicOfTheCruelOverseer, ItemImages.RelicOfTheCruelOverseer },
+        { RelicOfTheEternalAlchemyHealing, ItemImages.RelicOfTheEternalAlchemy },
+        { RelicOfTheLastTyrantDamage, ItemImages.RelicOfTheLastTyrant },
 #endregion RelicIcons
         #region ElementalistIcons
         { EarthenBlast, TraitImages.EarthenBlast },
@@ -790,6 +832,7 @@ public static class SkillItemOverrides
             { HarmoniousHarpAfterimage, SkillImages.HarmoniousHarp },
             { MindWrackOrMindWrackAmmo, SkillImages.MindWrack },
             { SplitSecondOrSplitSecondAmmo, SkillImages.SplitSecond },
+            { MirageMirrorShatter, SkillImages.MirageCloak },
             #endregion  MesmerIcons
             #region NecromancerIcons
             { LifeFromDeath, TraitImages.LifeFromDeath },
@@ -1158,6 +1201,7 @@ public static class SkillItemOverrides
             { ChantOfRecuperationHealing, SkillImages.ChantOfRecuperation },
             { ChantOfRecuperationBarrier, SkillImages.ChantOfRecuperation },
             { UnshakableMountainBarrier, TraitImages.UnshakableMountain },
+            { RendFollowUpDamage, SkillImages.Rend },
         #endregion WarriorIcons
             #region EncounterIcons
             { KickHeavyBomb, SkillImages.Kick },
@@ -1236,7 +1280,7 @@ public static class SkillItemOverrides
             // - Arkk
             { HypernovaLaunchSAK, SkillImages.CelestialDash },
             // - Eparch
-            { HeartOfTheObscure, "https://wiki.guildwars2.com/images/5/5a/Scan_for_Rift.png" },
+            { HeartOfTheObscure, SkillImages.HeartOfTheObscure },
             // Kela
             { ThrowRelic, SkillImages.ThrowLight },
             // Freezie
@@ -1249,6 +1293,25 @@ public static class SkillItemOverrides
             { HealingRainConvergence, SkillImages.PacifiedMagicalStorm },
             { WatchfulSpirit, SkillImages.WatchfulSpirit },
             { RideTheLeyLine, SkillImages.RideTheLeyLine },
+            { UnstableMagicVolley, SkillImages.UnstableMagicVolley },
+            { FocusedMagic, SkillImages.FocusedMagic },
+            // - Nexus of Eternity Convergence
+            { HeartOfTheObscureVoE, SkillImages.HeartOfTheObscure },
+            { HeartOfTheObscureVoE2, SkillImages.HeartOfTheObscure },
+            { WildWrath, SkillImages.WildWrath },
+            { NurturingBloom1, SkillImages.WildWrath },
+            { NurturingBloom2, SkillImages.WildWrath },
+            { AberrantFeast, SkillImages.AberrantFeast },
+            { MirrorWall, SkillImages.MirrorWall },
+            { ElementalHurricane, SkillImages.ElementalHurricane },
+            { ShadowDance, SkillImages.ShadowDance },
+            { ShadowsTorment, SkillImages.ShadowsTorment },
+            { FerociousAssault1, SkillImages.FerociousAssault },
+            { FerociousAssault2, SkillImages.FerociousAssault },
+            { FerociousAssault3, SkillImages.FerociousAssault },
+            { FerociousAssault4, SkillImages.FerociousAssault },
+            { TheBigGun, SkillImages.TheBigGun },
+            { VesselOfTheMists, SkillImages.VesselOfTheMists },
         #endregion  EncounterIcons
         #region Misc
             { WhirlingAssault, SkillImages.WhirlingAssault },
@@ -1259,6 +1322,9 @@ public static class SkillItemOverrides
             { HollowedBoulderShot, SkillImages.FireBoulder },
             { SmokeScreen, "https://wiki.guildwars2.com/images/0/0a/Smoke_Screen_%28engineer_skill%29.png" },
             { EjectionSeat, SkillImages.Eject },
+            { CorpseToss, SkillImages.CorpseToss },
+            { ThrowTorchSacredTorch, SkillImages.ThrowTorch },
+            { RushHaresSpeed, SkillImages.RushHaresSpeed },
         #endregion
         #region WvWIcons
             { WvWSpendingSupplies, "https://wiki.guildwars2.com/images/b/b7/Repair_Master.png" },

@@ -4,6 +4,7 @@ namespace GW2EIEvtcParser.ParsedData;
 
 public class SkillData
 {
+    public IReadOnlyCollection<SkillItem> AllSkills => _skills.Values;
     // Fields
     private readonly Dictionary<long, SkillItem> _skills = [];
     private readonly GW2EIGW2API.GW2APIController _apiController;
@@ -27,7 +28,7 @@ public class SkillData
         return _skills[ID];
     }
 
-    
+
     internal bool TryGet(long ID, [NotNullWhen(true)] out SkillItem? skillItem)
     {
         return _skills.TryGetValue(ID, out skillItem);
@@ -63,17 +64,6 @@ public class SkillData
         if (!_skills.ContainsKey(id))
         {
             _skills.Add(id, new SkillItem(id, name, _apiController));
-        }
-    }
-
-    internal void CombineWithSkillInfo(Dictionary<long, SkillInfoEvent> skillInfoEvents)
-    {
-        foreach (KeyValuePair<long, SkillItem> pair in _skills)
-        {
-            if (skillInfoEvents.TryGetValue(pair.Key, out var skillInfoEvent))
-            {
-                pair.Value.AttachSkillInfoEvent(skillInfoEvent);
-            }
         }
     }
 

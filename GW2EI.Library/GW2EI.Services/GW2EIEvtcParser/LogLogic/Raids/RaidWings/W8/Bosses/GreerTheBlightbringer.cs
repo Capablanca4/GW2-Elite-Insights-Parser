@@ -6,15 +6,14 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -49,7 +48,7 @@ internal class GreerTheBlightbringer : MountBalrior
                     new PlayerDstEffectMechanic([EffectGUIDs.GreerEruptionOfRotGreen, EffectGUIDs.GreerEruptionOfRotGreen2, EffectGUIDs.GreerEruptionofRotGreen3], Mech_EruptionOfRootTarget, new (Symbols.Circle, Colors.Green), new("ErupRot.T", "Targeted by Eruption of Rot (Green)", "Eruption of Rot (Green)"), Sev1),
                 ]),
                 new PlayerDstHealthDamageHitMechanic([RipplesOfRot, RipplesOfRot2, RipplesOfRotCM, RipplesOfRotCM2], Mech_RipplesOfRot, new (Symbols.StarSquareOpenDot, Colors.Chocolate), new("RippRot.H", "Hit by Ripples of Rot", "Ripples of Rot Hit"), Sev1),
-                new PlayerDstBuffApplyMechanic(PlagueRot, Mech_PlagueRot, new (Symbols.YDown, Colors.Red), new("PlagueRot", "Received Plague Rot", "Plague Rot"), Sev0),
+                new PlayerDstBuffApplyMechanic(PlagueRot, Mech_PlagueRot, new (Symbols.YDown, Colors.DarkRed), new("PlagueRot", "Received Plague Rot", "Plague Rot"), Sev0),
                 new MechanicGroup([
                     new AchievementEligibilityMechanic(Ach_Unplagued, Mech_UnplaguedLost, new (Symbols.YDown, Colors.DarkYellow), new("Unplagued.Achiv.L", "Achievement Eligibility: Guaranteed Plague Free Lost", "Achiv Unplagued Lost"))
                         .UsingChecker((evt, log) => evt.Lost),
@@ -86,7 +85,18 @@ internal class GreerTheBlightbringer : MountBalrior
             ]),
             new PlayerDstBuffRemoveMechanic(Boons, Mech_BoonsCorruptedGreer, new (Symbols.Octagon, Colors.Purple), new("BoonCorrupt", "Boons corrupted (any)", "Boons Corrupted"), Sev0, 100)
                 .UsingChecker((brae, log) => brae.By.IsAnySpecies([(int)TargetID.Greer, (int)TargetID.Gree, (int)TargetID.Reeg, (int)TargetID.Ereg])),
-            new EnemyDstBuffApplyMechanic(EmpoweredGreer, Mech_EmpoweredGreer, new (Symbols.YUp, Colors.Red), new("Empowered", "Gained Empowered", "Empowered"), Sev0),
+            new MechanicGroup([
+                new PlayerSrcBuffApplyMechanic(EmpoweredGreer, Mech_EmpoweredGreerEncounterReflect, new (Symbols.YUp, Colors.DarkRed), new("Empowered.Rfl", "Reflected empowering orb back to target", "Empowered Enemy"), Sev0),
+                new EnemyDstBuffApplyMechanic(EmpoweredGreer, Mech_EmpoweredGreerEncounter, new (Symbols.YUp, Colors.Red), new("Empowered", "Gained Empowered", "Empowered"), Sev0),
+                new EnemySrcEnemyDstBuffApplyMechanic(EmpoweredGreer, Mech_EmpoweredGreer, new (Symbols.Y, Colors.Red), new("Empowered.Gr", "Greer Gained Empowered", "Greer Empowered"), Sev0)
+                    .UsingChecker((brae, log) => brae.To.IsSpecies(TargetID.Greer)),
+                new EnemySrcEnemyDstBuffApplyMechanic(EmpoweredGreer, Mech_EmpoweredEreg, new (Symbols.YRight, Colors.Red), new("Empowered.E", "Ereg Gained Empowered", "Ereg Empowered"), Sev0)
+                    .UsingChecker((brae, log) => brae.To.IsSpecies(TargetID.Ereg)),
+                new EnemySrcEnemyDstBuffApplyMechanic(EmpoweredGreer, Mech_EmpoweredGree, new (Symbols.YLeft, Colors.Red), new("Empowered.Ge", "Gree Gained Empowered", "Gree Empowered"), Sev0)
+                    .UsingChecker((brae, log) => brae.To.IsSpecies(TargetID.Gree)),
+                new EnemySrcEnemyDstBuffApplyMechanic(EmpoweredGreer, Mech_EmpoweredReeg, new (Symbols.YDown, Colors.Red), new("Empowered.R", "Reeg Gained Empowered", "Reeg Empowered"), Sev0)
+                    .UsingChecker((brae, log) => brae.To.IsSpecies(TargetID.Reeg)),
+            ]),
         ]);
 
     public GreerTheBlightbringer(int triggerID) : base(triggerID)
@@ -150,13 +160,16 @@ internal class GreerTheBlightbringer : MountBalrior
         return startToUse;
     }
 
-    internal static void RenameProtoGreerlings(IReadOnlyList<SingleActor> targets)
+    internal static void RenameProtoGreerlings(IReadOnlyList<SingleActor> targets, EvtcVersionEvent evtcVersion)
     {
-        foreach (SingleActor target in targets)
+        if (evtcVersion.Build < ArcDPSBuilds.AgentInfoAdded)
         {
-            if (target.IsSpecies(TargetID.ProtoGreerling))
+            foreach (SingleActor target in targets)
             {
-                target.OverrideName("Champion " + target.Character);
+                if (target.IsSpecies(TargetID.ProtoGreerling))
+                {
+                    target.OverrideName("Champion " + target.Character);
+                }
             }
         }
     }
@@ -164,7 +177,7 @@ internal class GreerTheBlightbringer : MountBalrior
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
-        RenameProtoGreerlings(Targets);
+        RenameProtoGreerlings(Targets, evtcVersion);
     }
 
     internal override LogData.Mode GetLogMode(CombatData combatData, AgentData agentData, LogData logData)
@@ -361,12 +374,7 @@ internal class GreerTheBlightbringer : MountBalrior
                 }
 
                 // Rot the World - Breakbar
-                var breakbarUpdates = target.GetBreakbarPercentUpdates(log);
-                var (breakbarNones, breakbarActives, breakbarImmunes, breakbarRecoverings) = target.GetBreakbarStatus(log);
-                foreach (var segment in breakbarActives)
-                {
-                    replay.Decorations.AddActiveBreakbar(segment.TimeSpan, target, breakbarUpdates);
-                }
+                replay.Decorations.AddActiveBreakbars(log, target);
 
                 // Invulnerable Barrier
                 if (log.CombatData.TryGetEffectEventsBySrcWithGUID(target.AgentItem, EffectGUIDs.GreerInvulnerableBarrier, out var invulnerableBarriers))
@@ -799,14 +807,11 @@ internal class GreerTheBlightbringer : MountBalrior
         var blobOfBlightMiniOrbs = blobOfBlightOrbs.Where(x => x.LaunchEvents.Any(x => x.Speed == 0.4f || x.Speed == 0.5f));
 
         // Main Orbs
-        foreach (MissileEvent missileEvent in blobOfBlightMainOrbs)
+        CombatReplayDecorationContainer.AddHomingMissiles(log, blobOfBlightMainOrbs, (launch, lifespan, connector) =>
         {
-            CombatReplayDecorationContainer.AddHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
-            {
-                replay.Decorations.Add(new CircleDecoration(60, lifespan, Colors.GreenishYellow, 0.3, connector));
-                replay.Decorations.Add(new DoughnutDecoration(60, 80, lifespan, Colors.LightPurple, 0.3, connector));
-            });
-        }
+            replay.Decorations.Add(new CircleDecoration(60, lifespan, Colors.GreenishYellow, 0.3, connector));
+            replay.Decorations.Add(new DoughnutDecoration(60, 80, lifespan, Colors.LightPurple, 0.3, connector));
+        });
 
         // Mini Orbs
         replay.Decorations.AddNonHomingMissiles(log, blobOfBlightMiniOrbs, Colors.GreenishYellow, 0.3, 25);

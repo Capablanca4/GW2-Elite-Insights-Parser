@@ -4,14 +4,13 @@ using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -64,7 +63,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
         LogID |= 0x000003;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -95,10 +94,10 @@ internal class QadimThePeerless : TheKeyOfAhdashim
 
     internal override List<InstantCastFinder> GetInstantCastFinders()
     {
-        return [ new DamageCastFinder(UnbrearablePower, UnbrearablePower) ];
+        return [new DamageCastFinder(UnbrearablePower, UnbrearablePower)];
     }
 
-    private static readonly IReadOnlyList<(string, Vector2)> PylonLocations = 
+    private static readonly IReadOnlyList<(string, Vector2)> PylonLocations =
     [
         ("(N)", new(1632.32837f, 11588.4014f)),
         ("(SW)", new(322.5202f, 9321.848f)),
@@ -230,7 +229,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
         SingleActor mainTarget = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.QadimThePeerless)) ?? throw new MissingKeyActorsException("Peerless Qadim not found");
         phases[0].AddTarget(mainTarget, log);
         phases.AddRange(ComputePhases(log, mainTarget, (EncounterPhaseData)phases[0], requirePhases));
-        
+
         return phases;
     }
 
@@ -329,19 +328,9 @@ internal class QadimThePeerless : TheKeyOfAhdashim
                         // Caustic Chaos - Arrow Projectile
                         case CausticChaosProjectile:
                             {
-                                double acceleration = cast.Acceleration;
-                                double ratio = 1.0;
-                                if (acceleration > 0)
-                                {
-                                    ratio = acceleration * 0.5 + 1;
-                                }
-                                else
-                                {
-                                    ratio = acceleration * 0.6 + 1;
-                                }
                                 uint chaosLength = 2600;
                                 uint chaosWidth = 100;
-                                int aimTime = (int)(cast.ExpectedDuration * ratio);
+                                int aimTime = cast.ExpectedScaledDuration;
                                 lifespan = (cast.Time, cast.EndTime);
                                 (long start, long end) lifespanProj = (lifespan.start + aimTime, lifespan.end);
                                 if (replay.Rotations.Count != 0)
@@ -394,12 +383,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
                         lifespan = (lifespan.start - 5000, lifespan.start);
                         replay.Decorations.AddWithGrowing(new CircleDecoration(radiusAnomaly, lifespan, Colors.Red, 0.3, new PositionConnector(replay.PolledPositions[0].XYZ)), lifespan.start);
                     }
-                    var breakbarUpdates = target.GetBreakbarPercentUpdates(log);
-                    var (breakbarNones, breakbarActives, breakbarImmunes, breakbarRecoverings) = target.GetBreakbarStatus(log);
-                    foreach (var segment in breakbarActives)
-                    {
-                        replay.Decorations.AddActiveBreakbar(segment.TimeSpan, target, breakbarUpdates);
-                    }
+                    replay.Decorations.AddActiveBreakbars(log, target);
                 }
                 break;
             case (int)TargetID.BigKillerTornado:
@@ -410,12 +394,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
                     // Red tether from Qadim to the Pylon during breakbar
                     var breakbarBuffs = GetBuffApplyRemoveSequence(log.CombatData, QadimThePeerlessBreakbarTargetBuff, target, true, true);
                     replay.Decorations.AddTethers(breakbarBuffs, Colors.Red, 0.4);
-                    var breakbarUpdates = target.GetBreakbarPercentUpdates(log);
-                    var (breakbarNones, breakbarActives, breakbarImmunes, breakbarRecoverings) = target.GetBreakbarStatus(log);
-                    foreach (var segment in breakbarActives)
-                    {
-                        replay.Decorations.AddActiveBreakbar(segment.TimeSpan, target, breakbarUpdates);
-                    }
+                    replay.Decorations.AddActiveBreakbars(log, target);
                 }
                 break;
             case (int)TargetID.PeerlessQadimAuraPylon:
@@ -429,7 +408,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
                 if (firstLiftUp != null)
                 {
                     // Add 15s of wiggle room at the start
-                    replay.Trim(firstLiftUp.Time - 15000, target.LastAware);
+                    replay.HideInInterval(new(target.FirstAware, firstLiftUp.Time - 15000));
                 }
                 break;
             default:
@@ -467,7 +446,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
         uint magmaRadius = 420;
         int magmaOffset = 4000;
         int magmaDuration = 600000;
-       
+
         int magmaCounter = 0;
         foreach (Segment seg in magmaDrop)
         {
@@ -538,8 +517,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
 
                 (long, long) lifespan = effect.ComputeLifespan(log, 3000);
                 var circle = new CircleDecoration(radius, lifespan, Colors.Orange, 0.2, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.Item2));
+                environmentDecorations.AddWithGrowing(circle, lifespan.Item2);
             }
         }
 
@@ -550,8 +528,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
             {
                 (long, long) lifespan = effect.ComputeLifespan(log, 600000);
                 var circle = new CircleDecoration(75, lifespan, Colors.Red, 0.1, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().GetBorderDecoration(Colors.Red, 0.4));
+                environmentDecorations.AddWithBorder(circle, Colors.Red, 0.4);
             }
         }
 
@@ -598,9 +575,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
                 }
                 // Main circle
                 var circle = new CircleDecoration(190, lifespan, color, 0.3, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().GetBorderDecoration(Colors.White, 0.5));
-                environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.Item2, true));
+                environmentDecorations.AddWithGrowingWithBorder(circle, lifespan.Item2, Colors.White, 0.5, true);
             }
         }
 
@@ -624,8 +599,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
             {
                 (long, long) lifespan = effect.ComputeLifespan(log, 3000);
                 var circle = new CircleDecoration(220, lifespan, Colors.Orange, 0.1, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.Item2));
+                environmentDecorations.AddWithGrowing(circle, lifespan.Item2);
             }
         }
 
@@ -656,8 +630,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
                     var connector = new PositionConnector(effect.Position);
                     (long, long) lifespan = effect.ComputeLifespan(log, 4000);
                     var circle = new CircleDecoration(420, lifespan, magmaColor, 0.2, connector);
-                    environmentDecorations.Add(circle);
-                    environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.Item2));
+                    environmentDecorations.AddWithGrowing(circle, lifespan.Item2);
                 }
             }
         }
@@ -709,7 +682,7 @@ internal class QadimThePeerless : TheKeyOfAhdashim
     }
     private static void AddTetherDecorations(ParsedEvtcLog log, SingleActor actor, CombatReplay replay, long buffID, Color color, double opacity)
     {
-        var tethers = log.CombatData.GetBuffDataByIDByDst(buffID, actor.AgentItem).Where(x => x is not BuffRemoveManualEvent);
+        var tethers = log.CombatData.GetBuffDataByIDByDst(buffID, actor.AgentItem).Where(x => x is not BuffRemoveManualEvent).ToList();
         var tethersRemoves = new HashSet<AbstractBuffRemoveEvent>(tethers.OfType<AbstractBuffRemoveEvent>());
         foreach (var appliedTether in tethers.OfType<BuffApplyEvent>())
         {

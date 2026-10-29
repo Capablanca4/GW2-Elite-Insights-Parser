@@ -107,7 +107,7 @@ public static class AgentManipulationHelper
         }
         // Copy states
         var stateEventsToCopy = new List<CombatItem>();
-        Func<CombatItem, bool> canCopyFromAgent = (evt) => stateCopyFroms.Any(x => evt.SrcMatchesAgent(x));
+        bool canCopyFromAgent(CombatItem evt) => stateCopyFroms.Any(x => evt.SrcMatchesAgent(x));
         var stateChangeCopyFromAgentConditions = new List<Func<CombatItem, bool>>()
         {
             (x) => x.IsStateChange == StateChange.BreakbarState,
@@ -117,6 +117,11 @@ public static class AgentManipulationHelper
             (x) => x.IsStateChange == StateChange.BarrierUpdate,
             (x) => x.IsStateChange == StateChange.Targetable,
             (x) => x.IsStateChange == StateChange.StealthChange,
+            (x) => x.IsStateChange == StateChange.GadgetAnimation,
+            (x) => x.IsStateChange == StateChange.GadgetModelInfo,
+            (x) => x.IsStateChange == StateChange.GadgetNameVisible,
+            (x) => x.IsStateChange == StateChange.Transformation,
+            (x) => x.IsStateChange == StateChange.AgentInfo,
             (x) => (x.IsStateChange == StateChange.EnterCombat || x.IsStateChange == StateChange.ExitCombat),
             (x) => (x.IsStateChange == StateChange.Spawn || x.IsStateChange == StateChange.Despawn || x.IsStateChange == StateChange.ChangeDead || x.IsStateChange == StateChange.ChangeDown || x.IsStateChange == StateChange.ChangeUp),
         };
@@ -137,7 +142,7 @@ public static class AgentManipulationHelper
         // Copy positional data from attack targets
         if (copyPositionalDataFromAttackTarget && attackTargetAgents.Count != 0)
         {
-            Func<CombatItem, bool> canCopyFromAttackTarget = (evt) => attackTargetAgents.Any(x => evt.SrcMatchesAgent(x));
+            bool canCopyFromAttackTarget(CombatItem evt) => attackTargetAgents.Any(x => evt.SrcMatchesAgent(x));
             var stateChangeCopyFromAttackTargetConditions = new List<Func<CombatItem, bool>>()
             {
                 (x) => x.IsPosition,
@@ -221,7 +226,7 @@ public static class AgentManipulationHelper
                     if (originalPlayer.Regrouped.Count > 0)
                     {
 
-                        var copyFrom = originalPlayer.Regrouped.LastOrNull((in AgentItem.MergedAgentItem x) => x.Merged.FirstAware <= start && x.Merged.BaseSpec == SpecToBaseSpec(enterCombat.Spec));
+                        var copyFrom = originalPlayer.Regrouped.LastOrNull((in x) => x.Merged.FirstAware <= start && x.Merged.BaseSpec == SpecToBaseSpec(enterCombat.Spec));
                         if (copyFrom != null)
                         {
                             list.Add((start, copyFrom.Value.Merged, enterCombat.Spec, enterCombat.Subgroup, true));
@@ -238,7 +243,7 @@ public static class AgentManipulationHelper
                 }
             }
         }
-        list.Sort((x,y) => x.start.CompareTo(y.start));
+        list.Sort((x, y) => x.start.CompareTo(y.start));
         var previousPlayerAgent = originalPlayer;
         var firstSplit = true;
         previousSpec = player.Spec;
@@ -280,7 +285,7 @@ public static class AgentManipulationHelper
         }
     }
 
-    private static void RegroupAgents(AgentData agentData, IEnumerable<AgentItem> agentsToRegroup, IReadOnlyDictionary<AgentItem, List<CombatItem>> srcCombatDataDict, IReadOnlyDictionary<AgentItem, List<CombatItem>> dstCombatDataDict, List<AgentItem> toAdd, List<AgentItem> toRemove)
+    private static void RegroupAgents(AgentData agentData, IReadOnlyList<AgentItem> agentsToRegroup, IReadOnlyDictionary<AgentItem, List<CombatItem>> srcCombatDataDict, IReadOnlyDictionary<AgentItem, List<CombatItem>> dstCombatDataDict, List<AgentItem> toAdd, List<AgentItem> toRemove)
     {
 
         AgentItem firstItem = agentsToRegroup.First();
@@ -349,7 +354,7 @@ public static class AgentManipulationHelper
                         if (curAgent.CouldBeEqual(previousAgent) && curStateTime == previousStateTime && !curAgent.GetFinalMaster().IsPlayer)
                         {
                             agentToRegroup.Add(curAgent);
-                        } 
+                        }
                         else
                         {
                             if (agentToRegroup.Count > 1)
@@ -366,7 +371,7 @@ public static class AgentManipulationHelper
                         RegroupAgents(agentData, agentToRegroup, srcCombatDataDict, dstCombatDataDict, toAdd, toRemove);
                     }
                 }
-            } 
+            }
             else
             {
                 long distanceThreshold = 4980; // 5000 - 20
@@ -383,7 +388,7 @@ public static class AgentManipulationHelper
                         {
                             if (lastPositionEvents.TryGetValue(previousAgent, out var agentPosition))
                             {
-                                var nextPovPosition = povPositions.FirstOrNull((in ParametricPoint3D x) => x.Time > previousAgent.LastAware);
+                                var nextPovPosition = povPositions.FirstOrNull((in x) => x.Time > previousAgent.LastAware);
                                 if (nextPovPosition != null)
                                 {
                                     var length = (nextPovPosition.Value.XYZ - agentPosition).Length();
@@ -396,7 +401,7 @@ public static class AgentManipulationHelper
                             }
                             if (goNext && firstPositionEvents.TryGetValue(curAgent, out agentPosition))
                             {
-                                var prevPovPosition = povPositions.LastOrNull((in ParametricPoint3D x) => x.Time < curAgent.FirstAware);
+                                var prevPovPosition = povPositions.LastOrNull((in x) => x.Time < curAgent.FirstAware);
                                 if (prevPovPosition != null)
                                 {
                                     var length = (prevPovPosition.Value.XYZ - agentPosition).Length();
@@ -484,7 +489,7 @@ public static class AgentManipulationHelper
                 var players = playersByAccount.Value;
                 if (players.Count > 1)
                 {
-                    RegroupAgents(agentData, players.Select(x => x.AgentItem), srcCombatDataDict, dstCombatDataDict, toAdd, toRemove);
+                    RegroupAgents(agentData, players.Select(x => x.AgentItem).ToList(), srcCombatDataDict, dstCombatDataDict, toAdd, toRemove);
                 }
             }
         }
@@ -536,31 +541,15 @@ public static class AgentManipulationHelper
     /// <param name="expectedStart"></param>
     /// <param name="expectedEnd"></param>
     /// <returns></returns>
-    internal static AgentItem CreateAgentInIntervalAndDummiesAround(AgentItem originalAgent, AgentData agentData, long expectedStart, long expectedEnd)
+    internal static AgentItem CreateEnglobedAgentInInterval(AgentItem originalAgent, AgentData agentData, long expectedStart, long expectedEnd)
     {
+        expectedStart = Math.Max(originalAgent.FirstAware, expectedStart);
+        expectedEnd = Math.Min(expectedEnd, originalAgent.LastAware);
         AgentItem newAgentItem;
-        if (expectedStart != originalAgent.FirstAware && expectedEnd != originalAgent.LastAware)
+        if (expectedStart != originalAgent.FirstAware || expectedEnd != originalAgent.LastAware)
         {
-            var previousDummy = agentData.AddCustomAgentFrom(originalAgent, originalAgent.FirstAware, expectedStart - 1, originalAgent.Spec);
-            previousDummy.SetEnglobingAgentItem(originalAgent, agentData);
-            newAgentItem = agentData.AddCustomAgentFrom(originalAgent, expectedStart, expectedEnd - 1, originalAgent.Spec);
+            newAgentItem = agentData.AddCustomAgentFrom(originalAgent, expectedStart, expectedEnd, originalAgent.Spec);
             newAgentItem.SetEnglobingAgentItem(originalAgent, agentData);
-            var followingDummy = agentData.AddCustomAgentFrom(originalAgent, expectedEnd, originalAgent.LastAware, originalAgent.Spec);
-            followingDummy.SetEnglobingAgentItem(originalAgent, agentData);
-        }
-        else if (expectedStart != originalAgent.FirstAware)
-        {
-            var previousDummy = agentData.AddCustomAgentFrom(originalAgent, originalAgent.FirstAware, expectedStart - 1, originalAgent.Spec);
-            previousDummy.SetEnglobingAgentItem(originalAgent, agentData);
-            newAgentItem = agentData.AddCustomAgentFrom(originalAgent, expectedStart, originalAgent.LastAware, originalAgent.Spec);
-            newAgentItem.SetEnglobingAgentItem(originalAgent, agentData);
-        }
-        else if (expectedEnd != originalAgent.LastAware)
-        {
-            newAgentItem = agentData.AddCustomAgentFrom(originalAgent, originalAgent.FirstAware, expectedEnd - 1, originalAgent.Spec);
-            newAgentItem.SetEnglobingAgentItem(originalAgent, agentData);
-            var followingDummy = agentData.AddCustomAgentFrom(originalAgent, expectedEnd, originalAgent.LastAware, originalAgent.Spec);
-            followingDummy.SetEnglobingAgentItem(originalAgent, agentData);
         }
         else
         {

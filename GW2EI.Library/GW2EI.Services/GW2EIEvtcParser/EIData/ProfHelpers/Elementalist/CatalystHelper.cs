@@ -115,7 +115,7 @@ internal static class CatalystHelper
         AddJadeSphereDecoration(player, log, replay, color, EffectGUIDs.CatalystDeployEarthJadeSphere, DeployJadeSphereEarth, EffectImages.EffectDeployJadeSphereEarth);
     }
 
-    internal static void AddJadeSphereDecoration(PlayerActor player, ParsedEvtcLog log, CombatReplay replay, Color color, GUID effect, long skillID, string icon)
+    internal static void AddJadeSphereDecoration(PlayerActor player, ParsedEvtcLog log, CombatReplay replay, Color color, Guid effect, long skillID, string icon)
     {
         if (log.CombatData.TryGetEffectEventsBySrcWithGUID(player.AgentItem, effect, out var sphereEffects))
         {
@@ -129,7 +129,7 @@ internal static class CatalystHelper
                 if (sphereEffect.IsScaled)
                 {
                     replay.Decorations.Add(new CircleDecoration((uint)(240 * sphereEffect.Scale), lifespan, color, 0.5, connector).UsingFilled(false).UsingSkillMode(skillMode));
-                } 
+                }
                 else
                 {
                     replay.Decorations.Add(new CircleDecoration(240, lifespan, color, 0.5, connector).UsingFilled(false).UsingSkillMode(skillMode));

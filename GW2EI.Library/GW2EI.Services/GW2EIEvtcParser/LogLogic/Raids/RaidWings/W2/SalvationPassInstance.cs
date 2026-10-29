@@ -19,7 +19,6 @@ internal class SalvationPassInstance : SalvationPass
     private readonly IReadOnlyList<SalvationPass> _subLogics;
     public SalvationPassInstance(int triggerID) : base(triggerID)
     {
-        LogID = LogIDs.LogMasks.Unsupported;
         Icon = InstanceIconSalvationPass;
         Extension = "salvpass";
 
@@ -132,7 +131,7 @@ internal class SalvationPassInstance : SalvationPass
             long start = pack.Min(x => x.FirstAware);
             long end = pack.Max(x => x.LastAware);
             var success = false;
-            var banditsInBox = banditPositions.Where(x => x.Time < start + 10000 && x.Time > start && x.GetPointXY().IsInBoundingBox(boxStart, boxEnd))
+            var banditsInBox = banditPositions.Where(x => x.Time < start + 10000 && x.Time > start && x.Point2D.IsInBoundingBox(boxStart, boxEnd))
                 .Select(x => x.Src)
                 .ToHashSet();
             if (banditsInBox.Count > 0)
@@ -242,7 +241,7 @@ internal class SalvationPassInstance : SalvationPass
         Slothasor.FindMushrooms(logData, agentData, combatData, extensions);
         Slothasor.FindSlublingTransformations(logData, agentData, combatData, extensions);
         var bees = BanditTrio.CreateCustomInsectSwarmMasterAgent(logData, agentData);
-        BanditTrio.FindCageAndBombs(agentData, combatData, evtcVersion);
+        BanditTrio.FindCageAndBombs(agentData, combatData);
         Matthias.FindSacrifices(logData, agentData, combatData, extensions);
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         BanditTrio.RedirectInsectSwarmsToCustomMaster(bees, agentData);

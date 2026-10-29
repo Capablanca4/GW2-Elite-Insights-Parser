@@ -267,11 +267,21 @@ __pycache__/
 /GW2EI.bin
 
 # Stability test logs
-/GW2EIParser.tst/EvtcLogs/StabilityTest/**/*.evtc
-/GW2EIParser.tst/EvtcLogs/StabilityTest/**/*.zevtc
-/GW2EIParser.tst/EvtcLogs/StabilityTest/**/*.evtc.zip
-/GW2EIParser.tst/EvtcLogs/StabilityTest/**/Link
-/GW2EIParser.tst/EvtcLogs/**/*.json
-/GW2EIParser.tst/EvtcLogs/Crashes/**/*.evtc.zip
-/GW2EIParser.tst/EvtcLogs/Crashes/**/*.zevtc
-/GW2EIParser.tst/EvtcLogs/Crashes/**/*.evtc
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/StabilityTest/**/*.evtc
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/StabilityTest/**/*.zevtc
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/StabilityTest/**/*.evtc.zip
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/StabilityTest/**/Link
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/**/*.json
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/Crashes/**/*.evtc.zip
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/Crashes/**/*.zevtc
+/GW2EI.Executables/GW2EI.Tests/GW2EIParser.tst/EvtcLogs/Crashes/**/*.evtc
+
+# Ignore benchmarks logs
+/GW2EI.Executables/GW2EI.Tests/GW2EIParserBenchmark/TestFiles/*.zevtc
+/GW2EI.Executables/GW2EI.Tests/GW2EIParserBenchmark/TestFiles/*.evtc
+/GW2EI.Executables/GW2EI.Tests/GW2EIParserBenchmark/TestFiles/*.evtc.zip
+
+# Packaging for linux
+packaging/usr/lib/elite-insights/
+*.deb
+*.rpm

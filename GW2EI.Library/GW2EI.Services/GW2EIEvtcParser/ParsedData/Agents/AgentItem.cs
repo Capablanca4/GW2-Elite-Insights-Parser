@@ -41,7 +41,7 @@ public class AgentItem
     public AgentItem? PositionAttachedAgentItem { get; private set; }
     public bool IsEnglobingAgent => _englobedAgentItems != null;
 
-    private static int AgentCount = 0; //TODO(Rennorb) @correctness @threadding: should this be atomic? 
+    private static int AgentCount = 0; //TODO(Rennorb) @correctness @threadding: should this be atomic?
     public enum AgentType { StableSpecies, VolatileSpecies, Player, NonSquadPlayer }
 
     public bool IsPlayer => Type == AgentType.Player || Type == AgentType.NonSquadPlayer;
@@ -62,6 +62,8 @@ public class AgentItem
 
     public long HalfAware => (FirstAware + LastAware) / 2;
     public string Name { get; protected set; } = "UNKNOWN";
+    public string[] SplitName => Name.Split('\0');
+    public string FirstName => SplitName[0];
     public ParserHelper.Spec Spec { get; private set; } = ParserHelper.Spec.Unknown;
     public ParserHelper.Spec BaseSpec { get; private set; } = ParserHelper.Spec.Unknown;
     public ushort Toughness { get; protected set; }
@@ -235,6 +237,7 @@ public class AgentItem
         }
     }
     #endregion OVERRIDES
+    #region MASTER
     internal void SetMaster(AgentItem master)
     {
         if (IsPlayer || master.Is(this))
@@ -252,26 +255,15 @@ public class AgentItem
         }
         Master = master.EnglobingAgentItem;
     }
-
-    internal AgentItem GetMainAgentWhenAttackTarget(ParsedEvtcLog log)
+    public AgentItem GetFinalMaster()
     {
-        var atEvent = log.CombatData.GetAttackTargetEventByAttackTarget(this);
-        return atEvent?.Src ?? this;
-    }
-    internal SingleActor GetMainSingleActorWhenAttackTarget(ParsedEvtcLog log)
-    {
-        var atEvent = log.CombatData.GetAttackTargetEventByAttackTarget(this);
-        return log.FindActor(atEvent?.Src ?? this);
-    }
-    public bool Is(AgentItem? ag)
-    {
-        if (ag == null)
+        AgentItem cur = this;
+        while (cur.Master != null)
         {
-            return false;
+            cur = cur.Master;
         }
-        return EnglobingAgentItem == ag.EnglobingAgentItem;
+        return cur;
     }
-
     public bool IsMasterOrSelf(AgentItem ag)
     {
         return GetFinalMaster().Is(ag);
@@ -291,22 +283,82 @@ public class AgentItem
     }
     public bool IsMasterOf(AgentItem ag)
     {
-        if (ag.Is(this))
+        return ag.IsMaster(this);
+    }
+
+    public bool IsMasterOrSelfAtTime(AgentItem ag, long time)
+    {
+        if (!InAwareTimes(ag))
         {
             return false;
         }
-        return ag.IsMaster(this);
+        return GetFinalMaster().IsAtTime(ag, time);
     }
-    public AgentItem GetFinalMaster()
+    public bool IsMasterAtTime(AgentItem ag, long time)
     {
-        AgentItem cur = this;
-        while (cur.Master != null)
+        if (ag.Is(this) || !InAwareTimes(ag))
         {
-            cur = cur.Master;
+            return false;
         }
-        return cur;
+        return GetFinalMaster().IsAtTime(ag, time);
     }
-
+    public bool IsMasterOfOrSelfAtTime(AgentItem ag, long time)
+    {
+        return ag.IsMasterOrSelfAtTime(this, time);
+    }
+    public bool IsMasterOfAtTime(AgentItem ag, long time)
+    {
+        return ag.IsMasterAtTime(this, time);
+    }
+    #endregion MASTER
+    #region ATTACK TARGET
+    public bool IsAttackTarget(EvtcLog log)
+    {
+        return log.CombatData.GetAttackTargetEventByAttackTarget(this) != null;
+    }
+    public AgentItem GetAttackTargetOwner(EvtcLog log)
+    {
+        return log.CombatData.GetAttackTargetEventByAttackTarget(this)?.Src ?? ParserHelper._unknownAgent;
+    }
+    public bool HasAttackTargets(EvtcLog log)
+    {
+        return log.CombatData.GetAttackTargetEventsBySrc(this).Count > 0;
+    }
+    public IReadOnlyList<AgentItem> GetAttackTargets(EvtcLog log)
+    {
+        var attackTargets = log.CombatData.GetAttackTargetEventsBySrc(this);
+        return attackTargets.Count > 0 ? attackTargets.Select(x => x.AttackTarget).ToList() : [];
+    }
+    public AgentItem GetMainAgentWhenAttackTarget(EvtcLog log)
+    {
+        var atEvent = log.CombatData.GetAttackTargetEventByAttackTarget(this);
+        return atEvent?.Src ?? this;
+    }
+    public SingleActor GetMainSingleActorWhenAttackTarget(ParsedEvtcLog log)
+    {
+        var atEvent = log.CombatData.GetAttackTargetEventByAttackTarget(this);
+        return log.FindActor(atEvent?.Src ?? this);
+    }
+    #endregion ATTACK TARGET
+    #region EQUAL
+    public bool Is(AgentItem? ag)
+    {
+        if (ag == null)
+        {
+            return false;
+        }
+        return EnglobingAgentItem == ag.EnglobingAgentItem;
+    }
+    public bool IsAtTime(AgentItem? ag, long time)
+    {
+        if (!Is(ag))
+        {
+            return false;
+        }
+        return ag!.InAwareTimes(time) && InAwareTimes(time);
+    }
+    #endregion EQUAL
+    #region AWARE TIMES
     public bool InAwareTimes(long time)
     {
         return FirstAware <= time && LastAware >= time;
@@ -323,6 +375,7 @@ public class AgentItem
     {
         return InAwareTimes(other.FirstAware, other.LastAware);
     }
+    #endregion AWARE TIMES
     #region BUFFS
     /// <summary>
     /// Checks if a buff is present on the actor. Given buff id must be in the buff simulator, throws <see cref="InvalidOperationException"/> otherwise
@@ -518,6 +571,7 @@ public class AgentItem
         return log.FindActor(this).GetCurrentBreakbarState(log, time);
     }
     #endregion STATE
+    #region MOVEMENT
     public bool TryGetCurrentPosition(ParsedEvtcLog log, long time, [NotNullWhen(true)] out Vector3? position, long forwardWindow = 0)
     {
         return log.FindActor(this).TryGetCurrentPosition(log, time, out position, forwardWindow);
@@ -531,6 +585,7 @@ public class AgentItem
     {
         return log.FindActor(this).TryGetCurrentFacingDirection(log, time, out facing, forwardWindow);
     }
+    #endregion MOVEMENT
     #region SPECIES
     public bool IsUnamedSpecies()
     {
@@ -594,7 +649,18 @@ public class AgentItem
     {
         return ids.Any(IsSpecies);
     }
+
+    public bool IsVolatileSpecies()
+    {
+        return Type == AgentType.VolatileSpecies;
+    }
+
+    public bool IsCustomSpecies()
+    {
+        return Type == AgentType.StableSpecies && ID < 0;
+    }
     #endregion SPECIES
+    #region INTERNAL UTILS
     internal void AddMergeFrom(AgentItem mergedFrom, long start, long end)
     {
         _merges ??= [];
@@ -609,10 +675,7 @@ public class AgentItem
 
     private void AddEnglobedAgentItem(AgentItem child, AgentData agentData)
     {
-        if (_englobedAgentItems == null)
-        {
-            _englobedAgentItems = [];
-        }
+        _englobedAgentItems ??= [];
         _englobedAgentItems.Add(child);
         agentData.FlagAsDirty(AgentData.AgentDataDirtyStatus.TypesDirty | AgentData.AgentDataDirtyStatus.SpeciesDirty);
     }
@@ -627,7 +690,7 @@ public class AgentItem
         parent.AddEnglobedAgentItem(this, agentData);
     }
 
-    internal AgentItem FindEnglobedAgentItem(long time)
+    public AgentItem FindEnglobedAgentItem(long time)
     {
         if (!IsEnglobingAgent)
         {
@@ -635,6 +698,7 @@ public class AgentItem
         }
         return EnglobedAgentItems.FirstOrDefault(x => x.InAwareTimes(time)) ?? this;
     }
+    #endregion INTERNAL UTILS
 
     public ParserHelper.Spec GetSpecAtTime(long time)
     {
@@ -653,9 +717,9 @@ public static partial class ListExt
     public static T? FirstByAware<T>(this IReadOnlyList<T> agents) where T : AgentItem
     {
         (T? Agent, long FirstAware) result = (default, long.MaxValue);
-        foreach(var agent in agents)
+        foreach (var agent in agents)
         {
-            if(agent.FirstAware < result.FirstAware)
+            if (agent.FirstAware < result.FirstAware)
             {
                 result = (agent, agent.FirstAware);
             }

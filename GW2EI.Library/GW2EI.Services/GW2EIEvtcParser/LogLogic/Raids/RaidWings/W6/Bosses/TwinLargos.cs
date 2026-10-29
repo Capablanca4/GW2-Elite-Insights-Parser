@@ -4,15 +4,13 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
-using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -61,7 +59,7 @@ internal class TwinLargos : MythwrightGambit
         return crMap;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -263,29 +261,16 @@ internal class TwinLargos : MythwrightGambit
         return LogData.StartStatus.Normal;
     }
 
-    internal static void AdjustFinalHPEvents(List<CombatItem> combatData, AgentItem agentItem)
-    {
-        var hpUpdates = combatData.Where(x => x.IsStateChange == StateChange.HealthUpdate && x.SrcMatchesAgent(agentItem));
-        if (hpUpdates.Any(x => HealthUpdateEvent.GetHealthPercent(x) != 100 && HealthUpdateEvent.GetHealthPercent(x) != 0))
-        {
-            CombatItem lastHPUpdate = hpUpdates.Last();
-            if (lastHPUpdate.DstAgent == 10000)
-            {
-                lastHPUpdate.OverrideSrcAgent(ParserHelper._unknownAgent);
-            }
-        }
-    }
-
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         // discard hp update events after determined apply
         SingleActor nikare = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.Nikare)) ?? throw new MissingKeyActorsException("Nikare not found");
-        AdjustFinalHPEvents(combatData, nikare.AgentItem);
+        SanitizeLastHealthUpdateEvents(nikare, combatData);
         SingleActor? kenut = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.Kenut));
         if (kenut != null)
         {
-            AdjustFinalHPEvents(combatData, kenut.AgentItem);
+            SanitizeLastHealthUpdateEvents(kenut, combatData);
         }
     }
 
@@ -296,7 +281,7 @@ internal class TwinLargos : MythwrightGambit
             base.ComputeNPCCombatReplayActors(target, log, replay);
         }
         (long start, long end) lifespan;
-        
+
         switch (target.ID)
         {
             case (int)TargetID.Nikare:

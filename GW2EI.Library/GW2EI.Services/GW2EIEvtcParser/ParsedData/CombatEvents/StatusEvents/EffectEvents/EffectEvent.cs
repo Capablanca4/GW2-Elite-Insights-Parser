@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
+using GW2EIEvtcParser.EIData;
 using static GW2EIEvtcParser.EIData.Trigonometry;
 using static GW2EIEvtcParser.ParserHelper;
-using GW2EIEvtcParser.EIData;
 
 namespace GW2EIEvtcParser.ParsedData;
 
@@ -43,12 +43,12 @@ public abstract class EffectEvent : StatusEvent
     /// </summary>
     protected long TrackingID;
     /// <summary>
-    /// Id of the created visual effect. Match to stable GUID with <see cref="EffectGUIDEvent"/>.
+    /// Id of the created visual effect. Match to stable Guid with <see cref="EffectGUIDEvent"/>.
     /// </summary>
     public readonly long EffectID;
 
     /// <summary>
-    /// GUID event of the effect
+    /// Guid event of the effect
     /// </summary>
     public readonly EffectGUIDEvent GUIDEvent = EffectGUIDEvent.DummyEffectGUID;
 
@@ -58,6 +58,10 @@ public abstract class EffectEvent : StatusEvent
     internal long DynamicEndTime = long.MinValue;
 
     internal bool HasDynamicEndTime => DynamicEndTime != long.MinValue;
+    /// <summary>
+    /// Duration of the effect in milliseconds, equal to <see cref="Duration"/> no end event.
+    /// </summary>
+    public long DynamicDuration => HasDynamicEndTime ? DynamicEndTime - Time : Duration;
 
     /// <summary>
     /// Duration of the effect in milliseconds.
@@ -83,6 +87,7 @@ public abstract class EffectEvent : StatusEvent
     /// Flags of the effect
     /// </summary>
     public byte Flags { get; protected set; } = 0;
+    public IReadOnlyList<int> FlagsAsBits => GetIndividualFlagsAsBits(Flags);
 
     internal EffectEvent(CombatItem evtcItem, AgentData agentData, IReadOnlyDictionary<long, EffectGUIDEvent> effectGUIDs) : base(evtcItem, agentData)
     {
@@ -158,15 +163,12 @@ public abstract class EffectEvent : StatusEvent
     /// Computes the lifespan of an effect.
     /// Will use default duration if all other methods fail
     /// defaultDuration is ignored for <see cref="EffectEventCBTS45"/> and considered as 0.
-    /// This method is to be used when the duration of the effect may not be static (ex: a trap AoE getting triggered or when a trait can modify the duration of a skill).
+    /// Use this method in places where an effect is expected to have a dynamic end time and the code has to support logs from <see cref="EffectEventCBTS45"/> era. Otherwise this method is equivalent to <see cref="EffectEvent.ComputeLifespan"/>
     /// See <see cref="ComputeEndTime"/> for information about computed end times.
     /// </summary>
     public virtual (long start, long end) ComputeDynamicLifespan(ParsedEvtcLog log, long defaultDuration, AgentItem? agent = null, long? associatedBuff = null)
     {
-        long durationToUse = defaultDuration;
-        long start = Time;
-        long end = ComputeEndTime(log, durationToUse, agent, associatedBuff);
-        return (start, end);
+        return ComputeLifespan(log, defaultDuration, agent, associatedBuff);
     }
 
     /// <summary>
@@ -176,7 +178,7 @@ public abstract class EffectEvent : StatusEvent
     /// </summary>
     /// <param name="secondaryEffect"><see cref="EffectGUIDs"/> of the secondary effect.</param>
     /// <returns>The computed start and end times.</returns>
-    public (long start, long end) ComputeLifespanWithSecondaryEffect(ParsedEvtcLog log, GUID secondaryEffect)
+    public (long start, long end) ComputeLifespanWithSecondaryEffect(ParsedEvtcLog log, Guid secondaryEffect)
     {
         long start = Time;
         long end = start + Duration;
@@ -198,7 +200,7 @@ public abstract class EffectEvent : StatusEvent
     /// </summary>
     /// <param name="secondaryEffects"><see cref="EffectGUIDs"/> of the secondary effects.</param>
     /// <returns>The computed start and end times.</returns>
-    public (long start, long end) ComputeLifespanWithSecondaryEffects(ParsedEvtcLog log, GUID[] secondaryEffects)
+    public (long start, long end) ComputeLifespanWithSecondaryEffects(ParsedEvtcLog log, Guid[] secondaryEffects)
     {
         long start = Time;
         long end = start + Duration;
@@ -220,7 +222,7 @@ public abstract class EffectEvent : StatusEvent
     /// </summary>
     /// <param name="secondaryEffect"><see cref="EffectGUIDs"/> of the secondary effect.</param>
     /// <returns>The computed start and end times.</returns>
-    public (long start, long end) ComputeLifespanWithSecondaryEffectNoSrcCheck(ParsedEvtcLog log, GUID secondaryEffect)
+    public (long start, long end) ComputeLifespanWithSecondaryEffectNoSrcCheck(ParsedEvtcLog log, Guid secondaryEffect)
     {
         long start = Time;
         long end = start + Duration;
@@ -241,7 +243,7 @@ public abstract class EffectEvent : StatusEvent
     /// Checks the matching effects Src and Position.
     /// </summary>
     /// <returns>The computed start and end times.</returns>
-    public (long start, long end) ComputeLifespanWithSecondaryEffectAndPosition(ParsedEvtcLog log, GUID secondaryEffect, double minDistance = 1e-6)
+    public (long start, long end) ComputeLifespanWithSecondaryEffectAndPosition(ParsedEvtcLog log, Guid secondaryEffect, double minDistance = 1e-6)
     {
         long start = Time;
         long end = start + Duration;

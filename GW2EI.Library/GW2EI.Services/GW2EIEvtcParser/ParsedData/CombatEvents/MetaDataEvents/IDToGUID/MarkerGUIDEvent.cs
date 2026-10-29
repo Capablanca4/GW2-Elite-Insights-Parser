@@ -1,4 +1,5 @@
 ﻿namespace GW2EIEvtcParser.ParsedData;
+
 using static GW2EIEvtcParser.ArcDPSEnums;
 
 public class MarkerGUIDEvent : IDToGUIDEvent
@@ -7,11 +8,11 @@ public class MarkerGUIDEvent : IDToGUIDEvent
     public long MarkerID => ContentID;
 
     public readonly bool IsCommanderTag;
-    internal MarkerGUIDEvent(CombatItem evtcItem, EvtcVersionEvent evtcVersion) : base(evtcItem)
+    internal MarkerGUIDEvent(CombatItem evtcItem) : base(evtcItem)
     {
         IsCommanderTag = MarkerGUIDs.CommanderTagMarkersHexGUIDs.Contains(GUID);
 
-        if (evtcVersion.Build >= ArcDPSBuilds.ExtraDataInGUIDEvents)
+        if (evtcItem.Build >= ArcDPSBuilds.ExtraDataInGUIDEvents)
         {
             IsCommanderTag |= evtcItem.SrcInstid == 1;
         }

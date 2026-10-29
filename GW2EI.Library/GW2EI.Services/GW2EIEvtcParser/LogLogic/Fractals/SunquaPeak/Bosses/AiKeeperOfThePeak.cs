@@ -4,16 +4,15 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -113,7 +112,7 @@ internal class AiKeeperOfThePeak : SunquaPeak
                     new EnemyDstBuffApplyMechanic(CacophonousMind, Mech_CacophonousMind, new (Symbols.Pentagon,Colors.LightPurple), new("Ccphns.Mnd.", "Cacophonous Mind","Cacophonous Mind"), Sev0),
                 ]
             ),
-        ]); 
+        ]);
     public AiKeeperOfThePeak(int triggerID) : base(triggerID)
     {
         MechanicList.Add(Mechanics);
@@ -171,20 +170,19 @@ internal class AiKeeperOfThePeak : SunquaPeak
 
     internal override IReadOnlyList<TargetID> GetTrashMobsIDs()
     {
-        var trashIDs = new List<TargetID>(9 + base.GetTrashMobsIDs().Count);
-        trashIDs.AddRange(base.GetTrashMobsIDs());
-        trashIDs.Add(TargetID.FearDemon);
-        trashIDs.Add(TargetID.GuiltDemon);
-        trashIDs.Add(TargetID.AiDoubtDemon);
-        trashIDs.Add(TargetID.PlayerDoubtDemon);
-        trashIDs.Add(TargetID.EnragedWaterSprite);
-        // Transition sorrow demons
-        trashIDs.Add(TargetID.TransitionSorrowDemon1);
-        trashIDs.Add(TargetID.TransitionSorrowDemon2);
-        trashIDs.Add(TargetID.TransitionSorrowDemon3);
-        trashIDs.Add(TargetID.TransitionSorrowDemon4);
-
-        return trashIDs;
+        return [
+            .. base.GetTrashMobsIDs(),
+            TargetID.FearDemon,
+            TargetID.GuiltDemon,
+            TargetID.AiDoubtDemon,
+            TargetID.PlayerDoubtDemon,
+            TargetID.EnragedWaterSprite,
+            // Transition sorrow demons
+            TargetID.TransitionSorrowDemon1,
+            TargetID.TransitionSorrowDemon2,
+            TargetID.TransitionSorrowDemon3,
+            TargetID.TransitionSorrowDemon4,
+        ];
     }
 
     private static bool HasDarkMode(AgentData agentData)
@@ -214,11 +212,11 @@ internal class AiKeeperOfThePeak : SunquaPeak
                     CombatItem? invul895Loss = combatData.FirstOrDefault(x => x.Time <= darkModeStart && x.SkillID == Determined895 && x.IsBuffRemoveAllEvent() && x.SrcMatchesAgent(aiAgent) && x.Value > Determined895DurationCheckForSuccess);
                     long elementalLastAwareTime = (invul895Loss != null ? invul895Loss.Time : darkModeStart);
 
-                    AgentItem darkAiAgent = agentData.AddCustomNPCAgent(elementalLastAwareTime, aiAgent.LastAware, aiAgent.Name, aiAgent.Spec, TargetID.DarkAiKeeperOfThePeak, false, aiAgent.Toughness, aiAgent.Healing, aiAgent.Condition, aiAgent.Concentration, aiAgent.HitboxWidth, aiAgent.HitboxHeight);
-                    darkAiAgent.SetEnglobingAgentItem(aiAgent, agentData);
+                    var darkAiAgent = AgentManipulationHelper.CreateEnglobedAgentInInterval(aiAgent, agentData, elementalLastAwareTime + 1, aiAgent.LastAware);
+                    darkAiAgent.OverrideID(TargetID.DarkAiKeeperOfThePeak, agentData);
 
-                    AgentItem elAiAgent = agentData.AddCustomNPCAgent(aiAgent.FirstAware, elementalLastAwareTime, aiAgent.Name, aiAgent.Spec, TargetID.AiKeeperOfThePeak, false, aiAgent.Toughness, aiAgent.Healing, aiAgent.Condition, aiAgent.Concentration, aiAgent.HitboxWidth, aiAgent.HitboxHeight);
-                    elAiAgent.SetEnglobingAgentItem(aiAgent, agentData);
+                    var elAiAgent = AgentManipulationHelper.CreateEnglobedAgentInInterval(aiAgent, agentData, aiAgent.FirstAware, elementalLastAwareTime);
+                    elAiAgent.OverrideID(TargetID.AiKeeperOfThePeak, agentData);
 
                     aiAgent.OverrideID(TargetID.Parent_AiKeeperOfThePeak, agentData);
                 }
@@ -484,7 +482,7 @@ internal class AiKeeperOfThePeak : SunquaPeak
             base.SetInstanceBuffs(log, instanceBuffs);
         }
         var mainPhase = log.LogData.GetMainPhase(log);
-        var encountersWithDarkAi = log.LogData.GetEncounterPhases(log).Where(x => x.Targets.Keys.Any(y => y.IsSpecies(TargetID.DarkAiKeeperOfThePeak)));
+        var encountersWithDarkAi = log.LogData.GetEncounterPhases(log).Where(x => x.Targets.Keys.Any(y => y.IsSpecies(TargetID.DarkAiKeeperOfThePeak))).ToList();
         var finalEncounter = encountersWithDarkAi.LastOrDefault();
         if (finalEncounter != null && finalEncounter.Success)
         {
@@ -669,7 +667,7 @@ internal class AiKeeperOfThePeak : SunquaPeak
                 environmentDecorations.Add(new CircleDecoration(600, (start, end), Colors.Orange, 0.15, position).UsingGrowingEnd(end));
                 if (hasDetonates && effect.Dst.TryGetCurrentPosition(log, end, out var endPos))
                 {
-                    EffectEvent? detonate = detonates.FirstOrDefault(x => Math.Abs(x.Time - end) < ServerDelayConstant && (x.Position - endPos.Value).XY().Length() < maxDist);
+                    EffectEvent? detonate = detonates.FirstOrDefault(x => x.IsAtTime(end) && (x.Position - endPos.Value).XY().Length() < maxDist);
                     if (detonate != null)
                     {
                         environmentDecorations.Add(new CircleDecoration(600, (detonate.Time, detonate.Time + 300), Colors.Red, 0.15, new PositionConnector(detonate.Position)));
@@ -772,9 +770,8 @@ internal class AiKeeperOfThePeak : SunquaPeak
             {
                 long start = effect.Time;
                 long end = start + 6250;
-                var position = new AgentConnector(effect.Dst);
-                environmentDecorations.Add(new CircleDecoration(180, (start, end), Colors.DarkGreen, 0.3, position));
-                environmentDecorations.Add(new CircleDecoration(180, (start, end), Colors.DarkGreen, 0.3, position).UsingGrowingEnd(end));
+                var circle = new CircleDecoration(180, (start, end), Colors.DarkGreen, 0.3, new AgentConnector(effect.Dst));
+                environmentDecorations.AddWithGrowing(circle, end);
             }
         }
 
@@ -807,8 +804,8 @@ internal class AiKeeperOfThePeak : SunquaPeak
         // torrential bolt (water missiles)
         var torrentialBolts = log.CombatData.GetMissileEventsBySkillID(TorrentialBolt);
         var torrentialBoltsReflectable = log.CombatData.GetMissileEventsBySkillID(TorrentialBoltDash);
-        environmentDecorations.AddNonHomingMissiles(log, torrentialBolts, Colors.MidTeal, 0.2, 180);
-        environmentDecorations.AddReflectableNonHomingMissiles(log, torrentialBoltsReflectable, Colors.MidTeal, 0.3, Colors.Grey, 0.3, 50);
+        environmentDecorations.AddNonHomingMissiles(log, torrentialBolts, Colors.LightTeal, 0.2, 180);
+        environmentDecorations.AddReflectableNonHomingMissiles(log, torrentialBoltsReflectable, Colors.LightTeal, 0.3, Colors.Grey, 0.3, 50);
 
         // focused wrath (dark missiles)
         var focusedWraths = log.CombatData.GetMissileEventsBySkillID(FocusedWrath);

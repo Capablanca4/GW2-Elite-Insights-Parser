@@ -1,14 +1,14 @@
 ﻿using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
-using static GW2EIEvtcParser.SkillIDs;
+using GW2EIGW2API;
 using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
+using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using GW2EIGW2API;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -22,7 +22,6 @@ internal class BastionOfThePenitentInstance : BastionOfThePenitent
     private readonly IReadOnlyList<BastionOfThePenitent> _subLogics;
     public BastionOfThePenitentInstance(int triggerID) : base(triggerID)
     {
-        LogID = LogIDs.LogMasks.Unsupported;
         Icon = InstanceIconBastionOfThePenitent;
         Extension = "bstpen";
 
@@ -86,11 +85,11 @@ internal class BastionOfThePenitentInstance : BastionOfThePenitent
                     if (enterCombat != null && spawnProtectLost != null)
                     {
                         start = Math.Max(enterCombat.Time, spawnProtectLost.Time);
-                    } 
+                    }
                     else if (enterCombat != null)
                     {
                         start = enterCombat.Time;
-                    } 
+                    }
                     else if (spawnProtectLost != null)
                     {
                         start = spawnProtectLost.Time;
@@ -103,8 +102,8 @@ internal class BastionOfThePenitentInstance : BastionOfThePenitent
                     end = chest.FirstAware;
                     success = true;
                 }
-                AddInstanceEncounterPhase(log, phases, encounterPhases, [cairn], [], [], 
-                    mainPhase, "Cairn", start, end, success, _cairn, 
+                AddInstanceEncounterPhase(log, phases, encounterPhases, [cairn], [], [],
+                    mainPhase, "Cairn", start, end, success, _cairn,
                     Cairn.HasActiveCountdownOnAllParticipatingPlayersOrPetrified(log.CombatData, log.AgentData, start, end) ? LogData.Mode.CM : LogData.Mode.Normal);
             }
         }
@@ -196,7 +195,7 @@ internal class BastionOfThePenitentInstance : BastionOfThePenitent
                             {
                                 end = Math.Max(greeds.Max(x => x.LastAware), end);
                             }
-                        } 
+                        }
                         else
                         {
                             end = target.LastAware;
@@ -334,7 +333,7 @@ internal class BastionOfThePenitentInstance : BastionOfThePenitent
 
     private void HandleDeimosAndItsGadgets(LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions, EvtcVersionEvent evtcVersion)
     {
-        var attackTargetEvents = combatData.Where(x => x.IsStateChange == StateChange.AttackTarget).Select(x => new AttackTargetEvent(x, agentData));
+        var attackTargetEvents = combatData.Where(x => x.IsStateChange == StateChange.AttackTarget).Select(x => new AttackTargetEvent(x, agentData)).ToList();
         var targetableEvents = new List<TargetableEvent>();
         foreach (var attackTarget in attackTargetEvents)
         {
@@ -350,6 +349,7 @@ internal class BastionOfThePenitentInstance : BastionOfThePenitent
 
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
+        MursaatOverseer.IdentifyMursaatCheckboards(gw2Build, evtcVersion, agentData, combatData, extensions);
         Samarog.HandleSpears(evtcVersion, agentData, combatData);
         Deimos.HandleDemonicBonds(agentData, combatData);
         Deimos.HandleShackledPrisoners(agentData, combatData);
@@ -445,9 +445,9 @@ internal class BastionOfThePenitentInstance : BastionOfThePenitent
     }
     internal override LogData.Mode GetLogMode(CombatData combatData, AgentData agentData, LogData logData)
     {
-       foreach (var deimos in Targets.Where(x => x.IsSpecies(TargetID.Deimos)))
+        foreach (var deimos in Targets.Where(x => x.IsSpecies(TargetID.Deimos)))
         {
-            Deimos.AdjustDeimosHP(deimos, deimos.GetHealth(combatData) > 40e6, deimos.AgentItem.Merges.FirstOrNull((in AgentItem.MergedAgentItem x) => x.Merged.Is(deimos.AgentItem)) != null);
+            Deimos.AdjustDeimosHP(deimos, deimos.GetHealth(combatData) > 40e6, deimos.AgentItem.Merges.FirstOrNull((in x) => x.Merged.Is(deimos.AgentItem)) != null);
         }
         return base.GetLogMode(combatData, agentData, logData);
     }

@@ -6,7 +6,7 @@ using GW2EIParserCommons.Properties;
 using GW2EIUpdater;
 
 [assembly: CLSCompliant(false)]
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
 internal static class Program
 {

@@ -4,14 +4,13 @@ using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -61,11 +60,6 @@ internal class Gorseval : SpiritVale
         ];
     }
 
-    private static readonly List<TargetID> ChargedSoulIDs = 
-    [
-        TargetID.ChargedSoul,
-    ];
-
     internal static IReadOnlyList<SubPhasePhaseData> ComputePhases(ParsedEvtcLog log, SingleActor gorseval, IReadOnlyList<SingleActor> targets, EncounterPhaseData encounterPhase, bool requirePhases)
     {
         if (!requirePhases)
@@ -86,7 +80,7 @@ internal class Gorseval : SpiritVale
             else
             {
                 phase.Name = "Split " + (index) / 2;
-                AddTargetsToPhaseAndFit(phase, targets, ChargedSoulIDs, log);
+                AddTargetsToPhaseAndFit(phase, targets, [TargetID.ChargedSoul], log);
             }
         }
         return phases;
@@ -96,7 +90,7 @@ internal class Gorseval : SpiritVale
         List<PhaseData> phases = GetInitialPhase(log);
         SingleActor mainTarget = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.Gorseval)) ?? throw new MissingKeyActorsException("Gorseval not found");
         phases[0].AddTarget(mainTarget, log);
-        phases[0].AddTargets(Targets.Where(x => x.IsAnySpecies(ChargedSoulIDs)), log, PhaseData.TargetPriority.Blocking);
+        phases[0].AddTargets(Targets.Where(x => x.IsSpecies(TargetID.ChargedSoul)), log, PhaseData.TargetPriority.Blocking);
         phases.AddRange(ComputePhases(log, mainTarget, Targets, (EncounterPhaseData)phases[0], requirePhases));
         return phases;
     }
@@ -113,7 +107,8 @@ internal class Gorseval : SpiritVale
     protected override HashSet<int> IgnoreForAutoNumericalRenaming()
     {
         return [
-            (int)ChargedSoul
+            (int)TargetID.ChargedSoul,
+            (int)TargetID.GorsevalEtherealBarrier
         ];
     }
 
@@ -135,10 +130,46 @@ internal class Gorseval : SpiritVale
         }
     }
 
+    internal static void RenameEtherealBarriers(IReadOnlyList<SingleActor> trashes, List<CombatItem> combatData)
+    {
+        var nameCount = new Dictionary<string, int> { { "NE", 1 }, { "NW", 1 }, { "SW", 1 }, { "SE", 1 } };
+        foreach (SingleActor trash in trashes)
+        {
+            if (trash.IsSpecies(TargetID.GorsevalEtherealBarrier))
+            {
+                string? suffix = AddNameSuffixBasedOnInitialPosition(trash, combatData, SoulLocations, 700);
+                if (suffix != null && nameCount.ContainsKey(suffix))
+                {
+                    // deduplicate name
+                    trash.OverrideName(trash.Character + " " + (nameCount[suffix]++));
+                }
+            }
+        }
+    }
+
+    internal static void IdentifyGorsevalGadgets(AgentData agentData, List<CombatItem> combatData)
+    {
+        var maxGadgetHPEvents = combatData.Where(x => x.IsStateChange == ArcDPSEnums.StateChange.MaxHealthUpdate).Select(x => new MaxHealthUpdateEvent(x, agentData)).Where(x => x.Src.Type == AgentItem.AgentType.VolatileSpecies).ToList();
+
+        var etherealBarrierCandidates = maxGadgetHPEvents.Where(x => x.Src.HitboxWidth == 16 && x.MaxHealth == 1494000).Select(x => x.Src).ToHashSet();
+        foreach (var etherealBarrierCandidate in etherealBarrierCandidates)
+        {
+            etherealBarrierCandidate.OverrideID(TargetID.GorsevalEtherealBarrier, agentData);
+        }
+
+        var spectralDarknessCandidates = maxGadgetHPEvents.Where(x => x.Src.HitboxWidth == 2 && x.MaxHealth == 29880).Select(x => x.Src).ToHashSet();
+        foreach (var spectralDarknessCandidate in spectralDarknessCandidates)
+        {
+            spectralDarknessCandidate.OverrideID(TargetID.GorsevalSpectralDarkness, agentData);
+        }
+    }
+
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
+        IdentifyGorsevalGadgets(agentData, combatData);
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         RenameChargedSouls(Targets, combatData);
+        RenameEtherealBarriers(TrashMobs, combatData);
     }
 
     internal override IReadOnlyList<TargetID> GetTargetsIDs()
@@ -155,7 +186,9 @@ internal class Gorseval : SpiritVale
         return
         [
             TargetID.EnragedSpirit,
-            TargetID.AngeredSpirit
+            TargetID.AngeredSpirit,
+            TargetID.GorsevalEtherealBarrier,
+            TargetID.GorsevalSpectralDarkness,
         ];
     }
 
@@ -340,16 +373,29 @@ internal class Gorseval : SpiritVale
                     replay.Decorations.Add(new CircleDecoration(300, seg, Colors.LightOrange, 0.5, new AgentConnector(target)));
                 }
                 //  Ghastly Rampage
-                var breakbarUpdates = target.GetBreakbarPercentUpdates(log);
-                var (breakbarNones, breakbarActives, breakbarImmunes, breakbarRecoverings) = target.GetBreakbarStatus(log);
-                foreach (var segment in breakbarActives)
-                {
-                    replay.Decorations.AddActiveBreakbar(segment.TimeSpan, target, breakbarUpdates);
-                }
+                replay.Decorations.AddActiveBreakbars(log, target);
                 break;
             case (int)TargetID.ChargedSoul:
                 lifespan = (replay.TimeOffsets.start, replay.TimeOffsets.end);
                 replay.Decorations.Add(new CircleDecoration(220, lifespan, Colors.LightOrange, 0.5, new AgentConnector(target)).UsingFilled(false));
+                break;
+            case (int)TargetID.GorsevalSpectralDarkness:
+                if (log.CombatData.TryGetEffectEventsByDstWithGUID(target.AgentItem, EffectGUIDs.GorsevalSpectralDarkness, out var spectralDarknessEvents))
+                {
+                    // sizes and growth TBC
+                    uint initialRadius = 180;
+                    float growthPerMS = 9e-3f;
+                    foreach (var spectralDarknessEvent in spectralDarknessEvents)
+                    {
+                        lifespan = (spectralDarknessEvent.Time, target.LastAware);
+                        var finalRadius = (uint)(initialRadius + growthPerMS * (target.LastAware - spectralDarknessEvent.Time));
+                        if (finalRadius > initialRadius)
+                        {
+                            var spectralDarknessArea = new CircleDecoration(finalRadius, initialRadius, lifespan, Colors.CobaltBlue, 0.3, new AgentConnector(target)).UsingGrowingEnd(lifespan.end);
+                            //replay.Decorations.Add(spectralDarknessArea);
+                        }
+                    }
+                }
                 break;
             default:
                 break;
@@ -381,7 +427,7 @@ internal class Gorseval : SpiritVale
                 if (contentGUID == EffectGUIDs.GorsevalGhastlyRampageLayer0)
                 {
                     rampage = new CircleDecoration(360, lifespan, Colors.DarkPurpleBlue, 0.25, new PositionConnector(pos));
-                } 
+                }
                 else
                 {
                     uint innerRadius, outerRadius;
@@ -389,12 +435,12 @@ internal class Gorseval : SpiritVale
                     {
                         innerRadius = 360;
                         outerRadius = 720;
-                    } 
+                    }
                     else if (contentGUID == EffectGUIDs.GorsevalGhastlyRampageLayer2)
                     {
                         innerRadius = 720;
                         outerRadius = 1080;
-                    } 
+                    }
                     else if (contentGUID == EffectGUIDs.GorsevalGhastlyRampageLayer3)
                     {
                         innerRadius = 1080;

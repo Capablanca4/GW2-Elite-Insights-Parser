@@ -1,6 +1,7 @@
 ﻿using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
+using static GW2EIEvtcParser.ArcDPSEnums;
 using static GW2EIEvtcParser.EIData.DamageModifiersUtils;
 using static GW2EIEvtcParser.EIData.SkillModeDescriptor;
 using static GW2EIEvtcParser.ParserHelper;
@@ -11,7 +12,7 @@ namespace GW2EIEvtcParser.EIData;
 
 internal static class ProfHelper
 {
-    private static readonly List<InstantCastFinder> _genericNeedsToBeBeforeTheRestInstantCastFinders_NeverAddAnythingElse = 
+    private static readonly List<InstantCastFinder> _genericNeedsToBeBeforeTheRestInstantCastFinders_NeverAddAnythingElse =
     [
         new BuffLossCastFinder(RelicOfFireworksBuffLoss, RelicOfFireworks)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
@@ -115,6 +116,12 @@ internal static class ProfHelper
         #region Relics
         new DamageCastFinder(RelicOfShacklesDamageSkill, RelicOfShacklesDamageSkill)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
+        new DamageCastFinder(RelicOfTheLastTyrantDamage, RelicOfTheLastTyrantDamage)
+            .UsingChecker((hde, combatData, agentData, skillData) =>
+            {
+                return combatData.GetBuffRemoveAllData(TyrantsFuryBuff).FirstOrDefault(x => x.IsAtTime(hde) && x.RemovedStacks == 5) != null;
+            })
+            .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new BuffGainCastFinder(RelicOfVass, RelicOfVass)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new BuffGainCastFinder(RelicOfTheFirebrand, RelicOfTheFirebrand)
@@ -132,8 +139,10 @@ internal static class ProfHelper
         new BuffGainCastFinder(RelicOfTheCoralHeartBuff, RelicOfTheCoralHeartBuff)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new BuffGiveCastFinder(RelicOfDagdaHit, RelicOfDagdaBuff)
+            .WithTarget()
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new BuffGiveCastFinder(RelicOfIsgarrenTargetBuff, RelicOfIsgarrenTargetBuff)
+            .WithTarget()
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new BuffGiveCastFinder(RelicOfTheDragonhunterTargetBuff, RelicOfTheDragonhunterTargetBuff)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
@@ -226,6 +235,7 @@ internal static class ProfHelper
             .UsingICD(1000)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new MissileCastFinder(RelicOfPeithaBlade, RelicOfPeithaBlade)
+            .WithTarget()
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new MissileCastFinder(RelicOfTheForestDwellerMissileDamage, RelicOfTheForestDwellerMissileDamage)
             .UsingICD(100)
@@ -236,6 +246,8 @@ internal static class ProfHelper
         new BuffGainCastFinder(RelicOfTheCruelOverseer, KudasCrueltyModifierBuff)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         new BuffGainCastFinder(RelicOfTheDirector, RelicOfTheDirector)
+            .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
+        new BuffGainCastFinder(VloxxsVisionDamageModBuff, VloxxsVisionDamageModBuff)
             .UsingOrigin(InstantCastFinder.InstantCastOrigin.Gear),
         #endregion Relics
         #region Mounts
@@ -260,9 +272,35 @@ internal static class ProfHelper
         new BuffGainCastFinder(PortalEntranceWhiteMantleWatchwork, PortalWeavingWhiteMantleWatchwork),
         new BuffGainCastFinder(PortalExitWhiteMantleWatchwork, PortalUsesWhiteMantleWatchwork)
             .UsingBeforeWeaponSwap(),
-        new BreakbarDamageCastFinder(Technobabble, Technobabble),
+        new BreakbarDamageCastFinder(Technobabble, Technobabble)
+            .WithTarget(),
         #endregion Misc
     ];
+
+    public static List<BuffEvent> CreateBuffApplyAndRemovesBasedOnMinionLifespan(CombatData combatData, AgentData agentData, SkillData skillData, IReadOnlyCollection<int> ids, long skillID, EvtcVersionEvent evtcVersion)
+    {
+        var minions = agentData.GetStableSpeciesByIDs(ids.ToArray());
+        var res = new List<BuffEvent>();
+        var skill = skillData.Get(skillID);
+        foreach (var minion in minions)
+        {
+            var master = minion.GetFinalMaster();
+            if (master.Is(minion))
+            {
+                break;
+            }
+            var segments = new NPC(minion).GetLifeSpanAsSegments(combatData); // create temp npc for the purpose of the API
+            foreach (var segment in segments)
+            {
+                if (segment.Value > 0)
+                {
+                    res.Add(new BuffApplyEvent(master, master, segment.Start, (int)(segment.End - segment.Start), skill, IFF.Friend, (uint)minion.UniqueID, true));
+                    res.Add(new BuffRemoveSingleEvent(master, master, segment.End, 0, skill, IFF.Friend, (uint)minion.UniqueID));
+                }
+            }
+        }
+        return res;
+    }
 
     internal static void AttachMasterToGadgetByCastData(CombatData combatData, IReadOnlyCollection<AgentItem> gadgets, IReadOnlyList<long> castIDS, long castEndThreshold)
     {
@@ -341,7 +379,7 @@ internal static class ProfHelper
     //
     internal static IReadOnlyCollection<InstantCastFinder> GetProfessionInstantCastFinders(IReadOnlyList<AgentItem> players)
     {
-        List<InstantCastFinder> instantCastFinders = new (500);
+        List<InstantCastFinder> instantCastFinders = new(500);
         instantCastFinders.AddRange(_genericNeedsToBeBeforeTheRestInstantCastFinders_NeverAddAnythingElse);
         instantCastFinders.AddRange(_genericInstantCastFinders);
         foreach (Spec spec in players.Select(x => x.BaseSpec).Distinct())
@@ -384,7 +422,7 @@ internal static class ProfHelper
                 case Spec.Warrior:
                     WarriorHelper.InstantCastFinder.ForEach(x => instantCastFinders.Add(x.GetInstance()));
                     break;
-            }        
+            }
         }
         foreach (Spec spec in players.Select(x => x.Spec).Distinct())
         {
@@ -704,13 +742,13 @@ internal static class ProfHelper
         }
     }
 
-    #if DEBUG_EFFECTS
+#if DEBUG_EFFECTS
     internal static void DEBUG_ComputeProfessionCombatReplayActors(PlayerActor p, ParsedEvtcLog log, CombatReplay replay)
     {
         var knownEffects = new HashSet<GUID>();
         CombatReplay.DebugEffects(p, log, replay.Decorations, knownEffects);
     }
-    #endif
+#endif
 
     private static readonly HashSet<Spec> _canSummonClones =
     [
@@ -792,7 +830,7 @@ internal static class ProfHelper
 
     public static void ComputeMinionCombatReplayActors(SingleActor minion, SingleActor master, ParsedEvtcLog log, CombatReplay replay)
     {
-        
+
         switch (minion.ID)
         {
             case (int)MinionID.JadeMech:
@@ -854,7 +892,7 @@ internal static class ProfHelper
     /// </summary>
     /// <param name="actor">actor who is the source of the effect</param>
     /// <param name="startOffset">offset to be applied to the time value of the effect</param>
-    public static IReadOnlyList<AnimatedCastEvent> ComputeEffectCastEvents(AgentItem actor, CombatData combatData, SkillData skillData, long skillID, GUID effect, long startOffset, long castDuration, EffectCastEventsChecker? checker = null)
+    public static IReadOnlyList<AnimatedCastEvent> ComputeEffectCastEvents(AgentItem actor, CombatData combatData, SkillData skillData, long skillID, Guid effect, long startOffset, long castDuration, EffectCastEventsChecker? checker = null)
     {
         var res = new List<AnimatedCastEvent>();
         if (combatData.GetAnimatedCastData(skillID).Count > 0)
@@ -870,7 +908,7 @@ internal static class ProfHelper
             {
                 if (checker == null || checker(events, effectEvent, combatData, skillData))
                 {
-                    res.Add(new AnimatedCastEvent(actor, skill, effectEvent.Time + startOffset, castDuration));
+                    res.Add(new AnimatedSkillCastEvent(actor, skill, effectEvent.Time + startOffset, castDuration));
                 }
             }
         }
@@ -882,7 +920,7 @@ internal static class ProfHelper
     {
         if (combatData.GetAnimatedCastData(skill.ID).Count > 0)
         {
-            return [ ];
+            return [];
         }
 
         var applies = buffs.OfType<BuffApplyEvent>().ToList();
@@ -892,7 +930,7 @@ internal static class ProfHelper
 
         for (int i = 0; i < minCount; i++)
         {
-            res.Add(new AnimatedCastEvent(applies[i].To, skill, applies[i].Time, removals[i].Time - applies[i].Time));
+            res.Add(new AnimatedSkillCastEvent(applies[i].To, skill, applies[i].Time, removals[i].Time - applies[i].Time));
         }
 
         return res;
@@ -902,10 +940,10 @@ internal static class ProfHelper
     {
         if (combatData.GetAnimatedCastData(skill.ID).Count > 0)
         {
-            return [ ];
+            return [];
         }
 
-        return buffs.Select(bae => new AnimatedCastEvent(bae.To, skill, bae.Time - startOffset, skillDuration));
+        return buffs.Select(bae => new AnimatedSkillCastEvent(bae.To, skill, bae.Time - startOffset, skillDuration));
     }
 
     internal static IReadOnlyList<AnimatedCastEvent> ComputeUnderBuffCastEvents(AgentItem actor, CombatData combatData, SkillData skillData, long skillID, long buffID)

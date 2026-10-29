@@ -1,10 +1,10 @@
 ﻿using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
+using GW2EIGW2API;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SpeciesIDs;
-using GW2EIGW2API;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -61,7 +61,7 @@ internal class AetherbladeHideoutInstance : EndOfDragonsRaidEncounter
         AetherbladeHideout.FindFerrousBombsAndCleanMaiTrins(agentData, combatData);
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         AetherbladeHideout.EchoOfScarletSanitizeLastHealthUpdateEvents(Targets, combatData);
-        AetherbladeHideout.RenameScarletPhantoms(Targets);
+        AetherbladeHideout.RenameScarletPhantoms(Targets, evtcVersion);
     }
     internal override List<BuffEvent> SpecialBuffEventProcess(CombatData combatData, SkillData skillData)
     {

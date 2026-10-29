@@ -156,7 +156,7 @@ internal static class EncounterBuffs
             new Buff("Narcolepsy", NarcolepsyBuff, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Determined),
             new Buff("Nauseated", Nauseated, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Nauseated),
             new Buff("Magic Transformation", MagicTransformation, Source.EncounterSpecific, BuffClassification.Other, BuffImages.MagicTransformation),
-            new Buff("Fixated (Slothasor)", FixatedSlothasor, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Fixated),
+            new Buff("Fixated (Timed)", FixatedTimed, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Fixated),
             new Buff("Volatile Poison", VolatilePoisonBuff, Source.EncounterSpecific, BuffClassification.Other, BuffImages.VolatilePoison),
             new Buff("Slippery Slubling", SlipperySlubling, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
             // Trio
@@ -243,7 +243,7 @@ internal static class EncounterBuffs
             new Buff("Celestial Dash", CelestialDashBuff, Source.EncounterSpecific, BuffClassification.Other, SkillImages.CelestialDash),
             new Buff("Petrified (Cairn)", CairnPetrifed, Source.EncounterSpecific, BuffClassification.Other, SkillImages.MonsterSkill),
             // Mursaat Overseer
-            new Buff("Empowered (MO)", EmpoweredMO, Source.EncounterSpecific, BuffStackType.Stacking, 4, BuffClassification.Other, BuffImages.EmpoweredMursaarOverseer),
+            new Buff("Empowered (MO)", EmpoweredMO, Source.EncounterSpecific, BuffStackType.Stacking, 4, BuffClassification.Other, BuffImages.EmpoweredMursaatOverseer),
             new Buff("Mursaat Overseer's Shield", MursaatOverseersShield, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Dispel),
             new Buff("Protect", ProtectBuff, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Protect),
             new Buff("Dispel", DispelBuff, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Dispel),
@@ -433,7 +433,7 @@ internal static class EncounterBuffs
             new Buff("Achievement Eligibility: Calm Before the Storm", AchievementEligibilityCalmBeforeTheStorm, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
             new Buff("Achievement Eligibility: This Bug Can Dance", AchievementEligibilityThisBugCanDance, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
             // Greer
-            new Buff("Empowered (Greer)", EmpoweredGreer, Source.EncounterSpecific, BuffStackType.Stacking, 99, BuffClassification.Other, BuffImages.EmpoweredMursaarOverseer),
+            new Buff("Empowered (Greer)", EmpoweredGreer, Source.EncounterSpecific, BuffStackType.Stacking, 99, BuffClassification.Other, BuffImages.EmpoweredMursaatOverseer),
             new Buff("Might (Unstrippable)", MightUnstrippable, Source.EncounterSpecific, BuffStackType.Stacking, 25, BuffClassification.Other, BuffImages.Might),
             new Buff("Protection (Unstrippable)", ProtectionUnstrippable, Source.EncounterSpecific, BuffStackType.Queue, 9, BuffClassification.Other, BuffImages.Protection),
             new Buff("Resolution (Unstrippable)", ResolutionUnstrippable, Source.EncounterSpecific, BuffStackType.Queue, 99, BuffClassification.Other, BuffImages.Resolution),
@@ -581,6 +581,15 @@ internal static class EncounterBuffs
             new Buff("Gorefrost Target", GorefrostTarget, Source.EncounterSpecific, BuffClassification.Hidden, BuffImages.Unknown),
             new Buff("Achievement Eligibility: Shatterstep", AchievementEligibilityShatterstep, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
             new Buff("Achievement Eligibility: Undying Light", AchievementEligibilityUndyingLight, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
+            // Solitary Throne - Eternal Tyrant
+            new Buff("Targeted (Eternal Tyrant)", TargetedEternalTyrant, Source.EncounterSpecific, BuffClassification.Other, BuffImages.MarkedTarget),
+            new Buff("Low Gravity", LowGravity, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Float),
+            new Buff("Invulnerability (Eternal Tyrant)", InvulnerabilityEternalTyrant, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Determined),
+            new Buff("Empowered (Eternal Tyrant)", EmpoweredEternalTyrant, Source.EncounterSpecific, BuffClassification.Other, BuffImages.EmpoweredMursaatOverseer),
+            new Buff("Vulnerable to Defiance", VulnerableToDefiance, Source.EncounterSpecific, BuffClassification.Other, BuffImages.DiaphanousShielding),
+            new Buff("Attracting Rime Sprites", AttractingRimeSprites, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Fixated),
+            new Buff("Rime Sprite (Aura)", RimeSpriteAura, Source.EncounterSpecific, BuffClassification.Hidden, BuffImages.Unknown),
+            new Buff("Unrelenting Winds", UnrelentingWinds, Source.EncounterSpecific, BuffStackType.Queue, 3, BuffClassification.Debuff, BuffImages.UnrelentingWinds),
             // Strike Mission
             new Buff("Exposed (Player)", ExposedPlayer, Source.Common, BuffStackType.Stacking, 10, BuffClassification.Debuff, BuffImages.Exposed),
             // Icebrood
@@ -609,7 +618,7 @@ internal static class EncounterBuffs
             new Buff("Whisper Teleport (Back)", WhisperTeleportBack, Source.EncounterSpecific, BuffClassification.Other, BuffImages.EmergencyWaypoint),
             new Buff("Frigid Vortex", FrigidVortexBuff, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Windfall),
             new Buff("Chains of Frost (Active)", ChainsOfFrostActive, Source.EncounterSpecific, BuffClassification.Other, BuffImages.SoulBinder),
-            new Buff("Chains of Frost (Application)", ChainsOfFrostApplication, Source.EncounterSpecific, BuffClassification.Other, BuffImages.SoulBinder),
+            new Buff("Chains of Frost (Application)", ChainsOfFrostApplicationBuff, Source.EncounterSpecific, BuffClassification.Other, BuffImages.SoulBinder),
             new Buff("Brain Freeze", BrainFreeze, Source.EncounterSpecific, BuffStackType.Stacking, 20, BuffClassification.Other, BuffImages.Frostbite),
             new Buff("Lethal Coalescence", LethalCoalescenceBuff, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Windfall),
             new Buff("Achievement Eligibility: Reflections in the Ice", AchievementEligibilityReflectionsInTheIce, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
@@ -729,7 +738,7 @@ internal static class EncounterBuffs
             new Buff("Insatiable", Insatiable, Source.EncounterSpecific, BuffStackType.Stacking, 99, BuffClassification.Other, BuffImages.VoidCorruption),
             new Buff("Malicious Intent Target", MaliciousIntentTargetBuff, Source.EncounterSpecific, BuffClassification.Other, SkillImages.MonsterSkill),
             new Buff("Malicious Intent Target (CM)", MaliciousIntentTargetBuffCM, Source.EncounterSpecific, BuffClassification.Other, SkillImages.MonsterSkill),
-            new Buff("Empowered (Cerus)", EmpoweredCerus, Source.EncounterSpecific, BuffStackType.Stacking, 99, BuffClassification.Other, BuffImages.EmpoweredMursaarOverseer),
+            new Buff("Empowered (Cerus)", EmpoweredCerus, Source.EncounterSpecific, BuffStackType.Stacking, 99, BuffClassification.Other, BuffImages.EmpoweredMursaatOverseer),
             new Buff("Empowered Despair (Cerus)", EmpoweredDespairCerus, Source.EncounterSpecific, BuffClassification.Other, BuffImages.ExcessMagic),
             new Buff("Empowered Envy (Cerus)", EmpoweredEnvyCerus, Source.EncounterSpecific, BuffClassification.Other, BuffImages.ExcessMagic),
             new Buff("Empowered Gluttony (Cerus)", EmpoweredGluttonyCerus, Source.EncounterSpecific, BuffClassification.Other, BuffImages.ExcessMagic),
@@ -760,6 +769,11 @@ internal static class EncounterBuffs
             new Buff("Kela Burrowed", KelaBurrowed, Source.EncounterSpecific, BuffClassification.Other, SkillImages.MonsterSkill),
             new Buff("Achievement Eligibility: Surefooted", AchievementEligibilitySurefooted, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
             new Buff("Achievement Eligibility: See You Later, Alligator", AchievementEligibilitySeeYouLaterAlligator, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
+            // Nexus of Eternity
+            new Buff("Empowered (Nexus of Eternity)", EmpoweredNexusOfEternity, Source.EncounterSpecific, BuffStackType.Stacking, 99, BuffClassification.Other, BuffImages.EmpoweredMursaatOverseer),
+            new Buff("Ascension", Ascension, Source.EncounterSpecific, BuffStackType.Stacking, 10, BuffClassification.Other, BuffImages.Ascension),
+            new Buff("Damage Immunity", DamageImmunity, Source.EncounterSpecific, BuffClassification.Other, BuffImages.DefensiveInspiration),
+            new Buff("Achievement Eligibility: A Shattered Vision", AchievementEligibilityAShatteredVision, Source.EncounterSpecific, BuffClassification.Other, BuffImages.AchievementEffect),
             // Convergences
             // - Outer Nayos
             new Buff("Unstable Attunement (SotO)", UnstableAttunementSotO, Source.EncounterSpecific, BuffStackType.StackingConditionalLoss, 5, BuffClassification.Other, BuffImages.DebilitatingVoid),
@@ -779,6 +793,12 @@ internal static class EncounterBuffs
             new Buff("Aetheric Adrenaline (30%)", AethericAdrenaline30, Source.EncounterSpecific, BuffClassification.Other, BuffImages.TemporalMastery),
             new Buff("Aetheric Adrenaline (40%)", AethericAdrenaline40, Source.EncounterSpecific, BuffClassification.Other, BuffImages.TemporalMastery),
             new Buff("Aetheric Adrenaline (50%)", AethericAdrenaline50, Source.EncounterSpecific, BuffClassification.Other, BuffImages.TemporalMastery),
+            // - Nexus of Eternity
+            new Buff("Wizard's Blessing (VoE)", WizardsBlessingVoE, Source.EncounterSpecific, BuffStackType.Queue, 9, BuffClassification.Other, BuffImages.WizardsBlessing),
+            new Buff("Covered in Scarabs 1", CoveredInScarabs, Source.EncounterSpecific, BuffClassification.Other, BuffImages.CoveredInScarabs),
+            new Buff("Covered in Scarabs 2", CoveredInScarabs2, Source.EncounterSpecific, BuffClassification.Other, BuffImages.CoveredInScarabs),
+            new Buff("Power of Ancora", PowerOfAncora, Source.EncounterSpecific, BuffStackType.Stacking, 50, BuffClassification.Offensive, BuffImages.KryptisEssence),
+            new Buff("Inquest Disguise", InquestDisguise, Source.EncounterSpecific, BuffClassification.Other, BuffImages.Transformation),
             //Open World Soo-Won
             new Buff("Jade Tech Offensive Overcharge", JadeTechOffensiveOvercharge, Source.EncounterSpecific, BuffStackType.Queue, 9, BuffClassification.Offensive, BuffImages.JadeTechOffensive),
             new Buff("Jade Tech Defensive Overcharge", JadeTechDefensiveOvercharge, Source.EncounterSpecific, BuffStackType.Queue, 9, BuffClassification.Defensive, BuffImages.JadeTechDefensive),

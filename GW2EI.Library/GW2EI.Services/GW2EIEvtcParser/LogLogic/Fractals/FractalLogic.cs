@@ -2,15 +2,14 @@
 using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.ParsedData;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogCategories;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -110,7 +109,7 @@ internal abstract class FractalLogic : LogLogic
             {
                 NoBouncyChestGenericCheckSucess(combatData, agentData, logData, playerAgents, successHandler);
             }
-        } 
+        }
         else
         {
             successHandler.SetSuccess(false, mainTarget.LastAware);
@@ -122,7 +121,7 @@ internal abstract class FractalLogic : LogLogic
         base.ComputePlayerCombatReplayActors(p, log, replay);
 
         // Toxic Sickness
-        var toxicSicknessGUIDs = new List<GUID>() { EffectGUIDs.ToxicSicknessOldIndicator, EffectGUIDs.ToxicSicknessNewIndicator };
+        var toxicSicknessGUIDs = new List<Guid>() { EffectGUIDs.ToxicSicknessOldIndicator, EffectGUIDs.ToxicSicknessNewIndicator };
         foreach (var guid in toxicSicknessGUIDs)
         {
             if (log.CombatData.TryGetEffectEventsBySrcWithGUID(p.AgentItem, guid, out var toxicSickenss))
@@ -188,8 +187,7 @@ internal abstract class FractalLogic : LogLogic
             {
                 (long start, long end) lifespan = effect.ComputeDynamicLifespan(log, 5000);
                 var circle = new CircleDecoration(120, lifespan, Colors.Blue, 0.1, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.GetBorderDecoration(Colors.Red, 0.2));
+                environmentDecorations.AddWithBorder(circle, Colors.Red, 0.2);
 
                 int pulseDuration = 1000;
                 long pulse = lifespan.start + pulseDuration;
@@ -215,7 +213,7 @@ internal abstract class FractalLogic : LogLogic
     /// <param name="distanceThreshold">Threshold distance of the effect from the caster.</param>
     /// <param name="onDistanceSuccessDuration">Duration of the AoE effects closer to the caster.</param>
     /// <param name="onDistanceFailDuration">Duration of the AoE effects farther away from the caster.</param>
-    protected static void AddDistanceCorrectedOrbAoEDecorations(ParsedEvtcLog log, CombatReplayDecorationContainer environmentDecorations, GUID effect, TargetID target, double distanceThreshold, long onDistanceSuccessDuration, long onDistanceFailDuration)
+    protected static void AddDistanceCorrectedOrbAoEDecorations(ParsedEvtcLog log, CombatReplayDecorationContainer environmentDecorations, Guid effect, TargetID target, double distanceThreshold, long onDistanceSuccessDuration, long onDistanceFailDuration)
     {
         if (!log.AgentData.TryGetFirstAgentItem(target, out var agent))
         {
@@ -248,5 +246,38 @@ internal abstract class FractalLogic : LogLogic
                 environmentDecorations.Add(new CircleDecoration(100, lifespan, Colors.Orange, 0.3, new PositionConnector(effectEvent.Position)));
             }
         }
+    }
+
+
+
+    /// <summary>
+    /// Compute the cast duration while the target has <see cref="MistlockInstabilitySugarRush"/>.
+    /// </summary>
+    /// <param name="castDuration">Duration of the cast.</param>
+    /// <returns>The duration of the cast.</returns>
+    internal static double ComputeCastTimeWithSugarRush(long castDuration)
+    {
+        return castDuration * 0.8;
+    }
+
+    /// <summary>
+    /// Compute the cast duration while the target has <see cref="Quickness"/> and <see cref="MistlockInstabilitySugarRush"/>.
+    /// </summary>
+    /// <param name="log">The log.</param>
+    /// <param name="actor">Actor casting.</param>
+    /// <param name="startCastTime">Starting time of the cast.</param>
+    /// <param name="castDuration">Duration of the cast.</param>
+    /// <returns>The duration of the cast.</returns>
+    internal static double ComputeCastTimeWithQuicknessAndSugarRush(ParsedEvtcLog log, SingleActor actor, long startCastTime, long castDuration)
+    {
+        long expectedEndCastTime = startCastTime + castDuration;
+        Segment? quickness = actor.GetBuffStatus(log, Quickness, startCastTime, expectedEndCastTime).FirstOrNull((in x) => x.Value == 1);
+        if (quickness != null)
+        {
+            long quicknessTimeDuringCast = Math.Min(expectedEndCastTime, quickness.Value.End) - Math.Max(startCastTime, quickness.Value.Start);
+            double castTimeWithSugarRush = ComputeCastTimeWithSugarRush(castDuration);
+            return castTimeWithSugarRush - quicknessTimeDuringCast + (quicknessTimeDuringCast * 0.66 / 0.8);
+        }
+        return 0;
     }
 }

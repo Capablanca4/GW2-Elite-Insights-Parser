@@ -137,6 +137,11 @@ Kinfall Full Instance: 0x030600
 
 Whispering Shadow: 0x030601
 
+### Solitary Throne
+Solitary Throne Full Instance: 0x030700
+
+The Eternal Tyrant: 0x030701
+
 ## Raid Encounters
 ### Festivals
 Freezie: 0x040101
@@ -179,6 +184,8 @@ Temple of Febe: 0x040502
 ### Visions of Eternity
 
 Guardian's Glade: 0x040601
+
+Nexus of Eternity: 0x040602
 
 0xXXXX1X indicates a full instance log.
 
@@ -260,3 +267,7 @@ Greer, the Blightbringer: 0x090201
 Decima, the Stormsinger: 0x090202
 
 Ura, the Steamshrieker: 0x090203
+
+### Nexus of Eternity
+
+Vloxx: 0x090300

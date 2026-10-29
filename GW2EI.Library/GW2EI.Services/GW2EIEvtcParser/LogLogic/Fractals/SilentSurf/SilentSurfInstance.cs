@@ -3,7 +3,6 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
-using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SpeciesIDs;
 
@@ -15,7 +14,6 @@ internal class SilentSurfInstance : SilentSurf
 
     public SilentSurfInstance(int triggerID) : base(triggerID)
     {
-        LogID = LogIDs.LogMasks.Unsupported;
         Icon = InstanceIconSilentSurf;
         Extension = "slntsrf";
 
@@ -45,7 +43,7 @@ internal class SilentSurfInstance : SilentSurf
             var determinedBuffs = combatData.GetBuffDataByIDByDst(SkillIDs.Determined762, lastKanaxai);
             var enterCombat = combatData.GetEnterCombatEvents(lastKanaxai).First();
             var determinedApply = determinedBuffs.FirstOrDefault(x => x is BuffApplyEvent && x.Time > enterCombat.Time);
-            if (determinedApply != null && !combatData.GetDespawnEvents(lastKanaxai).Any(x => Math.Abs(x.Time - determinedApply.Time) < ServerDelayConstant))
+            if (determinedApply != null && !combatData.GetDespawnEvents(lastKanaxai).Any(x => x.IsAtTime(determinedApply)))
             {
                 successHandler.SetSuccess(true, determinedApply.Time);
             }
@@ -67,7 +65,7 @@ internal class SilentSurfInstance : SilentSurf
                 if (determinedLost != null && enterCombat != null && enterCombat.Time >= determinedLost.Time)
                 {
                     start = determinedLost.Time;
-                } 
+                }
                 else
                 {
                     continue;
@@ -75,7 +73,7 @@ internal class SilentSurfInstance : SilentSurf
                 bool success = false;
                 long end = kanaxai.LastAware;
                 var determinedApply = determinedBuffs.FirstOrDefault(x => x is BuffApplyEvent && x.Time > start);
-                if (determinedApply != null && !log.CombatData.GetDespawnEvents(kanaxai.AgentItem).Any(x => Math.Abs(x.Time - determinedApply.Time) < ServerDelayConstant))
+                if (determinedApply != null && !log.CombatData.GetDespawnEvents(kanaxai.AgentItem).Any(x => x.IsAtTime(determinedApply)))
                 {
                     success = true;
                     end = determinedApply.Time;
@@ -157,20 +155,25 @@ internal class SilentSurfInstance : SilentSurf
     }
     internal override void ComputeNPCCombatReplayActors(NPC target, ParsedEvtcLog log, CombatReplay replay)
     {
-        base.ComputeNPCCombatReplayActors (target, log, replay);
+        base.ComputeNPCCombatReplayActors(target, log, replay);
         _kanaxai.ComputeNPCCombatReplayActors(target, log, replay);
     }
 
     internal override void ComputePlayerCombatReplayActors(PlayerActor p, ParsedEvtcLog log, CombatReplay replay)
     {
-        base.ComputePlayerCombatReplayActors (p, log, replay);
+        base.ComputePlayerCombatReplayActors(p, log, replay);
         _kanaxai.ComputePlayerCombatReplayActors(p, log, replay);
     }
 
     internal override void ComputeEnvironmentCombatReplayDecorations(ParsedEvtcLog log, CombatReplayDecorationContainer environmentDecorations)
     {
-        base.ComputeEnvironmentCombatReplayDecorations (log, environmentDecorations);
+        base.ComputeEnvironmentCombatReplayDecorations(log, environmentDecorations);
         _kanaxai.ComputeEnvironmentCombatReplayDecorations(log, environmentDecorations);
+    }
+
+    internal override Dictionary<TargetID, int> GetTargetsSortIDs()
+    {
+        return _kanaxai.GetTargetsSortIDs();
     }
 
     internal override void SetInstanceBuffs(ParsedEvtcLog log, List<InstanceBuff> instanceBuffs)
@@ -182,10 +185,5 @@ internal class SilentSurfInstance : SilentSurf
     {
         base.ComputeAchievementEligibilityEvents(log, p, achievementEligibilityEvents);
         _kanaxai.ComputeAchievementEligibilityEvents(log, p, achievementEligibilityEvents);
-    }
-
-    internal override Dictionary<TargetID, int> GetTargetsSortIDs()
-    {
-        return _kanaxai.GetTargetsSortIDs();
     }
 }

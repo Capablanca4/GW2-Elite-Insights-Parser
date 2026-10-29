@@ -4,14 +4,13 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -110,7 +109,7 @@ internal class Freezie : FestivalRaidEncounterLogic
         if (reward != null)
         {
             successHandler.SetSuccess(true, reward.Time);
-        } 
+        }
         else
         {
             AgentItem freezie = agentData.GetStableSpeciesByID(TargetID.Freezie).FirstOrDefault() ?? throw new MissingKeyActorsException("Freezie not found");
@@ -130,7 +129,7 @@ internal class Freezie : FestivalRaidEncounterLogic
         if (heart != null)
         {
             HealthUpdateEvent? heartHpUpdate = combatData.GetHealthUpdateEvents(heart).FirstOrDefault(x => x.Time >= freezie.FirstAware);
-            if ((heartHpUpdate != null && heartHpUpdate.HealthPercent > 0) )
+            if ((heartHpUpdate != null && heartHpUpdate.HealthPercent > 0))
             {
                 return LogData.StartStatus.Late;
             }
@@ -138,7 +137,7 @@ internal class Freezie : FestivalRaidEncounterLogic
         return LogData.StartStatus.Normal;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -199,12 +198,14 @@ internal class Freezie : FestivalRaidEncounterLogic
             base.ComputeEnvironmentCombatReplayDecorations(log, environmentDecorations);
         }
 
+        (long start, long end) lifespan;
+
         // Frost Patch
         if (log.CombatData.TryGetEffectEventsByGUID(EffectGUIDs.FreezieFrozenPatch, out var frozenPatches))
         {
             foreach (EffectEvent effect in frozenPatches)
             {
-                (long, long) lifespan = effect.ComputeLifespan(log, 30000);
+                lifespan = effect.ComputeLifespan(log, 30000);
                 var connector = new PositionConnector(effect.Position);
                 var rotationConnector = new AngleConnector(effect.Rotation.Z);
                 environmentDecorations.Add(new RectangleDecoration(50, 190, lifespan, Colors.White, 0.4, connector).UsingRotationConnector(rotationConnector));
@@ -217,11 +218,10 @@ internal class Freezie : FestivalRaidEncounterLogic
         {
             foreach (EffectEvent effect in orangeAoEs)
             {
-                (long, long) lifespan = (effect.Time, effect.Time + effect.Duration);
+                lifespan = (effect.Time, effect.Time + effect.Duration);
                 var connector = new PositionConnector(effect.Position);
                 var circle = new CircleDecoration(120, lifespan, Colors.LightOrange, 0.2, connector);
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.Copy().UsingGrowingEnd(lifespan.Item2));
+                environmentDecorations.AddWithGrowing(circle, lifespan.end);
             }
         }
 
@@ -230,7 +230,7 @@ internal class Freezie : FestivalRaidEncounterLogic
         {
             foreach (EffectEvent effect in blizzards)
             {
-                (long, long) lifespan = effect.ComputeLifespan(log, 10000);
+                lifespan = effect.ComputeLifespan(log, 10000);
                 var connector = new PositionConnector(effect.Position);
                 environmentDecorations.Add(new DoughnutDecoration(760, 1000, lifespan, Colors.Orange, 0.2, connector));
                 // Thicker Borders

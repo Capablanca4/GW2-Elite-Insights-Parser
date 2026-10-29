@@ -79,7 +79,7 @@ public class LogData
         Late,
         NoPreEvent
     }
-    private StartStatus LogStartStatus  = StartStatus.NotSet;
+    private StartStatus LogStartStatus = StartStatus.NotSet;
     private bool LogIsLateStart => LogStartStatus == StartStatus.Late || LogMissingPreEvent;
     private bool LogMissingPreEvent => LogStartStatus == StartStatus.NoPreEvent;
 
@@ -92,7 +92,7 @@ public class LogData
         NotApplicable,
         Unknown,
     }
-    public InstancePrivacyMode InstancePrivacy {  get; private set; } = InstancePrivacyMode.NotApplicable;
+    public InstancePrivacyMode InstancePrivacy { get; private set; } = InstancePrivacyMode.NotApplicable;
 
     // Constructors
     internal LogData(int id, AgentData agentData, List<CombatItem> combatData, EvtcParserSettings parserSettings, long offset, long end, EvtcVersionEvent evtcVersion)
@@ -257,6 +257,8 @@ public class LogData
                         return new TempleOfFebe(id);
                     case TargetID.KelaSeneschalOfWaves:
                         return new GuardiansGlade(id);
+                    case TargetID.Vloxx:
+                        return new NexusOfEternity(id);
                     // Fractals
                     case TargetID.MAMA:
                         return new MAMA(id);
@@ -281,6 +283,8 @@ public class LogData
                         return new Eparch(id);
                     case TargetID.WhisperingShadow:
                         return new WhisperingShadow(id);
+                    case TargetID.EternalTyrant:
+                        return new EternalTyrant(id);
                     // Golems
                     case TargetID.MassiveGolem10M:
                     case TargetID.MassiveGolem4M:
@@ -361,7 +365,7 @@ public class LogData
             if (IsInstance)
             {
                 mainPhase = phases.OfType<InstancePhaseData>().FirstOrDefault();
-            } 
+            }
             else
             {
                 mainPhase = phases.OfType<EncounterPhaseData>().FirstOrDefault();
@@ -389,7 +393,7 @@ public class LogData
             if (IsInstance && _phases[0].Targets.Count == 0)
             {
                 _phases[0].AddTargets(Logic.Targets.Where(x => x.IsSpecies(TargetID.Instance)), log);
-            } 
+            }
             else if (!IsInstance)
             {
                 if (_phases.Count(x => x.Type == PhaseData.PhaseType.Encounter) != 1)
@@ -444,7 +448,7 @@ public class LogData
                         {
                             subPhase.AttachToEncounter(encounterPhase);
                         }
-                    } 
+                    }
                     // Phases are time sorted
                     else if (subPhase.Start > encounterPhase.End)
                     {
@@ -557,7 +561,7 @@ public class LogData
     private void SetSuccess(bool success, long logEnd)
     {
         Success = success;
-        LogEnd = Success ? Math.Min( logEnd + ParserHelper.ServerDelayConstant, EvtcLogEnd) : logEnd;
+        LogEnd = Success ? Math.Min(logEnd + ParserHelper.ServerDelayConstant, EvtcLogEnd) : logEnd;
     }
 
     internal void ApplyOffset(long offset)

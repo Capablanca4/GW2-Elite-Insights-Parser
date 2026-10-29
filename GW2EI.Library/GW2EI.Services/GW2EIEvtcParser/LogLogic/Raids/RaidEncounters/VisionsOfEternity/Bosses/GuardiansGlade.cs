@@ -7,16 +7,15 @@ using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -203,7 +202,7 @@ internal class GuardiansGlade : VisionsOfEternityRaidEncounter
 
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
 
-        RenameCrocodilianRazortooth(Targets);
+        RenameCrocodilianRazortooth(Targets, evtcVersion);
 
         SingleActor kela = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.KelaSeneschalOfWaves)) ?? throw new MissingKeyActorsException("Kela not found");
         SanitizeLastHealthUpdateEvents(kela, combatData);
@@ -233,7 +232,7 @@ internal class GuardiansGlade : VisionsOfEternityRaidEncounter
         var burrowOrAmbushCast = kelaCasts.Where(x => x.SkillID == KelaBurrow || x.SkillID == KelaAmbush1 || x.SkillID == KelaAmbush2).ToList();
         var kelaNonStormRelatedCast = kelaCasts.Where(x => x.SkillID != KelaBurrow && x.SkillID != KelaAmbush1 && x.SkillID != KelaAmbush2 && x.SkillID != log.SkillData.DodgeID && x.ActualDuration > ServerDelayConstant).ToList();
         // Candidate phases
-        var kelaPhases = GetSubPhasesByInvul(log, KelaBurrowed, kela, true, true, encounterPhase.Start, encounterPhase.End, false);
+        var kelaPhases = GetSubPhasesByInvul(log, KelaBurrowed, kela, true, true, encounterPhase.Start, encounterPhase.End, ServerDelayConstant, false);
         List<SubPhasePhaseData> candidateMainPhases = [];
         List<SubPhasePhaseData> candidateStormPhases = [];
         for (int i = 0; i < kelaPhases.Count; i++)
@@ -388,7 +387,7 @@ internal class GuardiansGlade : VisionsOfEternityRaidEncounter
             var kela = kelaPhases.FirstOrDefault(x => x.IntersectsWindow(seg.Start, seg.End))?.Targets.First(x => x.Key.IsSpecies(TargetID.KelaSeneschalOfWaves)).Key;
             if (kela != null)
             {
-                replay.Decorations.AddTether(seg.Start, seg.End, p.AgentItem, kela.AgentItem, Colors.FixationPurple.WithAlpha(0.3).ToString());
+                replay.Decorations.AddTether(seg.TimeSpan, p.AgentItem, kela.AgentItem, Colors.FixationPurple.WithAlpha(0.3).ToString());
             }
             replay.Decorations.AddOverheadIcon(seg, p, ParserIcons.FixationPurpleOverhead);
         }
@@ -436,12 +435,7 @@ internal class GuardiansGlade : VisionsOfEternityRaidEncounter
                     }
 
                     // Tantrum Breakbar
-                    var breakbarUpdates = target.GetBreakbarPercentUpdates(log);
-                    var (_, breakbarActives, _, _) = target.GetBreakbarStatus(log);
-                    foreach (var segment in breakbarActives)
-                    {
-                        replay.Decorations.AddActiveBreakbar(segment.TimeSpan, target, breakbarUpdates);
-                    }
+                    replay.Decorations.AddActiveBreakbars(log, target);
 
                     // Tantrum Range
                     var tantrumCasts = target.GetAnimatedCastEvents(log).Where(x => x.SkillID == KelaTantrum1 || x.SkillID == KelaTantrum2).ToList();
@@ -521,7 +515,7 @@ internal class GuardiansGlade : VisionsOfEternityRaidEncounter
                     AddSandDecorations(log, environmentDecorations, borders, 2500, Colors.Yellow, 0.1, true, Colors.Red, 0.2);
                 }
             }
-        } 
+        }
         else
         {
             foreach (var agent in log.AgentData.GetStableSpeciesByIDs([TargetID.ExecutorOfWaves, TargetID.KelaSeneschalOfWavesSand]))
@@ -658,7 +652,7 @@ internal class GuardiansGlade : VisionsOfEternityRaidEncounter
         for (var i = 0; i < effects.Count; i++)
         {
             var effect = effects[i];
-            var (start, end) = effect.ComputeDynamicLifespan(log, defaultDuration);
+            var (start, end) = effect.ComputeLifespan(log, defaultDuration);
             var next = effects.ElementAtOrDefault(i + 1);
             if (next?.Time < end + maxInterval) // avoid overlap and pulsing by using start of next as end
             {
@@ -685,21 +679,36 @@ internal class GuardiansGlade : VisionsOfEternityRaidEncounter
         }
     }
 
-    private static void RenameCrocodilianRazortooth(IReadOnlyList<SingleActor> targets)
+    private static void RenameCrocodilianRazortooth(IReadOnlyList<SingleActor> targets, EvtcVersionEvent evtcVersion)
     {
-        foreach (SingleActor actor in targets)
+        if (evtcVersion.Build < ArcDPSBuilds.AgentInfoAdded)
         {
-            switch (actor.ID)
+            foreach (SingleActor actor in targets)
             {
-                case (int)TargetID.VeteranCrocodilianRazortooth:
-                    actor.OverrideName("Veteran " + actor.Character);
-                    break;
-                case (int)TargetID.EliteCrocodilianRazortooth:
-                    actor.OverrideName("Elite " + actor.Character);
-                    break;
-                case (int)TargetID.DownedEliteCrocodilianRazortooth:
-                    actor.OverrideName("Downed Elite " + actor.Character);
-                    break;
+                switch (actor.ID)
+                {
+                    case (int)TargetID.VeteranCrocodilianRazortooth:
+                        actor.OverrideName("Veteran " + actor.Character);
+                        break;
+                    case (int)TargetID.EliteCrocodilianRazortooth:
+                        actor.OverrideName("Elite " + actor.Character);
+                        break;
+                    case (int)TargetID.DownedEliteCrocodilianRazortooth:
+                        actor.OverrideName("Elite Downed " + actor.Character);
+                        break;
+                }
+            }
+        }
+        else
+        {
+            foreach (SingleActor actor in targets)
+            {
+                switch (actor.ID)
+                {
+                    case (int)TargetID.DownedEliteCrocodilianRazortooth:
+                        actor.OverrideName("Downed " + actor.Character);
+                        break;
+                }
             }
         }
     }

@@ -68,10 +68,10 @@ internal class TextDecoration : Decoration
             RotationConnectedTo = rotationConnectedTo;
         }
         /// <summary>
-         /// 
-         /// </summary>
-         /// <param name="skill">Skill information</param>
-         /// <returns></returns>
+        /// 
+        /// </summary>
+        /// <param name="skill">Skill information</param>
+        /// <returns></returns>
         public virtual void UsingSkillMode(SkillModeDescriptor? skill)
         {
             SkillMode = skill;
@@ -100,7 +100,7 @@ internal class TextDecoration : Decoration
     }
 
 
-    public TextDecoration((long, long) lifespan, string text, uint fontSize, Color color, double opacity, GeographicalConnector connector) : this(lifespan, text, fontSize, color.WithAlpha(opacity).ToString(true), connector)
+    public TextDecoration((long, long) lifespan, string text, uint fontSize, Color color, double opacity, GeographicalConnector connector) : this(lifespan, text, fontSize, color.WithAlpha(opacity).ToString(), connector)
     {
 
     }
@@ -109,7 +109,7 @@ internal class TextDecoration : Decoration
     {
 
     }
-    public TextDecoration((long, long) lifespan, string text, uint fontSize, Color color, double opacity, ScreenSpaceConnector connector) : this(lifespan, text, fontSize, color.WithAlpha(opacity).ToString(true), connector)
+    public TextDecoration((long, long) lifespan, string text, uint fontSize, Color color, double opacity, ScreenSpaceConnector connector) : this(lifespan, text, fontSize, color.WithAlpha(opacity).ToString(), connector)
     {
 
     }

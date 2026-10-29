@@ -5,15 +5,14 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -514,12 +513,7 @@ internal class DecimaTheStormsinger : MountBalrior
                 }
 
                 // Flux Nova - Breakbar
-                var breakbarUpdates = target.GetBreakbarPercentUpdates(log);
-                var (breakbarNones, breakbarActives, breakbarImmunes, breakbarRecoverings) = target.GetBreakbarStatus(log);
-                foreach (var segment in breakbarActives)
-                {
-                    replay.Decorations.AddActiveBreakbar(segment.TimeSpan, target, breakbarUpdates);
-                }
+                replay.Decorations.AddActiveBreakbars(log, target);
                 break;
             case (int)TargetID.GreenOrb1Player:
             case (int)TargetID.GreenOrb1PlayerCM:
@@ -643,7 +637,7 @@ internal class DecimaTheStormsinger : MountBalrior
                                     uint radius = 800;
                                     long warningDuration = effect.Time - cast.Time;
                                     (long start, long end) lifespanWarning = (cast.Time, effect.Time);
-                                    (long start, long end) lifespanDamage = effect.ComputeDynamicLifespan(log, 30000);
+                                    (long start, long end) lifespanDamage = effect.ComputeLifespan(log, 30000);
                                     lifespanWarning.end = ComputeEndCastTimeByBuffApplication(log, target, Stun, cast.Time, warningDuration); // Cast can be interrupted
 
                                     var warningIndicator = new CircleDecoration(radius, lifespanWarning, Colors.LightOrange, 0.2, new PositionConnector(effect.Position));
@@ -853,7 +847,7 @@ internal class DecimaTheStormsinger : MountBalrior
                     instanceBuffs.Add(new(log.Buffs.BuffsByIDs[AchievementEligibilityCalmBeforeTheStorm], 1, encounterPhase));
                 }
             }
-        }       
+        }
     }
     internal override void ComputeAchievementEligibilityEvents(ParsedEvtcLog log, Player p, List<AchievementEligibilityEvent> achievementEligibilityEvents)
     {
@@ -868,7 +862,7 @@ internal class DecimaTheStormsinger : MountBalrior
             var fulgentCMs = log.CombatData.GetDamageData(FulgentFenceCM);
             foreach (var evt in fulgentCMs)
             {
-                if (evt.HasHit && evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.HasHit && evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(decimaCMPhases, thisBugCanDanceEligibilityEvents, evt.Time, Ach_ThisBugCanDance, p);
                 }
@@ -880,7 +874,7 @@ internal class DecimaTheStormsinger : MountBalrior
             var damageData = p.GetDamageTakenEvents(null, log).Where(x => fluxlanceIDs.Contains(x.SkillID) || thunderIDs.Contains(x.SkillID)).ToList();
             foreach (var evt in exposeds)
             {
-                if (damageData.Any(x => Math.Abs(x.Time - evt.Time) < ServerDelayConstant))
+                if (damageData.Any(x => x.IsAtTime(evt)))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(decimaCMPhases, thisBugCanDanceEligibilityEvents, evt.Time, Ach_ThisBugCanDance, p);
                 }

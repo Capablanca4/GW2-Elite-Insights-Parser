@@ -236,14 +236,18 @@ internal static class ParserIcons
     private const string TargetDecima = "https://i.imgur.com/MPcVY47.png";
     private const string TargetGreer = "https://i.imgur.com/iuhDVaM.png";
     private const string TargetUra = "https://i.imgur.com/LxO1u5r.png";
-    private const string DemonKnight = "https://i.imgur.com/BhoyT2P.png";
-    private const string SorrowConvergence = "https://i.imgur.com/pIDNTAQ.png";
-    private const string Dreadwing = "https://i.imgur.com/27tktFX.png";
-    private const string HellSister = "https://i.imgur.com/5d9i7Eq.png";
-    private const string Umbriel = "https://i.imgur.com/lE2Dg5a.png";
-    private const string Zojja = "https://i.imgur.com/9iSzaTe.png";
-    private const string WhisperingShadow = "https://i.imgur.com/ncmbsdG.png";
-    private const string KelaSeneschalOfWaves = "https://i.imgur.com/wSpjlSf.png";
+    private const string TargetDemonKnight = "https://i.imgur.com/BhoyT2P.png";
+    private const string TargetSorrow = "https://i.imgur.com/pIDNTAQ.png";
+    private const string TargetDreadwing = "https://i.imgur.com/27tktFX.png";
+    private const string TargetHellSister = "https://i.imgur.com/5d9i7Eq.png";
+    private const string TargetUmbriel = "https://i.imgur.com/lE2Dg5a.png";
+    private const string FriendlyZojja = "https://i.imgur.com/9iSzaTe.png";
+    private const string TargetWhisperingShadow = "https://i.imgur.com/ncmbsdG.png";
+    private const string TargetKelaSeneschalOfWaves = "https://i.imgur.com/wSpjlSf.png";
+    private const string TargetVloxx = "https://i.imgur.com/9ZVp5ZH.png";
+    private const string TargetEternalTyrant = "https://i.imgur.com/r2OJ7fJ.png";
+    private const string TargetConstructOfGaldra = "https://i.imgur.com/wLB0Xf8.png";
+    private const string TargetRimeSprite = "https://i.imgur.com/kxYwbVe.png";
     #endregion
 
     #region Trash
@@ -355,7 +359,7 @@ internal static class ParserIcons
     private const string TrashCrimsonMcLeod = "https://i.imgur.com/dLNMI85.png";
     private const string TrashRadiantMcLeod = "https://i.imgur.com/ZlPTU4a.png";
     private const string TrashDhuumDesmina = "https://i.imgur.com/jAiRplg.png";
-    private const string TrashGlenna = "https://i.imgur.com/qOPm38P.png";
+    private const string FriendlyGlenna = "https://i.imgur.com/qOPm38P.png";
     private const string TrashVoidStormseer = "https://i.imgur.com/ZullvP1.png";
     private const string TrashVoidWarforged = "https://i.imgur.com/gea0hIt.png";
     private const string TrashVoidRotswarmer = "https://i.imgur.com/uzevKld.png";
@@ -473,12 +477,23 @@ internal static class ParserIcons
     private const string TrashLucidBoulder = "https://i.imgur.com/hcceqNq.png";
     private const string TrashHandOfErosion = "https://i.imgur.com/THCasXt.png";
     private const string TrashHandOfEruption = "https://i.imgur.com/pQ0bOT8.png";
-    private const string Deathling = "https://i.imgur.com/tnhj5B2.png";
-    private const string ExecutorOfWaves = "https://i.imgur.com/yOzVPFL.png";
-    private const string CrocodilianRazortooth = "https://i.imgur.com/tyLGqy5.png";
-    private const string DownedCrocodilianRazortooth = "https://i.imgur.com/v3Z6ZvX.png";
-    private const string LightThief = "https://i.imgur.com/qJZ9arr.png";
+    private const string TrashDeathling = "https://i.imgur.com/tnhj5B2.png";
+    private const string TrashExecutorOfWaves = "https://i.imgur.com/yOzVPFL.png";
+    private const string TrashCrocodilianRazortooth = "https://i.imgur.com/tyLGqy5.png";
+    private const string TrashDownedCrocodilianRazortooth = "https://i.imgur.com/v3Z6ZvX.png";
+    private const string TrashLightThief = "https://i.imgur.com/qJZ9arr.png";
     private const string EtherealSeal = "https://i.imgur.com/9alXwPm.png";
+    private const string TrashCosmicPiercer = "https://i.imgur.com/KzX7NGO.png";
+    private const string TrashCosmicSunderer = "https://i.imgur.com/4Lf41yG.png";
+    private const string TrashCosmicBulwark = "https://i.imgur.com/ljAqMsj.png";
+    private const string TrashAscensionOrb = "https://i.imgur.com/HabikUq.png";
+    private const string TrashAspectOfTheSpear = "https://i.imgur.com/gNdcD7a.png";
+    private const string TrashAspectOfTheStaff = "https://i.imgur.com/StuTpMS.png";
+    private const string TrashAspectOfTheSword = "https://i.imgur.com/o2dPlEq.png";
+    private const string TrashEarthElemental = "https://i.imgur.com/GymhEiO.png";
+    private const string TrashEmber = "https://i.imgur.com/OzbCqNZ.png";
+    private const string TrashFrostElemental = "https://i.imgur.com/YV3AN5R.png";
+    private const string TrashSpark = "https://i.imgur.com/RUxJLuB.png";
     #endregion
 
     #region Minion
@@ -592,6 +607,7 @@ internal static class ParserIcons
     private const string MinionJuvenileJanthiriBee = "https://i.imgur.com/WymxKGX.png";
     private const string MinionJuvenileRaptorSwiftwing = "https://i.imgur.com/F33rSgz.png";
     private const string MinionJuvenileRiverOtter = "https://i.imgur.com/3la7Fjc.png";
+    private const string MinionJuvenileLeyVampireBat = "https://i.imgur.com/pvBLlbp.png";
     private const string MinionBloodFiend = "https://i.imgur.com/PrOpULe.png";
     private const string MinionBoneFiend = "https://i.imgur.com/BEntBIt.png";
     private const string MinionFleshGolem = "https://i.imgur.com/JkYUNug.png";
@@ -761,7 +777,7 @@ internal static class ParserIcons
     /// <summary>
     /// Translates a <see cref="Spec"/> to its high resolution profession icon.
     /// </summary>
-    internal readonly static IReadOnlyDictionary<Spec, string> HighResProfIcons = new Dictionary<Spec, string>()
+    internal static readonly IReadOnlyDictionary<Spec, string> HighResProfIcons = new Dictionary<Spec, string>()
     {
         // Ranger
         { Spec.Galeshot, HighResGaleshot },
@@ -822,7 +838,7 @@ internal static class ParserIcons
     /// <summary>
     /// Translates a <see cref="Spec"/> to its base resolution profession icon.
     /// </summary>
-    internal readonly static IReadOnlyDictionary<Spec, string> BaseResProfIcons = new Dictionary<Spec, string>()
+    internal static readonly IReadOnlyDictionary<Spec, string> BaseResProfIcons = new Dictionary<Spec, string>()
     {
         // Ranger
         { Spec.Galeshot, BaseResGaleshot },
@@ -883,7 +899,7 @@ internal static class ParserIcons
     /// <summary>
     /// Translates a <see cref="TargetID"/> to the corresponding icon.
     /// </summary>
-    internal readonly static IReadOnlyDictionary<TargetID, string> TargetNPCIcons = new Dictionary<TargetID, string>()
+    internal static readonly IReadOnlyDictionary<TargetID, string> TargetNPCIcons = new Dictionary<TargetID, string>()
     {
         { TargetID.WorldVersusWorld, TargetWorldVersusWorld },
         { TargetID.Mordremoth, TargetMordremoth },
@@ -995,6 +1011,7 @@ internal static class ParserIcons
         { TargetID.Spirit, TrashSpiritDemonSoul },
         { TargetID.Spirit2, TrashSpiritDemonSoul },
         { TargetID.ChargedSoul, TrashSpiritDemonSoul },
+        { TargetID.GorsevalEtherealBarrier, NoImage },
         { TargetID.HollowedBomber, TrashSpiritDemonSoul },
         { TargetID.Saul, TrashSaul },
         { TargetID.ShackledPrisoner, TrashShackledPrisoner },
@@ -1042,6 +1059,8 @@ internal static class ParserIcons
         { TargetID.Bombs, TrashBombs },
         { TargetID.Tornado, TrashTornado },
         { TargetID.Jade, TrashJade },
+        { TargetID.MursaatOverseerSpikes, NoImage },
+        { TargetID.MursaatOverseerClaimArea, NoImage },
         { TargetID.AngryZommoros, TrashAngryChillZommoros },
         { TargetID.ChillZommoros, TrashAngryChillZommoros },
         { TargetID.AncientInvokedHydra, TrashAncientInvokedHydra },
@@ -1158,6 +1177,7 @@ internal static class ParserIcons
         { TargetID.DragonEnergyOrb, GenericEnemyIcon },
         { TargetID.HandOfErosion, TrashHandOfErosion },
         { TargetID.HandOfEruption, TrashHandOfEruption },
+        { TargetID.AdinaPlateform, NoImage },
         { TargetID.VoltaicWisp, TrashVoltaicWisp },
         { TargetID.ParalyzingWisp, TrashParalyzingWisp },
         { TargetID.PeerlessQadimPylon, TrashPeerlessQadimPylon },
@@ -1223,8 +1243,8 @@ internal static class ParserIcons
         { TargetID.WhiteMantleBattleCultist1, GenericEnemyIcon },
         { TargetID.WhiteMantleBattleCultist2, GenericEnemyIcon },
         { TargetID.DhuumDesmina, TrashDhuumDesmina },
-        { TargetID.Deathling, Deathling },
-        { TargetID.Glenna, TrashGlenna },
+        { TargetID.Deathling, TrashDeathling },
+        { TargetID.Glenna, FriendlyGlenna },
         { TargetID.VoidStormseer, TrashVoidStormseer },
         { TargetID.VoidStormseerOW1, TrashVoidStormseer },
         { TargetID.VoidStormseerOW2, TrashVoidStormseer },
@@ -1296,14 +1316,14 @@ internal static class ParserIcons
         { TargetID.TheSniperCM, TrashTheSniper },
         { TargetID.PushableVoidAmalgamate, TrashPushableVoidAmalgamate },
         { TargetID.KillableVoidAmalgamate, TrashKillableVoidAmalgamate },
-        { TargetID.FluxAnomaly1, TrashFluxAnomaly },
-        { TargetID.FluxAnomaly2, TrashFluxAnomaly },
-        { TargetID.FluxAnomaly3, TrashFluxAnomaly },
-        { TargetID.FluxAnomaly4, TrashFluxAnomaly },
-        { TargetID.FluxAnomalyCM1, TrashFluxAnomaly },
-        { TargetID.FluxAnomalyCM2, TrashFluxAnomaly },
-        { TargetID.FluxAnomalyCM3, TrashFluxAnomaly },
-        { TargetID.FluxAnomalyCM4, TrashFluxAnomaly },
+        { TargetID.FluxAnomalySwordSword, TrashFluxAnomaly },
+        { TargetID.FluxAnomalyAxeMace, TrashFluxAnomaly },
+        { TargetID.FluxAnomalyScepterScepter, TrashFluxAnomaly },
+        { TargetID.FluxAnomalyHammer, TrashFluxAnomaly },
+        { TargetID.FluxAnomalySwordSwordCM, TrashFluxAnomaly },
+        { TargetID.FluxAnomalyAxeMaceCM, TrashFluxAnomaly },
+        { TargetID.FluxAnomalyScepterScepterCM, TrashFluxAnomaly },
+        { TargetID.FluxAnomalyHammerCM, TrashFluxAnomaly },
         { TargetID.SolarBloom, TrashSolarBloom },
         { TargetID.ReactorActiveArkk, TrashReactorArkk },
         { TargetID.Torch, TrashTorch },
@@ -1382,33 +1402,52 @@ internal static class ParserIcons
         { TargetID.Cannon, TrashCannon },
         { TargetID.HeavyBomb, TrashFerrousBomb }, // Using Aetherblade Hideout image for better visual
         { TargetID.ProtoGreerling, TrashProtoGreerling },
-        { TargetID.DecimaTheStormsingerConv, TargetDecima },
-        { TargetID.GreerTheBlightbringerConv, TargetGreer },
-        { TargetID.GreeTheBingerConv, TrashGree },
-        { TargetID.ReegTheBlighterConv, TrashReeg },
-        { TargetID.UraTheSteamshriekerConv, TargetUra },
-        { TargetID.DemonKnight, DemonKnight },
-        { TargetID.Sorrow, SorrowConvergence },
-        { TargetID.Dreadwing, Dreadwing },
-        { TargetID.HellSister, HellSister },
-        { TargetID.UmbrielHalberdOfHouseAurkus, Umbriel },
-        { TargetID.ZojjaNayos, Zojja },
-        { TargetID.WhisperingShadow, WhisperingShadow },
-        { TargetID.KelaSeneschalOfWaves, KelaSeneschalOfWaves },
-        { TargetID.VeteranCrocodilianRazortooth, CrocodilianRazortooth },
-        { TargetID.EliteCrocodilianRazortooth, CrocodilianRazortooth },
-        { TargetID.DownedEliteCrocodilianRazortooth, DownedCrocodilianRazortooth },
+        { TargetID.DecimaConv, TargetDecima },
+        { TargetID.GreerConv, TargetGreer },
+        { TargetID.GreeConv, TrashGree },
+        { TargetID.ReegConv, TrashReeg },
+        { TargetID.UraConv, TargetUra },
+        { TargetID.DemonKnight, TargetDemonKnight },
+        { TargetID.Sorrow, TargetSorrow },
+        { TargetID.Dreadwing, TargetDreadwing },
+        { TargetID.HellSister, TargetHellSister },
+        { TargetID.UmbrielHalberdOfHouseAurkus, TargetUmbriel },
+        { TargetID.ZojjaNayos, FriendlyZojja },
+        { TargetID.WhisperingShadow, TargetWhisperingShadow },
+        { TargetID.KelaSeneschalOfWaves, TargetKelaSeneschalOfWaves },
+        { TargetID.VeteranCrocodilianRazortooth, TrashCrocodilianRazortooth },
+        { TargetID.EliteCrocodilianRazortooth, TrashCrocodilianRazortooth },
+        { TargetID.DownedEliteCrocodilianRazortooth, TrashDownedCrocodilianRazortooth },
         { TargetID.CursedArtifact_NPC, TrashBloodstoneShard },
-        { TargetID.ExecutorOfWaves, ExecutorOfWaves },
+        { TargetID.ExecutorOfWaves, TrashExecutorOfWaves },
         { TargetID.GuardiansGladeTornado, TrashSmallJumpyTornado },
-        { TargetID.LightThief, LightThief },
+        { TargetID.LightThief, TrashLightThief },
         { TargetID.EtherealSeal, EtherealSeal },
+        { TargetID.Vloxx, TargetVloxx },
+        { TargetID.VloxxConv, TargetVloxx },
+        { TargetID.EliteCosmicPiercer, TrashCosmicPiercer },
+        { TargetID.ChampionCosmicPiercer, TrashCosmicPiercer },
+        { TargetID.LegendaryCosmicPiercer, TrashCosmicPiercer },
+        { TargetID.ChampionCosmicSunderer, TrashCosmicSunderer },
+        { TargetID.EliteCosmicBulwark, TrashCosmicBulwark },
+        { TargetID.ChampionCosmicBulwark, TrashCosmicBulwark },
+        { TargetID.AscensionOrb, TrashAscensionOrb },
+        { TargetID.ChampionAspectOfTheSpear, TrashAspectOfTheSpear },
+        { TargetID.ChampionAspectOfTheStaff, TrashAspectOfTheStaff },
+        { TargetID.ChampionAspectOfTheSword, TrashAspectOfTheSword },
+        { TargetID.EternalTyrant, TargetEternalTyrant },
+        { TargetID.ConstructOfGaldra, TargetConstructOfGaldra },
+        { TargetID.EarthElemental, TrashEarthElemental },
+        { TargetID.Ember, TrashEmber },
+        { TargetID.FrostElemental, TrashFrostElemental },
+        { TargetID.SparkEternalTyrant, TrashSpark },
+        { TargetID.RimeSprite, TargetRimeSprite },
     };
 
     /// <summary>
     /// Dictionary matching a <see cref="MinionID"/> to their icon.
     /// </summary>
-    internal readonly static IReadOnlyDictionary<MinionID, string> MinionNPCIcons = new Dictionary<MinionID, string>()
+    internal static readonly IReadOnlyDictionary<MinionID, string> MinionNPCIcons = new Dictionary<MinionID, string>()
     {
         { MinionID.HoundOfBalthazar, MinionHoundOfBalthazar },
         { MinionID.SnowWurm, MinionCallWurm },
@@ -1501,6 +1540,7 @@ internal static class ParserIcons
         { MinionID.StormSpirit, MinionStormSpirit },
         { MinionID.WaterSpirit, MinionWaterSpirit },
         { MinionID.SpiritOfNatureRenewal, MinionSpiritOfNatureRenewal },
+        { MinionID.SpiritOfNatureNexusOfEternityConvergenceSAK, MinionSpiritOfNatureRenewal },
         { MinionID.JuvenileAlpineWolf, MinionJuvenileAlpineWolf },
         { MinionID.JuvenileArctodus, MinionJuvenileArctodus },
         { MinionID.JuvenileArmorFish, MinionJuvenileArmorFish },
@@ -1567,6 +1607,7 @@ internal static class ParserIcons
         { MinionID.JuvenileJanthiriBee, MinionJuvenileJanthiriBee },
         { MinionID.JuvenileRaptorSwiftwing, MinionJuvenileRaptorSwiftwing },
         { MinionID.JuvenileRiverOtter, MinionJuvenileRiverOtter},
+        { MinionID.JuvenileLeyVampireBat, MinionJuvenileLeyVampireBat},
         { MinionID.BloodFiend, MinionBloodFiend },
         { MinionID.BoneFiend, MinionBoneFiend },
         { MinionID.FleshGolem, MinionFleshGolem },
@@ -1663,9 +1704,9 @@ internal static class ParserIcons
     };
 
     /// <summary>
-    /// Translates a Squad Marker GUID to the corresponding icon.
+    /// Translates a Squad Marker Guid to the corresponding icon.
     /// </summary>
-    public static readonly IReadOnlyDictionary<GUID, string> SquadMarkerToIcon = new Dictionary<GUID, string>()
+    public static readonly IReadOnlyDictionary<Guid, string> SquadMarkerToIcon = new Dictionary<Guid, string>()
     {
         { MarkerGUIDs.ArrowOverhead, ArrowSquadMarkerOverhead },
         { MarkerGUIDs.CircleOverhead, CircleSquadMarkerOverhead },
@@ -1694,9 +1735,9 @@ internal static class ParserIcons
     };
 
     /// <summary>
-    /// Translates a Commander/Catmander Tag GUID to the corresponding icon.
+    /// Translates a Commander/Catmander Tag Guid to the corresponding icon.
     /// </summary>
-    public static readonly IReadOnlyDictionary<GUID, string> CommanderTagToIcon = new Dictionary<GUID, string>()
+    public static readonly IReadOnlyDictionary<Guid, string> CommanderTagToIcon = new Dictionary<Guid, string>()
     {
         { MarkerGUIDs.RedCommanderTag, RedCommanderTagOverhead },
         { MarkerGUIDs.OrangeCommanderTag, OrangeCommanderTagOverhead },

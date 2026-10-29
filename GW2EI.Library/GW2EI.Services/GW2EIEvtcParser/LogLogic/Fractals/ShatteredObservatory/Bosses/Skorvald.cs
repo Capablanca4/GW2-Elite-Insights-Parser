@@ -1,20 +1,18 @@
-﻿using System.Numerics;
-using GW2EIEvtcParser.EIData;
+﻿using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -31,7 +29,7 @@ internal class Skorvald : ShatteredObservatory
             new PlayerDstHealthDamageHitMechanic(FocusedAnger, Mech_FocusedAnger, new (Symbols.TriangleDown,Colors.Orange), new("Large Cone KB", "Focused Anger (Large Cone Overhead Crosshair Knockback)","Large Cone Knockback"), Sev0),
             new MechanicGroup(
                 [
-                    new PlayerDstHealthDamageHitMechanic([HorizonStrikeSkorvald1, HorizonStrikeSkorvald2], Mech_HorizonStrikeSkorvald, new (Symbols.Circle,Colors.LightOrange), new("Horizon Strike.S", "Horizon Strike (turning pizza slices during Skorvald)","Horizon Strike (Skorvald)"), Sev1), // 
+                    new PlayerDstHealthDamageHitMechanic([HorizonStrikeSkorvald1, HorizonStrikeSkorvald2], Mech_HorizonStrikeSkorvald, new (Symbols.Circle,Colors.LightOrange), new("Horizon Strike.S", "Horizon Strike (turning pizza slices during Skorvald)","Horizon Strike (Skorvald)"), Sev1), //
                     new PlayerDstHealthDamageHitMechanic(CrimsonDawn, Mech_CrimsonDawn, new (Symbols.Circle,Colors.DarkRed), new("Horizon Strike.S End", "Crimson Dawn (almost Full platform attack after Horizon Strike)","Horizon Strike (last)"), Sev1),
                 ]
             ),
@@ -94,22 +92,13 @@ internal class Skorvald : ShatteredObservatory
         phases[0].AddTarget(skorvald, log);
         phases[0].AddTargets(Targets.Where(x => x.IsAnySpecies(FluxAnomalies)), log, PhaseData.TargetPriority.Blocking);
         phases.AddRange(ComputePhases(log, skorvald, Targets, (EncounterPhaseData)phases[0], requirePhases));
-        
+
         return phases;
     }
 
     protected override HashSet<int> IgnoreForAutoNumericalRenaming()
     {
-        return [
-            (int)TargetID.FluxAnomaly1,
-            (int)TargetID.FluxAnomaly2,
-            (int)TargetID.FluxAnomaly3,
-            (int)TargetID.FluxAnomaly4,
-            (int)TargetID.FluxAnomalyCM1,
-            (int)TargetID.FluxAnomalyCM2,
-            (int)TargetID.FluxAnomalyCM3,
-            (int)TargetID.FluxAnomalyCM4,
-        ];
+        return [.. FluxAnomalies.Select(x => (int)x)];
     }
 
     internal static void DetectUnknownAnomalies(AgentData agentData, List<CombatItem> combatData)
@@ -130,44 +119,44 @@ internal class Skorvald : ShatteredObservatory
 
     internal override Dictionary<TargetID, int> GetTargetsSortIDs()
     {
-        return new Dictionary<TargetID, int>()
+        return new()
         {
-            {TargetID.Skorvald, 0 },
-            {TargetID.FluxAnomaly1, 1 },
-            {TargetID.FluxAnomalyCM1, 1 },
-            {TargetID.FluxAnomaly2, 1 },
-            {TargetID.FluxAnomalyCM2, 1 },
-            {TargetID.FluxAnomaly3, 1 },
-            {TargetID.FluxAnomalyCM3, 1 },
-            {TargetID.FluxAnomaly4, 1 },
-            {TargetID.FluxAnomalyCM4, 1 },
+            { TargetID.Skorvald, 0 },
+            { TargetID.FluxAnomalySwordSword, 1 },
+            { TargetID.FluxAnomalySwordSwordCM, 1 },
+            { TargetID.FluxAnomalyAxeMace, 1 },
+            { TargetID.FluxAnomalyAxeMaceCM, 1 },
+            { TargetID.FluxAnomalyScepterScepter, 1 },
+            { TargetID.FluxAnomalyScepterScepterCM, 1 },
+            { TargetID.FluxAnomalyHammer, 1 },
+            { TargetID.FluxAnomalyHammerCM, 1 },
         };
     }
 
-    static readonly List<(string, Vector2)> AnomalyLocations =
-    [
-        ("NW", new(-21216.896f, 16050.098f)), // NE
-        ("NE", new(-17991.695f, 16026.498f)), // NW
-        ("SW", new(-21327.797f, 19302.596f)), // SW
-        ("SE", new(-17718.096f, 19303.496f)), // SE
+    static readonly Dictionary<int, string> AnomalySuffixes = new() {
+        { (int)TargetID.FluxAnomalySwordSword, "SW" },
+        { (int)TargetID.FluxAnomalySwordSwordCM, "SW" },
+        { (int)TargetID.FluxAnomalyAxeMace, "SE" },
+        { (int)TargetID.FluxAnomalyAxeMaceCM, "SE" },
+        { (int)TargetID.FluxAnomalyScepterScepter, "NE" },
+        { (int)TargetID.FluxAnomalyScepterScepterCM, "NE" },
+        { (int)TargetID.FluxAnomalyHammer, "NW" },
+        { (int)TargetID.FluxAnomalyHammerCM, "NW" },
+    };
 
-    ];
-
-    internal static void RenameAnomalies(IReadOnlyList<SingleActor> targets, List<CombatItem> combatData)
+    internal static void RenameAnomalies(IReadOnlyList<SingleActor> targets)
     {
-        var nameCount = new Dictionary<string, int> { { "NE", 1 }, { "NW", 1 }, { "SW", 1 }, { "SE", 1 } };
-        foreach (SingleActor target in targets)
+        NumericallyRenameBasedOnNames(targets.Where(x => x.IsAnySpecies(FluxAnomalies)), (anomaly) =>
         {
-            if (target.IsAnySpecies(FluxAnomalies))
+            if (AnomalySuffixes.TryGetValue(anomaly.ID, out var suffix))
             {
-                string? suffix = AddNameSuffixBasedOnInitialPosition(target, combatData, AnomalyLocations, 100);
-                if (suffix != null && nameCount.ContainsKey(suffix))
-                {
-                    // deduplicate name
-                    target.OverrideName(target.Character + " " + (nameCount[suffix]++));
-                }
+                return anomaly.Character + " " + suffix;
             }
-        }
+            else
+            {
+                return anomaly.Character;
+            }
+        });
     }
 
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
@@ -187,7 +176,7 @@ internal class Skorvald : ShatteredObservatory
             combatData.FirstOrDefault(x => x.IsStateChange == StateChange.FractalScale)!.OverrideSrcAgent(0);
             // Once we have the hp thresholds, simply apply -75, -50, -25 to the srcAgent of existing event
         }
-        RenameAnomalies(Targets, combatData);
+        RenameAnomalies(Targets);
     }
 
     internal override long GetLogOffset(EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData)
@@ -210,7 +199,7 @@ internal class Skorvald : ShatteredObservatory
         SingleActor target = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.Skorvald)) ?? throw new MissingKeyActorsException("Skorvald not found");
         if (combatData.GetGW2BuildEvent().Build >= GW2Builds.September2020SunquaPeakRelease)
         {
-            // Check some CM skills instead, not perfect but helps, 
+            // Check some CM skills instead, not perfect but helps,
             // Solar Bolt is the first thing he tries to cast, that looks very consistent
             // If the phase 1 is super fast to the point skorvald does not cast anything, supernova should be there
             // Otherwise we are looking at a super fast phase 1 (< 7 secondes) where the team ggs just before supernova
@@ -223,10 +212,10 @@ internal class Skorvald : ShatteredObservatory
                 //SupernovaCM,
             };
             if (cmSkills.Any(x => combatData.GetAnimatedCastData(x).Count > 0 || combatData.GetDamageData(x).Count > 0) ||
-                agentData.GetStableSpeciesByID(TargetID.FluxAnomalyCM1).Any(x => x.FirstAware >= target.FirstAware) ||
-                agentData.GetStableSpeciesByID(TargetID.FluxAnomalyCM2).Any(x => x.FirstAware >= target.FirstAware) ||
-                agentData.GetStableSpeciesByID(TargetID.FluxAnomalyCM3).Any(x => x.FirstAware >= target.FirstAware) ||
-                agentData.GetStableSpeciesByID(TargetID.FluxAnomalyCM4).Any(x => x.FirstAware >= target.FirstAware))
+                agentData.GetStableSpeciesByID(TargetID.FluxAnomalySwordSwordCM).Any(x => x.FirstAware >= target.FirstAware) ||
+                agentData.GetStableSpeciesByID(TargetID.FluxAnomalyAxeMaceCM).Any(x => x.FirstAware >= target.FirstAware) ||
+                agentData.GetStableSpeciesByID(TargetID.FluxAnomalyScepterScepterCM).Any(x => x.FirstAware >= target.FirstAware) ||
+                agentData.GetStableSpeciesByID(TargetID.FluxAnomalyHammerCM).Any(x => x.FirstAware >= target.FirstAware))
             {
                 return LogData.Mode.CM;
             }
@@ -238,7 +227,7 @@ internal class Skorvald : ShatteredObservatory
         }
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -248,15 +237,15 @@ internal class Skorvald : ShatteredObservatory
     }
 
     internal static readonly IReadOnlyList<TargetID> FluxAnomalies = [
-            TargetID.FluxAnomaly1,
-            TargetID.FluxAnomaly2,
-            TargetID.FluxAnomaly3,
-            TargetID.FluxAnomaly4,
-            TargetID.FluxAnomalyCM1,
-            TargetID.FluxAnomalyCM2,
-            TargetID.FluxAnomalyCM3,
-            TargetID.FluxAnomalyCM4,
-        ];
+        TargetID.FluxAnomalySwordSword,
+        TargetID.FluxAnomalyAxeMace,
+        TargetID.FluxAnomalyScepterScepter,
+        TargetID.FluxAnomalyHammer,
+        TargetID.FluxAnomalySwordSwordCM,
+        TargetID.FluxAnomalyAxeMaceCM,
+        TargetID.FluxAnomalyScepterScepterCM,
+        TargetID.FluxAnomalyHammerCM,
+    ];
 
     internal override void CheckSuccess(CombatData combatData, AgentData agentData, LogData logData, IReadOnlyCollection<AgentItem> playerAgents, LogData.LogSuccessHandler successHandler)
     {
@@ -280,10 +269,10 @@ internal class Skorvald : ShatteredObservatory
 
     internal override IReadOnlyList<TargetID> GetTrashMobsIDs()
     {
-        var trashIDs = new List<TargetID>(1 + base.GetTrashMobsIDs().Count);
-        trashIDs.AddRange(base.GetTrashMobsIDs());
-        trashIDs.Add(TargetID.SolarBloom);
-        return trashIDs;
+        return [
+            .. base.GetTrashMobsIDs(),
+            TargetID.SolarBloom,
+        ];
     }
 
     internal override void ComputeNPCCombatReplayActors(NPC target, ParsedEvtcLog log, CombatReplay replay)
@@ -430,10 +419,10 @@ internal class Skorvald : ShatteredObservatory
                     }
                 }
                 break;
-            case (int)TargetID.FluxAnomalyCM1:
-            case (int)TargetID.FluxAnomalyCM2:
-            case (int)TargetID.FluxAnomalyCM3:
-            case (int)TargetID.FluxAnomalyCM4:
+            case (int)TargetID.FluxAnomalySwordSwordCM:
+            case (int)TargetID.FluxAnomalyAxeMaceCM:
+            case (int)TargetID.FluxAnomalyScepterScepterCM:
+            case (int)TargetID.FluxAnomalyHammerCM:
                 foreach (CastEvent cast in target.GetAnimatedCastEvents(log))
                 {
                     switch (cast.SkillID)
@@ -486,7 +475,7 @@ internal class Skorvald : ShatteredObservatory
                             lifespan = (cast.Time, cast.Time + castDuration);
                             (long start, long end) lifespanShockwave2 = (lifespan.end, lifespan.end + 2250);
                             replay.Decorations.AddWithGrowing(new CircleDecoration(160, lifespan, Colors.Orange, 0.2, new AgentConnector(target)), lifespan.end);
-                            
+
                             // Nightmare Discharge Shockwave
                             replay.Decorations.AddShockwave(new AgentConnector(target), lifespanShockwave2, Colors.Yellow, 0.3, 1200);
                             break;
@@ -595,17 +584,13 @@ internal class Skorvald : ShatteredObservatory
     private static void AddHorizonStrikeDecoration(CombatReplay replay, SingleActor target, (long start, long end) lifespan, float degree)
     {
         var connector = new AgentConnector(target);
-        var frontRotationConnector = new AngleConnector(degree);
-        var flipRotationConnector = new AngleConnector(degree + 180);
         // Indicator
         var pieIndicator = new PieDecoration(1200, 70, lifespan, Colors.Orange, 0.2, connector);
-        replay.Decorations.Add(pieIndicator.UsingRotationConnector(frontRotationConnector));
-        replay.Decorations.Add(pieIndicator.Copy().UsingRotationConnector(flipRotationConnector));
+        replay.Decorations.AddFrontAndFlip(pieIndicator, degree);
         // Attack hit
         (long start, long end) lifespanHit = (lifespan.end, lifespan.end + 300);
         var pieHit = (PieDecoration)new PieDecoration(1200, 70, lifespanHit, Colors.Red, 0.2, connector).UsingGrowingEnd(lifespanHit.end);
-        replay.Decorations.Add(pieHit.UsingRotationConnector(frontRotationConnector));
-        replay.Decorations.Add(pieHit.Copy().UsingRotationConnector(flipRotationConnector));
+        replay.Decorations.AddFrontAndFlip(pieHit, degree);
     }
 
     /// <summary>

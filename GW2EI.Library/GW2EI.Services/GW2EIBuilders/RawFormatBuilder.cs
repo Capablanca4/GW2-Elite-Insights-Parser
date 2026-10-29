@@ -1,13 +1,15 @@
-﻿using GW2EIBuilders.JsonModels;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Schema;
+using GW2EIBuilders.JsonModels;
 using GW2EIEvtcParser;
 using GW2EIJSON;
-using System.Text.Json;
 
 namespace GW2EIBuilders;
 
 public class RawFormatBuilder
 {
-    private JsonLog _jsonLog;
+    private readonly JsonLog _jsonLog;
 
     public RawFormatBuilder(ParsedEvtcLog log, RawFormatSettings settings, Version parserVersion, UploadResults uploadResults)
     {
@@ -41,6 +43,16 @@ public class RawFormatBuilder
     public static void CreateJSON(JsonLog jsonLog, Stream stream, bool indent)
     {
         JsonSerializer.Serialize(stream, jsonLog, indent ? SerializerSettings.Indentent : SerializerSettings.Default);
+    }
+
+    public static void CreateJSONSchema(string path)
+    {
+        JsonNode schemaNode = JsonSchemaExporter.GetJsonSchemaAsNode(
+            SerializerSettings.Default,
+            typeof(JsonLog)
+        );
+        string schemaJson = schemaNode.ToJsonString(SerializerSettings.Indentent);
+        File.WriteAllText(path, schemaJson);
     }
 
 }

@@ -6,9 +6,9 @@ using GW2EIParserCommons;
 using GW2EIParserCommons.Exceptions;
 using Tracing;
 
-namespace GW2EIParser;
+namespace GW2EIParserWinForms;
 
-public class ConsoleProgram
+public class ConsoleProgram : IDisposable
 {
     private readonly List<ulong> DiscordMessageIDs = [];
 
@@ -83,7 +83,7 @@ public class ConsoleProgram
             if (Executing)
             {
                 AddDelayed(path);
-            } 
+            }
             else
             {
                 Console.WriteLine("File Watcher: adding " + path);
@@ -166,7 +166,8 @@ public class ConsoleProgram
         if (BatchToDiscord)
         {
             Console.WriteLine("Discord: Preparing batch for discord" + Environment.NewLine);
-            ProgramHelper.HandleBatchedDiscordEmbed(DiscordMessageIDs, Operations, (message) => {
+            ProgramHelper.HandleBatchedDiscordEmbed(DiscordMessageIDs, Operations, (message) =>
+            {
                 Console.WriteLine(message);
             });
         }
@@ -227,5 +228,11 @@ public class ConsoleProgram
             programHelper.GenerateTraceFile(operation);
         }
         Console.WriteLine("Processed - " + JsonSerializer.Serialize(new ConsoleResultObject(operation), ConsoleResultObject.Serializer) + Environment.NewLine);
+    }
+
+    public void Dispose()
+    {
+        FileWatcher.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

@@ -5,15 +5,14 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -103,7 +102,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
         return crMap;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -174,7 +173,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
         ];
     }
 
-    private static void AddSplitPhase(List<PhaseData> phases, IReadOnlyList<SingleActor?> targets, SingleActor ministerLi, ParsedEvtcLog log, int phaseID)
+    private static long AddSplitPhase(EncounterPhaseData encounterPhase, List<PhaseData> phases, IReadOnlyList<SingleActor?> targets, SingleActor ministerLi, ParsedEvtcLog log, int phaseID, long startOffset)
     {
         if (targets.All(x => x != null))
         {
@@ -183,48 +182,52 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
             {
                 if (target != null)
                 {
-                    cbtEnter = log.CombatData.GetEnterCombatEvents(target.AgentItem).LastOrDefault();
-                    if (cbtEnter != null)
+                    var curCbtEnter = log.CombatData.GetEnterCombatEvents(target.AgentItem).FirstOrDefault(x => x.Time >= startOffset);
+                    if (curCbtEnter != null && (cbtEnter == null || cbtEnter.Time > curCbtEnter.Time))
                     {
-                        break;
+                        cbtEnter = curCbtEnter;
                     }
                 }
             }
             if (cbtEnter != null)
             {
                 BuffEvent? nextPhaseStartEvt = log.CombatData.GetBuffDataByIDByDst(Determined762, ministerLi.AgentItem).FirstOrDefault(x => x is BuffRemoveAllEvent && x.Time > cbtEnter.Time);
-                long phaseEnd = nextPhaseStartEvt != null ? nextPhaseStartEvt.Time : log.LogData.LogEnd;
+                long phaseEnd = nextPhaseStartEvt != null ? nextPhaseStartEvt.Time : encounterPhase.End;
                 var addPhase = new SubPhasePhaseData(cbtEnter.Time, phaseEnd, "Split Phase " + phaseID);
                 addPhase.AddTargets(targets, log);
-                addPhase.AddParentPhase(phases[0]);
+                addPhase.AddParentPhase(encounterPhase);
                 phases.Add(addPhase);
+                return phaseEnd;
             }
         }
+        return startOffset;
     }
 
-    private SingleActor? GetMinisterLi(bool isCM)
+    private SingleActor? GetMinisterLi(bool isCM, long time)
     {
-        return Targets.FirstOrDefault(x => x.IsSpecies(isCM ? TargetID.MinisterLiCM : TargetID.MinisterLi));
+        return Targets.FirstOrDefault(x => x.IsSpecies(isCM ? TargetID.MinisterLiCM : TargetID.MinisterLi) && x.InAwareTimes(time));
+    }
+
+    private SingleActor? GetDamagedOrDefaultTarget(ParsedEvtcLog log, TargetID speciesID, EncounterPhaseData encounterPhase)
+    {
+        return Targets.FirstOrDefault(x => x.IsSpecies(speciesID) && encounterPhase.IntersectsWindow(x.FirstAware, x.LastAware) && log.CombatData.GetDamageTakenData(x.AgentItem).Any(y => y.CreditedFrom.IsPlayer && y.HealthDamage > 0)) ?? Targets.LastOrDefault(x => x.IsSpecies(speciesID) && encounterPhase.IntersectsWindow(x.FirstAware, x.LastAware));
     }
 
     internal override List<PhaseData> GetPhases(ParsedEvtcLog log, bool requirePhases)
     {
         List<PhaseData> phases = GetInitialPhase(log);
-        var isCM = ((EncounterPhaseData)phases[0]).IsCM;
-        SingleActor ministerLi = GetMinisterLi(isCM) ?? throw new MissingKeyActorsException("Minister Li not found");
-        phases[0].AddTarget(ministerLi, log);
+        var encounterPhase = (EncounterPhaseData)phases[0];
+        var isCM = encounterPhase.IsCM;
+        SingleActor ministerLi = GetMinisterLi(isCM, encounterPhase.Start) ?? throw new MissingKeyActorsException("Minister Li not found");
+        encounterPhase.AddTarget(ministerLi, log);
         //
-        SingleActor? enforcer = Targets.LastOrDefault(x => x.IsSpecies(isCM ? TargetID.TheEnforcerCM : TargetID.TheEnforcer));
-        SingleActor? mindblade = Targets.LastOrDefault(x => x.IsSpecies(isCM ? TargetID.TheMindbladeCM : TargetID.TheMindblade));
-        SingleActor? mechRider = Targets.LastOrDefault(x => x.IsSpecies(isCM ? TargetID.TheMechRiderCM : TargetID.TheMechRider));
-        SingleActor? sniper = Targets.LastOrDefault(x => x.IsSpecies(isCM ? TargetID.TheSniperCM : TargetID.TheSniper));
-        SingleActor? ritualist = Targets.LastOrDefault(x => x.IsSpecies(isCM ? TargetID.TheRitualistCM : TargetID.TheRitualist));
+        SingleActor? enforcer = GetDamagedOrDefaultTarget(log, isCM ? TargetID.TheEnforcerCM : TargetID.TheEnforcer, encounterPhase);
+        SingleActor? mindblade = GetDamagedOrDefaultTarget(log, isCM ? TargetID.TheMindbladeCM : TargetID.TheMindblade, encounterPhase);
+        SingleActor? mechRider = GetDamagedOrDefaultTarget(log, isCM ? TargetID.TheMechRiderCM : TargetID.TheMechRider, encounterPhase);
+        SingleActor? sniper = GetDamagedOrDefaultTarget(log, isCM ? TargetID.TheSniperCM : TargetID.TheSniper, encounterPhase);
+        SingleActor? ritualist = GetDamagedOrDefaultTarget(log, isCM ? TargetID.TheRitualistCM : TargetID.TheRitualist, encounterPhase);
         //
-        phases[0].AddTarget(enforcer, log, PhaseData.TargetPriority.Blocking);
-        phases[0].AddTarget(mindblade, log, PhaseData.TargetPriority.Blocking);
-        phases[0].AddTarget(mechRider, log, PhaseData.TargetPriority.Blocking);
-        phases[0].AddTarget(sniper, log, PhaseData.TargetPriority.Blocking);
-        phases[0].AddTarget(ritualist, log, PhaseData.TargetPriority.Blocking);
+        encounterPhase.AddTargets([enforcer, mindblade, mechRider, sniper, ritualist], log, PhaseData.TargetPriority.Blocking);
         if (!requirePhases)
         {
             return phases;
@@ -238,19 +241,20 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
         }
         // when wiped during a split phase, Li's LastAware is well before fight end
         phases.AddRange(subPhases.Where(x => (x.End + x.Start) / 2 <= ministerLi.LastAware + ServerDelayConstant));
-        AddSplitPhase(phases, [enforcer, mindblade, ritualist], ministerLi, log, 1);
-        AddSplitPhase(phases, [mechRider, sniper], ministerLi, log, 2);
+        long splitPhaseStartOffset = subPhases.FirstOrDefault()?.End ?? ministerLi.LastAware;
+        splitPhaseStartOffset = AddSplitPhase(encounterPhase, phases, [enforcer, mindblade, ritualist], ministerLi, log, 1, splitPhaseStartOffset);
+        AddSplitPhase(encounterPhase, phases, [mechRider, sniper], ministerLi, log, 2, splitPhaseStartOffset);
         return phases;
     }
 
     internal override void CheckSuccess(CombatData combatData, AgentData agentData, LogData logData, IReadOnlyCollection<AgentItem> playerAgents, LogData.LogSuccessHandler successHandler)
     {
-        SingleActor ministerLi = GetMinisterLi(GetLogMode(combatData, agentData, logData) == LogData.Mode.CM) ?? throw new MissingKeyActorsException("Minister Li not found");
-        var buffApplies = combatData.GetBuffApplyDataByIDByDst(Resurrection, ministerLi.AgentItem).OfType<BuffApplyEvent>();
-        if (buffApplies.Any())
+        SingleActor ministerLi = GetMinisterLi(GetLogMode(combatData, agentData, logData) == LogData.Mode.CM, 0) ?? throw new MissingKeyActorsException("Minister Li not found");
+        var buffApplies = combatData.GetBuffApplyDataByIDByDst(Resurrection, ministerLi.AgentItem).OfType<BuffApplyEvent>().ToList();
+        if (buffApplies.Count != 0)
         {
             successHandler.SetSuccess(true, buffApplies.First().Time);
-        } 
+        }
         else
         {
             successHandler.SetSuccess(false, ministerLi.LastAware);
@@ -278,7 +282,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
         replay.Decorations.AddOverheadIcons(p.GetBuffStatus(log, TargetOrder3).Where(x => x.Value > 0), p, ParserIcons.TargetOrder3Overhead);
         replay.Decorations.AddOverheadIcons(p.GetBuffStatus(log, TargetOrder4).Where(x => x.Value > 0), p, ParserIcons.TargetOrder4Overhead);
         replay.Decorations.AddOverheadIcons(p.GetBuffStatus(log, TargetOrder5).Where(x => x.Value > 0), p, ParserIcons.TargetOrder5Overhead);
-        
+
         // Fixation
         replay.Decorations.AddOverheadIcons(p.GetBuffStatus(log, FixatedAnkkaKainengOverlook).Where(x => x.Value > 0), p, ParserIcons.FixationPurpleOverhead);
         var fixationEvents = GetBuffApplyRemoveSequence(log.CombatData, FixatedAnkkaKainengOverlook, p, true, true);
@@ -287,7 +291,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
         // Shared Destruction (Green)
         int greenDuration = 6250;
         if (log.CombatData.TryGetEffectEventsBySrcWithGUIDs(p.AgentItem,
-            [ EffectGUIDs.KainengOverlookSharedDestructionGreenSuccess, EffectGUIDs.KainengOverlookSharedDestructionGreenFailure ],
+            [EffectGUIDs.KainengOverlookSharedDestructionGreenSuccess, EffectGUIDs.KainengOverlookSharedDestructionGreenFailure],
             out var greenEndEffectEvents))
         {
             foreach (EffectEvent effect in greenEndEffectEvents)
@@ -328,7 +332,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
                 lifespan = (effect.Time, effect.Time + correctedDuration);
 
                 // Tether Sniper to Player
-                replay.Decorations.AddTethersByEffectGUID(log, effect, Colors.Yellow, 0.3, correctedDuration, true);
+                replay.Decorations.AddTetherByEffectGUID(log, effect, Colors.Yellow, 0.3, correctedDuration);
 
                 // Circle around the player
                 replay.Decorations.Add(new CircleDecoration(500, lifespan, Colors.Red, 0.2, new AgentConnector(p)).UsingFilled(false));
@@ -381,7 +385,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
         var determined762Apply = log.CombatData.GetBuffApplyDataByIDByDst(Determined762, target.AgentItem).FirstOrDefault();
         if (determined762Apply != null)
         {
-            replay.Trim(replay.TimeOffsets.start, determined762Apply.Time);
+            replay.HideInInterval(new(determined762Apply.Time, target.LastAware));
         }
     }
 
@@ -609,8 +613,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
                 int damageDelay = 2000;
                 long warningEnd = lifespan.start + damageDelay;
                 var circle = new CircleDecoration(240, (lifespan.start, warningEnd), Colors.Red, 0.2, connector);
-                environmentDecorations.AddWithGrowing(circle, warningEnd);
-                environmentDecorations.Add(circle.GetBorderDecoration());
+                environmentDecorations.AddWithGrowingWithBorder(circle, warningEnd, Colors.Red, 0.2);
                 environmentDecorations.Add(new CircleDecoration(240, (warningEnd, lifespan.end), Colors.Red, 0.4, connector));
             }
         }
@@ -677,8 +680,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
         if (target.TryGetCurrentFacingDirection(log, lifespan.start + 100, out var facingDirection, duration))
         {
             var pie = (PieDecoration)new PieDecoration(480, angle, lifespan, Colors.Orange, 0.2, new AgentConnector(target)).UsingRotationConnector(new AngleConnector(facingDirection.Value));
-            replay.Decorations.AddWithGrowing(pie, lifespan.end);
-            replay.Decorations.Add(pie.GetBorderDecoration());
+            replay.Decorations.AddWithGrowingWithBorder(pie, lifespan.end, Colors.Orange, 0.2);
         }
 
     }
@@ -731,7 +733,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
             damageData.SortByTime();
             foreach (var evt in damageData)
             {
-                if (evt.HasHit && evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.HasHit && evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(koPhases, testReflexesEligibilityEvents, evt.Time, Ach_TestReflexes, p);
                 }
@@ -749,7 +751,7 @@ internal class KainengOverlook : EndOfDragonsRaidEncounter
             damageData.SortByTime();
             foreach (var evt in damageData)
             {
-                if (evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     var koPhase = koPhases.FirstOrDefault(x => x.InInterval(evt.Time));
                     if (koPhase != null && koPhase.Success)

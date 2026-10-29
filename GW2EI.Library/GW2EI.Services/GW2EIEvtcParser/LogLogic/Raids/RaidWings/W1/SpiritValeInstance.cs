@@ -20,7 +20,6 @@ internal class SpiritValeInstance : SpiritVale
 
     public SpiritValeInstance(int triggerID) : base(triggerID)
     {
-        LogID = LogIDs.LogMasks.Unsupported;
         Icon = InstanceIconSpiritVale;
         Extension = "sprtvale";
 
@@ -73,14 +72,14 @@ internal class SpiritValeInstance : SpiritVale
             {
                 var wallOfGhost = wallOfGhosts[i];
                 long nextWallOfGhostStart = log.LogData.LogEnd;
-                if (i < wallOfGhosts.Count - 1) 
+                if (i < wallOfGhosts.Count - 1)
                 {
                     nextWallOfGhostStart = wallOfGhosts[i + 1].FirstAware;
                 }
                 long start = wallOfGhost.FirstAware;
                 foreach (var velocityEvent in log.CombatData.GetMovementData(wallOfGhost).OfType<VelocityEvent>())
                 {
-                    if (velocityEvent.GetPointXY().Length() > 0)
+                    if (velocityEvent.Point2D.Length() > 0)
                     {
                         start = velocityEvent.Time;
                         break;
@@ -149,7 +148,7 @@ internal class SpiritValeInstance : SpiritVale
                 {
                     foreach (var velocityEvent in log.CombatData.GetMovementData(wallOfGhosts).OfType<VelocityEvent>())
                     {
-                        if (velocityEvent.GetPointXY().Length() > 0)
+                        if (velocityEvent.Point2D.Length() > 0)
                         {
                             start = velocityEvent.Time;
                             break;
@@ -194,7 +193,7 @@ internal class SpiritValeInstance : SpiritVale
                 phases.AddRange(Gorseval.ComputePhases(log, gorseval, Targets, gorsevalPhase, requirePhases));
             }
         }
-        { 
+        {
             var sabethaPhases = ProcessGenericEncounterPhasesForInstance(targetsByIDs, log, phases, TargetID.Sabetha, Targets.Where(x => x.IsAnySpecies([TargetID.Karde, TargetID.Knuckles, TargetID.Kernan])), "Sabetha", _sabetha);
             foreach (var sabethaPhase in sabethaPhases)
             {
@@ -259,10 +258,12 @@ internal class SpiritValeInstance : SpiritVale
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
         SpiritRace.FindEtherealBarriers(agentData, combatData);
+        Gorseval.IdentifyGorsevalGadgets(agentData, combatData);
         Sabetha.FindArenaGadgets(agentData, combatData);
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         SpiritRace.RenameEtherealBarriersAndOverrideID(Targets, agentData);
         Gorseval.RenameChargedSouls(Targets, combatData);
+        Gorseval.RenameEtherealBarriers(TrashMobs, combatData);
     }
 
     internal override List<BuffEvent> SpecialBuffEventProcess(CombatData combatData, SkillData skillData)

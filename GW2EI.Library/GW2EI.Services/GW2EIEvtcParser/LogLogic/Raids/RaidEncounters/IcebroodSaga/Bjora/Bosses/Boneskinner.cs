@@ -3,13 +3,12 @@ using GW2EIEvtcParser.EIData;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -152,7 +151,7 @@ internal class Boneskinner : Bjora
                                 long endHitTime = cast.Time + hitTime;
                                 long endCastTime = cast.Time + castTime;
 
-                                var lastDirection = replay.PolledRotations.LastOrNull((in ParametricPoint3D x) => x.Time > cast.Time + 100 && x.Time < cast.Time + 100 + castTime);
+                                var lastDirection = replay.PolledRotations.LastOrNull((in x) => x.Time > cast.Time + 100 && x.Time < cast.Time + 100 + castTime);
                                 if (lastDirection != null)
                                 {
                                     var connector = new AgentConnector(target);
@@ -247,13 +246,12 @@ internal class Boneskinner : Bjora
             {
                 lifespan = effect.ComputeLifespan(log, 30000);
                 var circle = new CircleDecoration(100, lifespan, Colors.RedBrownish, 0.2, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.GetBorderDecoration(Colors.Red, 0.2));
+                environmentDecorations.AddWithBorder(circle, Colors.Red, 0.2);
             }
         }
     }
 
-    private static void AddCascadeDecoration(ParsedEvtcLog log, SingleActor actor, CombatReplay replay, GUID guid, uint width, uint height)
+    private static void AddCascadeDecoration(ParsedEvtcLog log, SingleActor actor, CombatReplay replay, Guid guid, uint width, uint height)
     {
         if (log.CombatData.TryGetEffectEventsByGUID(guid, out var rectangularIndicators))
         {

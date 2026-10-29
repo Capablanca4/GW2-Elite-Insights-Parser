@@ -5,16 +5,14 @@ using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
-using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -84,7 +82,7 @@ internal class SoullessHorror : HallOfChains
         return crMap;
     }
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -125,23 +123,11 @@ internal class SoullessHorror : HallOfChains
             }
         }
     }
-    internal static void HandleSoullessHorrorFinalHPUpdate(List<CombatItem> combatData, SingleActor soullessHorror)
-    {
-        // discard hp update events after determined apply
-        CombatItem? determined895Apply = combatData.LastOrDefault(x => x.SkillID == Determined895 && x.IsBuffApplyEvent() && x.DstMatchesAgent(soullessHorror.AgentItem));
-        if (determined895Apply != null)
-        {
-            foreach (var combatEvent in combatData.Where(x => x.IsStateChange == StateChange.HealthUpdate && x.SrcMatchesAgent(soullessHorror.AgentItem) && x.Time >= determined895Apply.Time))
-            {
-                combatEvent.OverrideSrcAgent(_unknownAgent);
-            }
-        }
-    }
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
         SingleActor soullessHorror = Targets.FirstOrDefault(x => x.IsSpecies(TargetID.SoullessHorror)) ?? throw new MissingKeyActorsException("Soulless Horror not found");
-        HandleSoullessHorrorFinalHPUpdate(combatData, soullessHorror);
+        SanitizeLastHealthUpdateEvents(soullessHorror, combatData);
     }
 
     internal static IReadOnlyList<SubPhasePhaseData> ComputePhases(ParsedEvtcLog log, SingleActor soullessHorror, IReadOnlyList<SingleActor> targets, EncounterPhaseData encounterPhase, bool requirePhases)
@@ -204,7 +190,7 @@ internal class SoullessHorror : HallOfChains
         {
             case (int)TargetID.SoullessHorror:
                 // arena reduction
-                var encounterPhase = log.LogData.GetEncounterPhases(log, LogID).FirstOrDefault(x => x.Targets.ContainsKey(target));     
+                var encounterPhase = log.LogData.GetEncounterPhases(log, LogID).FirstOrDefault(x => x.Targets.ContainsKey(target));
                 if (encounterPhase != null)
                 {
                     var center = new Vector3(-10581, 825, -817);
@@ -231,7 +217,7 @@ internal class SoullessHorror : HallOfChains
                     foreach ((double hpVal, uint innerRadius, uint outerRadius) in destroyedRings)
                     {
                         long end = Math.Min(encounterPhase.End, target.LastAware);
-                        Segment? hpUpdate = target.GetHealthUpdates(log).FirstOrNull((in Segment x) => x.Value <= hpVal);
+                        Segment? hpUpdate = target.GetHealthUpdates(log).FirstOrNull((in x) => x.Value <= hpVal);
                         if (hpUpdate != null)
                         {
                             long ringStart = Math.Max(hpUpdate.Value.Start, encounterPhase.Start);
@@ -437,7 +423,7 @@ internal class SoullessHorror : HallOfChains
     }
 
     internal override LogData.Mode GetLogMode(CombatData combatData, AgentData agentData, LogData logData)
-    {       
+    {
         return HasFastNecrosis(combatData, logData.LogStart, logData.LogEnd) ? LogData.Mode.CM : LogData.Mode.Normal;
     }
 
@@ -457,7 +443,7 @@ internal class SoullessHorror : HallOfChains
             damageData.SortByTime();
             foreach (var evt in damageData)
             {
-                if (evt.HasHit && evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.HasHit && evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(shPhases, necroDancerEligibilityEvents, evt.Time, Ach_NecroDancer, p);
                 }

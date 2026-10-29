@@ -5,6 +5,7 @@ namespace GW2EIEvtcParser.ParsedData;
 
 public class AgentData
 {
+    public IReadOnlyList<AgentItem> AllAgents => _allAgentsList;
 #if DEBUG
     public readonly List<AgentItem> _allAgentsList;
 #else
@@ -39,6 +40,7 @@ public class AgentData
     {
         _apiController = apiController;
         _allAgentsList = allAgentsList;
+        Refresh();
     }
     internal string GetSpec(uint prof, uint elite)
     {
@@ -261,6 +263,14 @@ public class AgentData
         _dirty |= AgentDataDirtyStatus.AllDirty;
     }
 
+    [MemberNotNull(nameof(_allAgentsByAgent))]
+    [MemberNotNull(nameof(_allAgentsByInstID))]
+#if DEBUG
+    [MemberNotNull(nameof(_allAgentsByName))]
+#endif
+    [MemberNotNull(nameof(_allAgentsByType))]
+    [MemberNotNull(nameof(_allStableSpeciesByID))]
+    [MemberNotNull(nameof(_allVolatileSpeciesByID))]
     private void Refresh()
     {
         _allAgentsList.SortByFirstAware();
@@ -291,7 +301,7 @@ public class AgentData
 
     public delegate long AgentGroupingTimeFetchet(AgentItem agentItem);
 
-    public static IEnumerable<IEnumerable<AgentItem>> GetGroupedAgentsByTimeCondition(IEnumerable<AgentItem> agents, AgentGroupingTimeFetchet timeFetcher, long epsilon = ParserHelper.ServerDelayConstant)
+    public static IEnumerable<IEnumerable<AgentItem>> GetGroupedAgentsByTimeCondition(IReadOnlyList<AgentItem> agents, AgentGroupingTimeFetchet timeFetcher, long epsilon = ParserHelper.ServerDelayConstant)
     {
         var groupedAgents = new List<IEnumerable<AgentItem>>();
         var processedTimes = new HashSet<long>();
@@ -317,14 +327,14 @@ public class AgentData
     {
         foreach (AgentItem a in GetAgentByType(AgentItem.AgentType.StableSpecies))
         {
-            if (a.Master != null && froms.Any(a.Is))
+            if (a.Master != null && froms.Any(a.Master.Is))
             {
                 a.SetMaster(to);
             }
         }
         foreach (AgentItem a in GetAgentByType(AgentItem.AgentType.VolatileSpecies))
         {
-            if (a.Master != null && froms.Any(a.Is))
+            if (a.Master != null && froms.Any(a.Master.Is))
             {
                 a.SetMaster(to);
             }

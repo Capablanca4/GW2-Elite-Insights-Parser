@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Drawing;
 using System.Numerics;
 using GW2EIEvtcParser.ParsedData;
 using static GW2EIEvtcParser.EIData.Decoration;
@@ -61,6 +60,8 @@ internal class CombatReplayDecorationContainer
         }
         return result;
     }
+
+    #region OVERHEAD
 
     /// <summary>
     /// Add an overhead icon decoration
@@ -182,6 +183,10 @@ internal class CombatReplayDecorationContainer
         }
     }
 
+    #endregion OVERHEAD
+
+    #region FILL & GROWING
+
     /// <summary>
     /// Add the decoration twice, the 2nd one being a copy using given extra parameters
     /// </summary>
@@ -205,6 +210,21 @@ internal class CombatReplayDecorationContainer
     {
         Add(decoration);
         Add(decoration.Copy().UsingGrowingEnd(growingEnd, reverseGrowing));
+    }
+
+    /// <summary>
+    /// Add the decoration twice, the 2nd one being a copy using given extra parameters and add a border to it.
+    /// </summary>
+    /// <param name="decoration"></param>
+    /// <param name="growingEnd"></param>
+    /// <param name="color"></param>
+    /// <param name="opacity"></param>
+    /// <param name="reverseGrowing"></param>
+    internal void AddWithGrowingWithBorder(FormDecoration decoration, long growingEnd, Color color, double opacity, bool reverseGrowing = false)
+    {
+        Add(decoration);
+        Add(decoration.Copy().UsingGrowingEnd(growingEnd, reverseGrowing));
+        Add(decoration.GetBorderDecoration(color.WithAlpha(opacity).ToString()));
     }
 
     /// <summary>
@@ -236,7 +256,7 @@ internal class CombatReplayDecorationContainer
     /// <param name="opacity"></param>
     internal void AddWithBorder(FormDecoration decoration, Color color, double opacity)
     {
-        AddWithBorder(decoration, color.WithAlpha(opacity).ToString(true));
+        AddWithBorder(decoration, color.WithAlpha(opacity).ToString());
     }
 
     /// <summary>
@@ -261,66 +281,114 @@ internal class CombatReplayDecorationContainer
     /// <param name="reverseGrowing"></param>
     internal void AddWithBorder(FormDecoration decoration, long growingEnd, Color color, double opacity, bool reverseGrowing = false)
     {
-        AddWithBorder(decoration, growingEnd, color.WithAlpha(opacity).ToString(true), reverseGrowing);
+        AddWithBorder(decoration, growingEnd, color.WithAlpha(opacity).ToString(), reverseGrowing);
     }
+
+    #endregion FILL & GROWING
+
+    #region TETHER
+
     /// <summary>
     /// Add tether decoration between src and dst
     /// </summary>
-    /// <param name="start"></param>
-    /// <param name="end"></param>
-    /// <param name="src"></param>
-    /// <param name="dst"></param>
-    /// <param name="color">color of the tether</param>
-    /// <param name="thickness">thickness of the tether</param>
-    /// <param name="worldSizeThickess">true to indicate that thickness is in inches instead of pixels</param>
-    internal void AddTether(long start, long end, AgentItem src, AgentItem dst, string color, uint thickness = 2, bool worldSizeThickess = false)
+    /// <param name="lifespan">Lifespan of the tether.</param>
+    /// <param name="src">Agent source.</param>
+    /// <param name="dst">Agent destination.</param>
+    /// <param name="color">Color of the tether decoration.</param>
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTether((long, long) lifespan, AgentItem src, AgentItem dst, string color, uint thickness = 2, bool worldSizeThickness = false)
     {
-        Add(new LineDecoration((start, end), color, new AgentConnector(dst), new AgentConnector(src)).WithThickess(thickness, worldSizeThickess));
+        Add(new LineDecoration(lifespan, color, new AgentConnector(dst), new AgentConnector(src)).WithThickess(thickness, worldSizeThickness));
     }
 
     /// <summary>
     /// Add tether decorations which src and dst are defined by tethers parameter using <see cref="BuffEvent"/>.
     /// </summary>
     /// <param name="tethers">Buff events of the tethers.</param>
-    /// <param name="color">color of the tether</param>
-    /// <param name="thickness">thickness of the tether</param>
-    /// <param name="worldSizeThickess">true to indicate that thickness is in inches instead of pixels</param>
-    internal void AddTethers(IEnumerable<BuffEvent> tethers, string color, uint thickness = 2, bool worldSizeThickess = false)
+    /// <param name="color">Color of the tether decoration.</param>
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTethers(IEnumerable<BuffEvent> tethers, string color, uint thickness = 2, bool worldSizeThickness = false)
     {
-        int tetherStart = 0;
+        long tetherStart = 0;
         AgentItem src = _unknownAgent;
         AgentItem dst = _unknownAgent;
         foreach (BuffEvent tether in tethers)
         {
             if (tether is BuffApplyEvent)
             {
-                tetherStart = (int)tether.Time;
+                tetherStart = tether.Time;
                 src = tether.By;
                 dst = tether.To;
             }
             else if (tether is BuffRemoveAllEvent)
             {
-                int tetherEnd = (int)tether.Time;
+                long tetherEnd = tether.Time;
                 if (!src.IsUnknown && !dst.IsUnknown)
                 {
-                    AddTether(tetherStart, tetherEnd, src, dst, color, thickness, worldSizeThickess);
+                    AddTether((tetherStart, tetherEnd), src, dst, color, thickness, worldSizeThickness);
                     src = _unknownAgent;
                     dst = _unknownAgent;
                 }
             }
         }
     }
+
     /// <summary>
     /// Add tether decorations which src and dst are defined by tethers parameter using <see cref="BuffEvent"/>.
     /// </summary>
     /// <param name="tethers">Buff events of the tethers.</param>
-    /// <param name="color">color of the tether</param>
-    /// <param name="opacity">opacity of the tether</param>
-    /// <param name="thickness">thickness of the tether</param>
-    /// <param name="worldSizeThickess">true to indicate that thickness is in inches instead of pixels</param>
-    internal void AddTethers(IEnumerable<BuffEvent> tethers, Color color, double opacity, uint thickness = 2, bool worldSizeThickess = false)
+    /// <param name="color">Color of the tether decoration.</param>
+    /// <param name="opacity">Opacity of the tether decoration.</param>
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTethers(IEnumerable<BuffEvent> tethers, Color color, double opacity, uint thickness = 2, bool worldSizeThickness = false)
     {
-        AddTethers(tethers, color.WithAlpha(opacity).ToString(true), thickness, worldSizeThickess);
+        AddTethers(tethers, color.WithAlpha(opacity).ToString(), thickness, worldSizeThickness);
+    }
+
+    /// <summary>
+    /// Add tether decoration by <see cref="EffectEvent"/> with an manually-set lifespan.
+    /// </summary>
+    /// <param name="effect">Tether effect.</param>
+    /// <param name="color">Color of the tether decoration.</param>
+    /// <param name="opacity">Opacity of the tether decoration.</param>
+    /// <param name="lifespan">Manually-set lifespan.</param>
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTetherByEffectGUID(
+        EffectEvent effect,
+        Color color,
+        double opacity,
+        (long start, long end) lifespan,
+        uint thickness = 2,
+        bool worldSizeThickness = false)
+    {
+        AddTetherByEffectGUID(effect, color.WithAlpha(opacity).ToString(), lifespan, thickness, worldSizeThickness);
+    }
+
+    /// <summary>
+    /// Add tether decoration by <see cref="EffectEvent"/> with an manually-set lifespan.
+    /// </summary>
+    /// <param name="effect">Tether effect.</param>
+    /// <param name="color">Color of the tether decoration.</param>
+    /// <param name="lifespan">Manually-set lifespan.</param>
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTetherByEffectGUID(
+        EffectEvent effect,
+        string color,
+        (long start, long end) lifespan,
+        uint thickness = 2,
+        bool worldSizeThickness = false)
+    {
+        if (!effect.IsAroundDst)
+        {
+            return;
+        }
+
+        AddTether(lifespan, effect.Dst, effect.Src, color, thickness, worldSizeThickness);
     }
 
     /// <summary>
@@ -330,13 +398,23 @@ internal class CombatReplayDecorationContainer
     /// <param name="effect">Tether effect.</param>
     /// <param name="color">Color of the tether decoration.</param>
     /// <param name="duration">Manual set duration to use as override of the <paramref name="effect"/> duration.</param>
-    /// <param name="overrideDuration">Wether to override the duration or not.</param>
-    internal void AddTetherByEffectGUID(ParsedEvtcLog log, EffectEvent effect, string color, int duration = 0, bool overrideDuration = false)
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTetherByEffectGUID(
+        ParsedEvtcLog log,
+        EffectEvent effect,
+        string color,
+        int duration = 0,
+        uint thickness = 2,
+        bool worldSizeThickness = false)
     {
-        if (!effect.IsAroundDst) { return; }
+        if (!effect.IsAroundDst)
+        {
+            return;
+        }
 
         (long start, long end) lifespan;
-        if (overrideDuration == false)
+        if (duration == 0)
         {
             lifespan = effect.ComputeLifespan(log, effect.Duration);
         }
@@ -347,7 +425,7 @@ internal class CombatReplayDecorationContainer
 
         if (!effect.Src.IsUnknown && !effect.Dst.IsUnknown)
         {
-            AddTether(lifespan.start, lifespan.end, effect.Dst, effect.Src, color);
+            AddTether(lifespan, effect.Dst, effect.Src, color, thickness, worldSizeThickness);
         }
     }
 
@@ -359,10 +437,18 @@ internal class CombatReplayDecorationContainer
     /// <param name="color">Color of the tether decoration.</param>
     /// <param name="opacity">Opacity of the tether decoration.</param>
     /// <param name="duration">Manual set duration to use as override of the <paramref name="effect"/> duration.</param>
-    /// <param name="overrideDuration">Wether to override the duration or not.</param>
-    internal void AddTethersByEffectGUID(ParsedEvtcLog log, EffectEvent effect, Color color, double opacity, int duration = 0, bool overrideDuration = false)
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTetherByEffectGUID(
+        ParsedEvtcLog log,
+        EffectEvent effect,
+        Color color,
+        double opacity,
+        int duration = 0,
+        uint thickness = 2,
+        bool worldSizeThickness = false)
     {
-        AddTetherByEffectGUID(log, effect, color.WithAlpha(opacity).ToString(true), duration, overrideDuration);
+        AddTetherByEffectGUID(log, effect, color.WithAlpha(opacity).ToString(), duration, thickness, worldSizeThickness);
     }
 
     /// <summary>
@@ -372,13 +458,24 @@ internal class CombatReplayDecorationContainer
     /// <param name="log">The log.</param>
     /// <param name="player">The player to tether to <paramref name="toTetherAgentID"/>.</param>
     /// <param name="buffID">ID of the buff sourced by <paramref name="buffSrcAgentID"/>.</param>
-    /// <param name="buffSrcAgentID">ID of the agent sourcing the <paramref name="buffID"/>. Either <see cref="TargetID"/> or <see cref="TrashID"/>.</param>
-    /// <param name="toTetherAgentID">ID of the agent to tether to the <paramref name="player"/>. Either <see cref="TargetID"/> or <see cref="TrashID"/>.</param>
+    /// <param name="buffSrcAgentID"><see cref="SpeciesIDs.TargetID"/> of the agent sourcing the <paramref name="buffID"/>.</param>
+    /// <param name="toTetherAgentID"><see cref="SpeciesIDs.TargetID"/> of the agent to tether to the <paramref name="player"/>.</param>
     /// <param name="color">Color of the tether.</param>
     /// <param name="firstAwareThreshold">Time threshold in case the agent spawns before the buff application.</param>
-    internal void AddTethersByThirdPartySrcBuff(ParsedEvtcLog log, PlayerActor player, long buffID, int buffSrcAgentID, int toTetherAgentID, string color, int firstAwareThreshold = 2000)
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTethersByThirdPartySrcBuff(
+        ParsedEvtcLog log,
+        PlayerActor player,
+        long buffID,
+        int buffSrcAgentID,
+        int toTetherAgentID,
+        string color,
+        int firstAwareThreshold = 2000,
+        uint thickness = 2,
+        bool worldSizeThickness = false)
     {
-        var buffEvents = log.CombatData.GetBuffDataByIDByDst(buffID, player.AgentItem).Where(x => x.CreditedBy.IsSpecies(buffSrcAgentID));
+        var buffEvents = log.CombatData.GetBuffDataByIDByDst(buffID, player.AgentItem).Where(x => x.CreditedBy.IsSpecies(buffSrcAgentID)).ToList();
         var buffApplies = buffEvents.OfType<BuffApplyEvent>();
         var buffRemoves = buffEvents.OfType<BuffRemoveAllEvent>();
         var agentsToTether = log.AgentData.GetStableSpeciesByID(toTetherAgentID);
@@ -393,11 +490,12 @@ internal class CombatReplayDecorationContainer
             {
                 if ((Math.Abs(agent.FirstAware - buffApply.Time) < firstAwareThreshold || agent.FirstAware >= buffApply.Time) && agent.FirstAware < removalTime)
                 {
-                    AddTether(lifespan.start, lifespan.end, agent, player.AgentItem, color);
+                    AddTether(lifespan, agent, player.AgentItem, color, thickness, worldSizeThickness);
                 }
             }
         }
     }
+
     /// <summary>
     /// Add tether decoration connecting a player to an agent.<br></br>
     /// The <paramref name="buffID"/> is sourced by an agent that isn't the one to tether to.
@@ -405,15 +503,31 @@ internal class CombatReplayDecorationContainer
     /// <param name="log">The log.</param>
     /// <param name="player">The player to tether to <paramref name="toTetherAgentID"/>.</param>
     /// <param name="buffID">ID of the buff sourced by <paramref name="buffSrcAgentID"/>.</param>
-    /// <param name="buffSrcAgentID">ID of the agent sourcing the <paramref name="buffID"/>. Either <see cref="TargetID"/> or <see cref="TrashID"/>.</param>
-    /// <param name="toTetherAgentID">ID of the agent to tether to the <paramref name="player"/>. Either <see cref="TargetID"/> or <see cref="TrashID"/>.</param>
+    /// <param name="buffSrcAgentID"><see cref="SpeciesIDs.TargetID"/> of the agent sourcing the <paramref name="buffID"/>.</param>
+    /// <param name="toTetherAgentID"><see cref="SpeciesIDs.TargetID"/> of the agent to tether to the <paramref name="player"/>.</param>
     /// <param name="color">Color of the tether.</param>
     /// <param name="opacity">Opacity of the tether.</param>
     /// <param name="firstAwareThreshold">Time threshold in case the agent spawns before the buff application.</param>
-    internal void AddTethersByThirdPartySrcBuff(ParsedEvtcLog log, PlayerActor player, long buffID, int buffSrcAgentID, int toTetherAgentID, Color color, double opacity, int firstAwareThreshold = 2000)
+    /// <param name="thickness">Thickness of the tether.</param>
+    /// <param name="worldSizeThickness"><see langword="true"/> to indicate that thickness is in inches instead of pixels.</param>
+    internal void AddTethersByThirdPartySrcBuff(
+        ParsedEvtcLog log,
+        PlayerActor player,
+        long buffID,
+        int buffSrcAgentID,
+        int toTetherAgentID,
+        Color color,
+        double opacity,
+        int firstAwareThreshold = 2000,
+        uint thickness = 2,
+        bool worldSizeThickness = false)
     {
-        AddTethersByThirdPartySrcBuff(log, player, buffID, buffSrcAgentID, toTetherAgentID, color.WithAlpha(opacity).ToString(true), firstAwareThreshold);
+        AddTethersByThirdPartySrcBuff(log, player, buffID, buffSrcAgentID, toTetherAgentID, color.WithAlpha(opacity).ToString(), firstAwareThreshold, thickness, worldSizeThickness);
     }
+
+    #endregion TETHER
+
+    #region PROJECTILE (Pre-Missile events)
 
     /// <summary>
     /// Adds a moving circle resembling a projectile from a <paramref name="startingPoint"/> to an <paramref name="endingPoint"/>.
@@ -427,7 +541,7 @@ internal class CombatReplayDecorationContainer
     /// <remarks>To be used for logs without missile data.</remarks>
     internal void AddProjectile(in Vector3 startingPoint, in Vector3 endingPoint, (long start, long end) lifespan, Color color, double opacity = 0.2, uint radius = 50)
     {
-        AddProjectile(startingPoint, endingPoint, lifespan, color.WithAlpha(opacity).ToString(true), radius);
+        AddProjectile(startingPoint, endingPoint, lifespan, color.WithAlpha(opacity).ToString(), radius);
     }
 
     /// <summary>
@@ -451,6 +565,10 @@ internal class CombatReplayDecorationContainer
         Add(shootingCircle);
     }
 
+    #endregion PROJECTILE (Pre-Missile events)
+
+    #region SHOCKWAVE
+
     /// <summary>
     /// Adds a non-filled growing circle resembling a shockwave.
     /// </summary>
@@ -463,7 +581,7 @@ internal class CombatReplayDecorationContainer
     /// <remarks>Uses <see cref="GeographicalConnector"/> which allows us to use <see cref="AgentConnector"/> and <see cref="PositionConnector"/>.</remarks>
     internal void AddShockwave(GeographicalConnector connector, (long start, long end) lifespan, Color color, double opacity, uint radius, bool reverse = false)
     {
-        AddShockwave(connector, lifespan, color.WithAlpha(opacity).ToString(true), radius, reverse);
+        AddShockwave(connector, lifespan, color.WithAlpha(opacity).ToString(), radius, reverse);
     }
 
     /// <summary>
@@ -480,7 +598,9 @@ internal class CombatReplayDecorationContainer
         Add(new CircleDecoration(radius, lifespan, color, connector).UsingFilled(false).UsingGrowingEnd(lifespan.end, reverse));
     }
 
+    #endregion SHOCKWAVE
 
+    #region CONCENTRIC
 
     /// <summary>
     /// Adds concentric doughnuts.
@@ -507,6 +627,10 @@ internal class CombatReplayDecorationContainer
         }
 
     }
+
+    #endregion CONCENTRIC
+
+    #region PROGRESS BAR
 
     /// <summary>
     /// Adds two rectangles over each other representing a loading bar.
@@ -548,28 +672,27 @@ internal class CombatReplayDecorationContainer
             Add(background);
         }
     }
-
     /// <summary>
-    /// Adds a dynamic breakbar decoration with each various state.<br></br>
+    /// Adds dynamic breakbars decoration with each various state.<br></br>
     /// The breakbar will be displayed as long as the actor is present and it's active, recovering or immune.
     /// </summary>
+    /// <param name="log"></param>
     /// <param name="actor"></param>
-    /// <param name="percentUpdates"></param>
-    /// <param name="stateUpdates"></param>
-    internal void AddBreakbar(SingleActor actor, IReadOnlyList<Segment> percentUpdates,
-        (IReadOnlyList<Segment> breakbarNones, IReadOnlyList<Segment> breakbarActives, IReadOnlyList<Segment> breakbarImmunes, IReadOnlyList<Segment> breakbarRecoverings) stateUpdates)
+    internal void AddBreakbars(ParsedEvtcLog log, SingleActor actor)
     {
-        foreach (var segment in stateUpdates.breakbarActives)
+        var breakbarUpdates = actor.GetBreakbarPercentUpdates(log);
+        var (_, breakbarActives, breakbarImmunes, breakbarRecoverings) = actor.GetBreakbarStatus(log);
+        foreach (var segment in breakbarActives)
         {
-            AddBreakbar(segment.TimeSpan, actor, percentUpdates, Colors.BreakbarActiveBlue);
+            AddBreakbar(segment.TimeSpan, actor, breakbarUpdates, Colors.BreakbarActiveBlue);
         }
-        foreach (var segment in stateUpdates.breakbarRecoverings)
+        foreach (var segment in breakbarRecoverings)
         {
-            AddBreakbar(segment.TimeSpan, actor, percentUpdates, Colors.BreakbarRecoveringOrange);
+            AddBreakbar(segment.TimeSpan, actor, breakbarUpdates, Colors.BreakbarRecoveringOrange);
         }
-        foreach (var segment in stateUpdates.breakbarImmunes)
+        foreach (var segment in breakbarImmunes)
         {
-            AddBreakbar(segment.TimeSpan, actor, percentUpdates, Colors.BreakbarImmuneGrey);
+            AddBreakbar(segment.TimeSpan, actor, breakbarUpdates, Colors.BreakbarImmuneGrey);
         }
     }
 
@@ -586,9 +709,9 @@ internal class CombatReplayDecorationContainer
     /// </summary>
     /// <param name="player"></param>
     /// <param name="castEvent"></param>
-    internal void AddPlayerCastBar(PlayerActor player, AnimatedCastEvent castEvent, long expectedDuration = 0)
+    internal void AddPlayerCastBar(PlayerActor player, AnimatedCastEvent castEvent, int expectedDuration = 0)
     {
-        long expectedScaledEndTime = expectedDuration == 0 ? castEvent.ExpectedScaledEndTime : castEvent.Time + (long)(expectedDuration * castEvent.AcceleratedToNonAcceleratedRatio);
+        long expectedScaledEndTime = expectedDuration == 0 ? castEvent.ExpectedScaledEndTime : castEvent.Time + castEvent.ApplyTimeScale(expectedDuration);
         Add(new OverheadProgressBarDecoration(CombatReplayOverheadProgressBarMajorSizeInPixel, (castEvent.Time, castEvent.EndTime),
                         castEvent.IsInterrupted ? Colors.LightRed : Colors.DarkYellow, 0.8, Colors.Black, 0.6,
                         [(castEvent.Time, 0), (expectedScaledEndTime, 100)], new AgentConnector(player))
@@ -597,133 +720,29 @@ internal class CombatReplayDecorationContainer
     }
 
     /// <summary>
-    /// Adds a dynamic breakbar decoration.<br></br>
-    /// To be used during active state only.
+    /// Adds a dynamic active breakbar decorations for agent.<br></br>
     /// </summary>
-    /// <param name="lifespan"></param>
+    /// <param name="log"></param>
     /// <param name="actor"></param>
-    /// <param name="percentUpdates"></param>
-    internal void AddActiveBreakbar((long start, long end) lifespan, SingleActor actor, IReadOnlyList<Segment> percentUpdates)
+    internal void AddActiveBreakbars(ParsedEvtcLog log, SingleActor actor)
     {
-        AddBreakbar(lifespan, actor, percentUpdates, Colors.BreakbarActiveBlue);
+        var breakbarUpdates = actor.GetBreakbarPercentUpdates(log);
+        var (_, breakbarActives, _, _) = actor.GetBreakbarStatus(log);
+        foreach (var segment in breakbarActives)
+        {
+            AddBreakbar(segment.TimeSpan, actor, breakbarUpdates, Colors.BreakbarActiveBlue);
+        }
     }
-    #region MISSILE
 
+    #endregion PROGRESS BAR
+
+    #region MISSILE
 
     internal delegate void MissileDecorationHandler(MissileLaunchEvent launch, (long start, long end) lifespan, GeographicalConnector connector);
     internal delegate void MissileRotatingDecorationHandler(MissileLaunchEvent launch, (long start, long end) lifespan, GeographicalConnector connector, RotationConnector rotationConnector);
 
-    /// <summary>
-    /// Add a missile going from a Point A to Point B, supports multi launches
-    /// </summary>
-    /// <param name="log"></param>
-    /// <param name="missileEvent"></param>
-    /// <param name="handler">Handler that will create the decoration</param>
-    /// <param name="endOverride"></param>
-    internal static void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, MissileDecorationHandler handler, long? endOverride = null)
-    {
-        long end = missileEvent.RemoveEvent?.Time ?? (endOverride.HasValue ? Math.Min(endOverride.Value, log.LogData.LogEnd) : log.LogData.LogEnd);
-        var launchEvents = missileEvent.LaunchEvents;
-        for (int i = 0; i < launchEvents.Count; i++)
-        {
-            var launch = launchEvents[i];
-            (long start, long end) trajectoryLifeSpan = (launch.Time, i != launchEvents.Count - 1 ? launchEvents[i + 1].Time : end);
-            handler(launch, trajectoryLifeSpan, new InterpolationConnector([
-                        new ParametricPoint3D(launch.LaunchPosition, trajectoryLifeSpan.start),
-                        launch.GetFinalPosition(trajectoryLifeSpan)
-                    ],
-                    Connector.InterpolationMethod.Linear));
-        }
-    }
 
-    /// <summary>
-    /// Add a missile going from a Point A to Point B, supports multi launches, uses CircleDecoration
-    /// </summary>
-    /// <param name="log">Evtc log</param>
-    /// <param name="missileEvent"></param>
-    /// <param name="color"></param>
-    /// <param name="opacity"></param>
-    /// <param name="radius"></param>
-    internal void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, Color color, double opacity, uint radius)
-    {
-        AddNonHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
-        {
-            Add(new CircleDecoration(radius, lifespan, color, opacity, connector));
-        });
-    }
-
-    /// <summary>
-    /// Add a missile going from a Point A to Point B, supports multi launches, uses IconDecorations
-    /// </summary>
-    /// <param name="log">Evtc log</param>
-    /// <param name="missileEvent"></param>
-    /// <param name="imageUrl"></param>
-    /// <param name="opacity"></param>
-    /// <param name="worldSize"></param>
-    internal void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, string imageUrl, float opacity, uint worldSize)
-    {
-        AddNonHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
-        {
-            Add(new IconDecoration(imageUrl, 0, worldSize, opacity, lifespan, connector));
-        });
-    }
-
-    /// <summary>
-    /// Add a missile rotating around Targeted Agent
-    /// </summary>
-    /// <param name="log"></param>
-    /// <param name="missileEvent"></param>
-    /// <param name="angleOffset"></param>
-    /// <param name="handler">Handler that will create the decoration</param>
-    /// <param name="useTargetOrientation"></param>
-    internal static void AddRotatingAroundTargetMissile(ParsedEvtcLog log, MissileEvent missileEvent, float angleOffset, MissileRotatingDecorationHandler handler, bool useTargetOrientation = false)
-    {
-        long end = missileEvent.RemoveEvent?.Time ?? log.LogData.LogEnd;
-        var launchEvents = missileEvent.LaunchEvents;
-        for (int i = 0; i < launchEvents.Count; i++)
-        {
-            var launch = launchEvents[i];
-            var rotationCenterTarget = launch.TargetedAgent;
-            var trajectoryRadius = launch.MotionRadius;
-            var initialAngle = 0.0f;
-            if (useTargetOrientation)
-            {
-                if (rotationCenterTarget.TryGetCurrentFacingDirection(log, launch.Time, out var facing))
-                {
-                    initialAngle = facing.Value.GetZRotationRadians();
-                }
-                else
-                {
-                    continue;
-                }
-            }
-            if (trajectoryRadius > 0)
-            {
-                (long start, long end) trajectoryLifeSpan = (launch.Time, i != launchEvents.Count - 1 ? launchEvents[i + 1].Time : end);
-                long duration = trajectoryLifeSpan.end - trajectoryLifeSpan.start;
-                var orientation = (launch.LaunchFlags & (1 << 16)) > 0 ? -1 : 1; // Keep an eye on this, may be unstable.
-                handler(launch, trajectoryLifeSpan, new AgentConnector(rotationCenterTarget).WithOffset(initialAngle + angleOffset, trajectoryRadius, true), new SpinningConnector(0, RadianToDegreeF(orientation * duration * launch.Speed / trajectoryRadius)));
-            }
-        }
-    }
-    /// <summary>
-    /// Add a missile rotating around Targeted Agent, supports multi launches, uses CircleDecoration
-    /// </summary>
-    /// <param name="log">Evtc log</param>
-    /// <param name="missileEvent"></param>
-    /// <param name="color"></param>
-    /// <param name="opacity"></param>
-    /// <param name="radius"></param>
-    /// <param name="angleOffset"></param>
-    /// <param name="useTargetOrientation"></param>
-    internal void AddRotatingAroundTargetMissile(ParsedEvtcLog log, MissileEvent missileEvent, Color color, double opacity, uint radius, float angleOffset, bool useTargetOrientation = false)
-    {
-        AddRotatingAroundTargetMissile(log, missileEvent, angleOffset, (launch, lifespan, connector, rotationConnector) =>
-        {
-            Add(new CircleDecoration(radius, lifespan, color, opacity, connector).UsingRotationConnector(rotationConnector));
-        }, useTargetOrientation);
-    }
-
+    #region HOMING
     /// <summary>
     /// Add a missile going from a Point A to Agent, if possible, to Point B otherwise, supports multi launches
     /// </summary>
@@ -732,7 +751,7 @@ internal class CombatReplayDecorationContainer
     /// <param name="handler"></param>
     internal static void AddHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, MissileDecorationHandler handler)
     {
-        long end = missileEvent.RemoveEvent?.Time ?? log.LogData.LogEnd;
+        long end = missileEvent.RemoveEvent?.Time ?? Math.Min(log.LogData.LogEnd, missileEvent.Src.LastAware);
         var launchEvents = missileEvent.LaunchEvents;
         for (int i = 0; i < launchEvents.Count; i++)
         {
@@ -744,11 +763,7 @@ internal class CombatReplayDecorationContainer
             }
             else
             {
-                handler(launch, trajectoryLifeSpan, new InterpolationConnector([
-                        new ParametricPoint3D(launch.LaunchPosition, trajectoryLifeSpan.start),
-                        launch.GetFinalPosition(trajectoryLifeSpan)
-                    ],
-                    Connector.InterpolationMethod.Linear));
+                AddNonHomingLaunch(missileEvent, i, end, handler);
             }
         }
     }
@@ -769,6 +784,131 @@ internal class CombatReplayDecorationContainer
         });
     }
 
+    /// <summary>
+    /// Add missiles going from a Point A to Agent, if possible, to Point B otherwise, supports multi launches
+    /// </summary>
+    /// <param name="log">Evtc log</param>
+    /// <param name="missileEvents">Missile events to process</param>
+    /// <param name="color"></param>
+    /// <param name="opacity"></param>
+    /// <param name="radius"></param>
+    internal void AddHomingMissiles(ParsedEvtcLog log, IEnumerable<MissileEvent> missileEvents, Color color, double opacity, uint radius)
+    {
+        foreach (MissileEvent missileEvent in missileEvents)
+        {
+            AddHomingMissile(log, missileEvent, color, opacity, radius);
+        }
+    }
+
+    /// <summary>
+    /// Add missiles going from a Point A to Agent, if possible, to Point B otherwise, supports multi launches
+    /// </summary>
+    /// <param name="log">Evtc log</param>
+    /// <param name="missileEvents">Missile events to process</param>
+    /// <param name="color"></param>
+    /// <param name="opacity"></param>
+    /// <param name="radius"></param>
+    /// <param name="handler"></param>
+    internal static void AddHomingMissiles(ParsedEvtcLog log, IEnumerable<MissileEvent> missileEvents, MissileDecorationHandler handler)
+    {
+        foreach (MissileEvent missileEvent in missileEvents)
+        {
+            AddHomingMissile(log, missileEvent, handler);
+        }
+    }
+
+    #endregion HOMING
+
+    #region NON HOMING 
+    private static void AddNonHomingLaunch(MissileEvent missileEvent, int i, long end, MissileDecorationHandler handler)
+    {
+        var launchEvents = missileEvent.LaunchEvents;
+        var launch = launchEvents[i];
+        (long start, long end) trajectoryLifeSpan;
+        if (i == launchEvents.Count - 1)
+        {
+            trajectoryLifeSpan = (launch.Time, end);
+            if (missileEvent.RemoveEvent == null)
+            {
+                trajectoryLifeSpan.end = launch.ExpectedEndTime;
+            }
+        }
+        else
+        {
+            trajectoryLifeSpan = (launch.Time, launchEvents[i + 1].Time);
+        }
+        handler(launch, trajectoryLifeSpan, new InterpolationConnector([
+                    new ParametricPoint3D(launch.LaunchPosition, trajectoryLifeSpan.start),
+                        launch.GetFinalPosition(trajectoryLifeSpan)
+                ],
+                Connector.InterpolationMethod.Linear));
+    }
+
+    /// <summary>
+    /// Add a missile going from a Point A to Point B, supports multi launches
+    /// </summary>
+    /// <param name="log"></param>
+    /// <param name="missileEvent"></param>
+    /// <param name="handler">Handler that will create the decoration</param>
+    internal static void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, MissileDecorationHandler handler)
+    {
+        long end = missileEvent.RemoveEvent?.Time ?? Math.Min(log.LogData.LogEnd, missileEvent.Src.LastAware);
+        var launchEvents = missileEvent.LaunchEvents;
+        for (int i = 0; i < launchEvents.Count; i++)
+        {
+            AddNonHomingLaunch(missileEvent, i, end, handler);
+        }
+    }
+
+    /// <summary>
+    /// Add a missile going from a Point A to Point B, supports multi launches, uses CircleDecoration
+    /// </summary>
+    /// <param name="log">Evtc log</param>
+    /// <param name="missileEvent"></param>
+    /// <param name="color"></param>
+    /// <param name="opacity"></param>
+    /// <param name="radius"></param>
+    internal void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, Color color, double opacity, uint radius)
+    {
+        AddNonHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
+        {
+            Add(new CircleDecoration(radius, lifespan, color, opacity, connector));
+        });
+    }
+
+    /// <summary>
+    /// Add a missile going from a Point A to Point B, supports multi launches, uses CircleDecoration and adds a border
+    /// </summary>
+    /// <param name="log">Evtc log</param>
+    /// <param name="missileEvent"></param>
+    /// <param name="color"></param>
+    /// <param name="opacity"></param>
+    /// <param name="radius"></param>
+    /// <param name="borderColor"></param>
+    /// <param name="borderOpacity"></param>
+    internal void AddNonHomingMissileWithBorder(ParsedEvtcLog log, MissileEvent missileEvent, Color color, double opacity, uint radius, Color borderColor, double borderOpacity)
+    {
+        AddNonHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
+        {
+            AddWithBorder(new CircleDecoration(radius, lifespan, color, opacity, connector), borderColor, borderOpacity);
+        });
+    }
+
+    /// <summary>
+    /// Add a missile going from a Point A to Point B, supports multi launches, uses IconDecorations
+    /// </summary>
+    /// <param name="log">Evtc log</param>
+    /// <param name="missileEvent"></param>
+    /// <param name="imageUrl"></param>
+    /// <param name="opacity"></param>
+    /// <param name="worldSize"></param>
+    internal void AddNonHomingMissile(ParsedEvtcLog log, MissileEvent missileEvent, string imageUrl, float opacity, uint worldSize)
+    {
+        AddNonHomingMissile(log, missileEvent, (launch, lifespan, connector) =>
+        {
+            Add(new IconDecoration(imageUrl, 0, worldSize, opacity, lifespan, connector));
+        });
+    }
     /// <summary>
     /// Add missiles going from a Point A to Point B, supports multi launches, uses CircleDecoration
     /// </summary>
@@ -823,6 +963,67 @@ internal class CombatReplayDecorationContainer
         }
     }
 
+    #endregion NON HOMING
+
+    #region ROTATING
+
+    /// <summary>
+    /// Add a missile rotating around Targeted Agent
+    /// </summary>
+    /// <param name="log"></param>
+    /// <param name="missileEvent"></param>
+    /// <param name="angleOffset"></param>
+    /// <param name="handler">Handler that will create the decoration</param>
+    /// <param name="useTargetOrientation"></param>
+    internal static void AddRotatingAroundTargetMissile(ParsedEvtcLog log, MissileEvent missileEvent, float angleOffset, MissileRotatingDecorationHandler handler, bool useTargetOrientation = false)
+    {
+        long end = missileEvent.RemoveEvent?.Time ?? Math.Min(log.LogData.LogEnd, missileEvent.Src.LastAware);
+        var launchEvents = missileEvent.LaunchEvents;
+        for (int i = 0; i < launchEvents.Count; i++)
+        {
+            var launch = launchEvents[i];
+            var rotationCenterTarget = launch.TargetedAgent;
+            var trajectoryRadius = launch.MotionRadius;
+            var initialAngle = 0.0f;
+            if (useTargetOrientation)
+            {
+                if (rotationCenterTarget.TryGetCurrentFacingDirection(log, launch.Time, out var facing))
+                {
+                    initialAngle = facing.Value.GetZRotationRadians();
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            if (trajectoryRadius > 0)
+            {
+                (long start, long end) trajectoryLifeSpan = (launch.Time, i != launchEvents.Count - 1 ? launchEvents[i + 1].Time : end);
+                long duration = trajectoryLifeSpan.end - trajectoryLifeSpan.start;
+                var orientation = (launch.LaunchFlags & (1 << 16)) > 0 ? -1 : 1; // Keep an eye on this, may be unstable.
+                handler(launch, trajectoryLifeSpan, new AgentConnector(rotationCenterTarget).WithOffset(initialAngle + angleOffset, trajectoryRadius, true), new SpinningConnector(0, RadianToDegreeF(orientation * duration * launch.Speed / trajectoryRadius)));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Add a missile rotating around Targeted Agent, supports multi launches, uses CircleDecoration
+    /// </summary>
+    /// <param name="log">Evtc log</param>
+    /// <param name="missileEvent"></param>
+    /// <param name="color"></param>
+    /// <param name="opacity"></param>
+    /// <param name="radius"></param>
+    /// <param name="angleOffset"></param>
+    /// <param name="useTargetOrientation"></param>
+    internal void AddRotatingAroundTargetMissile(ParsedEvtcLog log, MissileEvent missileEvent, Color color, double opacity, uint radius, float angleOffset, bool useTargetOrientation = false)
+    {
+        AddRotatingAroundTargetMissile(log, missileEvent, angleOffset, (launch, lifespan, connector, rotationConnector) =>
+        {
+            Add(new CircleDecoration(radius, lifespan, color, opacity, connector).UsingRotationConnector(rotationConnector));
+        }, useTargetOrientation);
+    }
+
     /// <summary>
     /// Add missiles rotating around TargetedAgent, supports multi launches
     /// </summary>
@@ -841,20 +1042,53 @@ internal class CombatReplayDecorationContainer
         }
     }
 
-    /// <summary>
-    /// Add missiles going from a Point A to Agent, if possible, to Point B otherwise, supports multi launches
-    /// </summary>
-    /// <param name="log">Evtc log</param>
-    /// <param name="missileEvents">Missile events to process</param>
-    /// <param name="color"></param>
-    /// <param name="opacity"></param>
-    /// <param name="radius"></param>
-    internal void AddHomingMissiles(ParsedEvtcLog log, IEnumerable<MissileEvent> missileEvents, Color color, double opacity, uint radius)
-    {
-        foreach (MissileEvent missileEvent in missileEvents)
-        {
-            AddHomingMissile(log, missileEvent, color, opacity, radius);
-        }
-    }
+    #endregion ROTATING
     #endregion MISSILE
+
+    #region FRONT AND FLIP
+
+    /// <summary>
+    /// Adds the decoration twice, the 2nd one being a copy flipped 180° of the original <paramref name="frontDegrees"/>.
+    /// </summary>
+    /// <param name="decoration">The main decoration.</param>
+    /// <param name="frontDegrees">The facing degrees.</param>
+    internal void AddFrontAndFlip(FormDecoration decoration, float frontDegrees)
+    {
+        var front = new AngleConnector(frontDegrees);
+        var flip = new AngleConnector(frontDegrees + 180);
+        Add(decoration.UsingRotationConnector(front));
+        Add(decoration.Copy().UsingRotationConnector(flip));
+    }
+
+    /// <summary>
+    /// Adds the decoration twice, the 2nd one being a copy flipped 180° of the original <paramref name="point"/>.
+    /// </summary>
+    /// <param name="decoration">The main decoration.</param>
+    /// <param name="point">The facing direction point.</param>
+    internal void AddFrontAndFlip(FormDecoration decoration, in Vector3 point)
+    {
+        var flipPoint = -1 * point;
+        var front = new AngleConnector(point);
+        var flip = new AngleConnector(flipPoint);
+        Add(decoration.UsingRotationConnector(front));
+        Add(decoration.Copy().UsingRotationConnector(flip));
+    }
+
+    /// <summary>
+    /// Adds the decoration twice, the 2nd one being a copy flipped 180° of the original <paramref name="point"/> and adds a <paramref name="growing"/> animation.
+    /// </summary>
+    /// <param name="decoration">The main decoration.</param>
+    /// <param name="point">The facing direction point.</param>
+    /// <param name="growing">Growing time.</param>
+    /// <param name="reverse">Reverse growing direction.</param>
+    internal void AddFrontAndFlipWithGrowing(FormDecoration decoration, in Vector3 point, long growing, bool reverse = false)
+    {
+        var flipPoint = -1 * point;
+        var front = new AngleConnector(point);
+        var flip = new AngleConnector(flipPoint);
+        AddWithGrowing((FormDecoration)decoration.UsingRotationConnector(front), growing, reverse);
+        AddWithGrowing((FormDecoration)decoration.Copy().UsingRotationConnector(flip), growing, reverse);
+    }
+
+    #endregion FRONT AND FLIP
 }

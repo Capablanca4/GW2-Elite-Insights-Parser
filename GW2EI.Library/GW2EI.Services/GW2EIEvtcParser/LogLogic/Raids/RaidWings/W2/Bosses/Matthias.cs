@@ -4,16 +4,14 @@ using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
-using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -54,9 +52,9 @@ internal class Matthias : SalvationPass
             new MechanicGroup([
                 new PlayerDstBuffApplyMechanic(MatthiasSacrifice, Mech_MatthiasSacrifice, new (Symbols.DiamondTall,Colors.DarkTeal), new("Sacrifice", "Sacrifice (Breakbar)","Sacrifice"), Sev1),
                 new PlayerDstBuffRemoveMechanic(MatthiasSacrifice, Mech_MatthiasSacrificeSuccess, new (Symbols.DiamondTall,Colors.DarkGreen), new("CC.End","Sacrifice (Breakbar) ended", "Sacrifice End"), Sev0)
-                    .UsingChecker((br,log) => br.RemovedDuration > 25 && !log.CombatData.GetDeadEvents(br.To).Any(x => Math.Abs(br.Time - x.Time) < ServerDelayConstant)),
+                    .UsingChecker((br,log) => br.RemovedDuration > 25 && !log.CombatData.GetDeadEvents(br.To).Any(x => br.IsAtTime(x))),
                 new PlayerDstBuffRemoveMechanic(MatthiasSacrifice, Mech_MatthiasSacrificeFail, new (Symbols.DiamondTall,Colors.Red), new("CC.Fail","Sacrifice time ran out", "Sacrificed"), Sev0)
-                    .UsingChecker( (br,log) => br.RemovedDuration <= 25 || log.CombatData.GetDeadEvents(br.To).Any(x => Math.Abs(br.Time - x.Time) < ServerDelayConstant)),
+                    .UsingChecker( (br,log) => br.RemovedDuration <= 25 || log.CombatData.GetDeadEvents(br.To).Any(x => br.IsAtTime(x))),
             ]),
             //new Mechanic(Unbalanced, "Unbalanced", Mechanic.MechType.PlayerOnPlayer, ParseEnum.BossIDS.Matthias, new (Symbols.Square,"rgb(0,140,0)"), new("KD","Unbalanced (triggered Storm phase Debuff) only on successful interrupt", "Knockdown (interrupt)",0,(condition => condition.getCombatItem().Result == ParseEnum.Result.Interrupt)),
             //new Mechanic(Unbalanced, "Unbalanced", ParseEnum.BossIDS.Matthias, new (Symbols.Square,"rgb(0,140,0)"), new("KD","Unbalanced (triggered Storm phase Debuff) only on successful interrupt", "Knockdown (interrupt)",0,(condition => condition.getDLog().GetResult() == ParseEnum.Result.Interrupt)),
@@ -66,7 +64,7 @@ internal class Matthias : SalvationPass
                 new EnemyDstBuffApplyMechanic([BloodShield, BloodShieldAbo], Mech_BloodShield, new (Symbols.Octagon,Colors.Red), new("Bubble", "Blood Shield (protective bubble)","Bubble"), Sev3, 100)
                     .UsingChecker((ba, log) => !ba.To.HasBuff(log, BloodShield, ba.Time - 100) && !ba.To.HasBuff(log, BloodShieldAbo, ba.Time - 100)),
                 new EnemyDstBuffRemoveMechanic([BloodShield, BloodShieldAbo], Mech_BloodShieldRemove, new (Symbols.Octagon,Colors.Green), new("Lost Bubble", "Lost Blood Shield (protective bubble)","Lost Bubble"), Sev1, 100),
-                new PlayerSrcBuffRemoveSingleFromMechanic([BloodShield, BloodShieldAbo], Mech_BloodShieldStackRemoved, new (Symbols.Octagon,Colors.Blue), new("Rmv.Sh.Stck","Removed Blood Shield (protective bubble) Stack", "Removed Bubble Stack"), Sev0),    
+                new PlayerSrcBuffRemoveSingleFromMechanic([BloodShield, BloodShieldAbo], Mech_BloodShieldStackRemoved, new (Symbols.Octagon,Colors.Blue), new("Rmv.Sh.Stck","Removed Blood Shield (protective bubble) Stack", "Removed Bubble Stack"), Sev0),
             ]),
             new PlayerDstBuffApplyMechanic(ZealousBenediction, Mech_ZealousBenediction, new (Symbols.Circle,Colors.Yellow), new("Bombs", "Zealous Benediction (Expanding bombs)","Bomb"), Sev0,0),
         ]);
@@ -222,7 +220,7 @@ internal class Matthias : SalvationPass
                 continue;
             }
             sacrifice = sacrifice.EnglobingAgentItem;
-            AgentItem sacrificeCrystal = agentData.AddCustomNPCAgent(sacrificeStartTime, sacrificeEndTime + 100, "Sacrificed " + (i + 1) + " " + sacrifice.Name.Split('\0')[0], Spec.NPC, TargetID.MatthiasSacrificeCrystal, false);
+            AgentItem sacrificeCrystal = agentData.AddCustomNPCAgent(sacrificeStartTime, sacrificeEndTime + 100, "Sacrificed " + (i + 1) + " " + sacrifice.FirstName, Spec.NPC, TargetID.MatthiasSacrificeCrystal, false);
             AgentManipulationHelper.RedirectDamageAndCopyRemainingFromSrcToDst(sacrificeCrystal, sacrifice, copies, combatData, extensions);
         }
         if (copies.Count != 0)

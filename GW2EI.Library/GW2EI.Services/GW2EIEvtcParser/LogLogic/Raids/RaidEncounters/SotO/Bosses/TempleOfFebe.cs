@@ -6,16 +6,15 @@ using GW2EIEvtcParser.ParserHelpers;
 using GW2EIGW2API;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -325,42 +324,42 @@ internal class TempleOfFebe : SecretOfTheObscureRaidEncounter
             {
                 case (int)TargetID.EmbodimentOfDespair:
                     CombatItem? despair = combatData.FirstOrDefault(x => x.SkillID == EmpoweredDespairEmbodiment && x.DstMatchesAgent(target.AgentItem) && x.IsBuffApplyEvent());
-                    if (despair != null && Math.Abs(target.FirstAware - despair.Time) <= ServerDelayConstant)
+                    if (despair != null && despair.IsAtTime(target.FirstAware))
                     {
                         target.OverrideName("Empowered " + target.Character);
                     }
                     break;
                 case (int)TargetID.EmbodimentOfEnvy:
                     CombatItem? envy = combatData.FirstOrDefault(x => x.SkillID == EmpoweredEnvyEmbodiment && x.DstMatchesAgent(target.AgentItem) && x.IsBuffApplyEvent());
-                    if (envy != null && Math.Abs(target.FirstAware - envy.Time) <= ServerDelayConstant)
+                    if (envy != null && envy.IsAtTime(target.FirstAware))
                     {
                         target.OverrideName("Empowered " + target.Character);
                     }
                     break;
                 case (int)TargetID.EmbodimentOfGluttony:
                     CombatItem? gluttony = combatData.FirstOrDefault(x => x.SkillID == EmpoweredGluttonyEmbodiment && x.DstMatchesAgent(target.AgentItem) && x.IsBuffApplyEvent());
-                    if (gluttony != null && Math.Abs(target.FirstAware - gluttony.Time) <= ServerDelayConstant)
+                    if (gluttony != null && gluttony.IsAtTime(target.FirstAware))
                     {
                         target.OverrideName("Empowered " + target.Character);
                     }
                     break;
                 case (int)TargetID.EmbodimentOfMalice:
                     CombatItem? malice = combatData.FirstOrDefault(x => x.SkillID == EmpoweredMaliceEmbodiment && x.DstMatchesAgent(target.AgentItem) && x.IsBuffApplyEvent());
-                    if (malice != null && Math.Abs(target.FirstAware - malice.Time) <= ServerDelayConstant)
+                    if (malice != null && malice.IsAtTime(target.FirstAware))
                     {
                         target.OverrideName("Empowered " + target.Character);
                     }
                     break;
                 case (int)TargetID.EmbodimentOfRage:
                     CombatItem? rage = combatData.FirstOrDefault(x => x.SkillID == EmpoweredRageEmbodiment && x.DstMatchesAgent(target.AgentItem) && x.IsBuffApplyEvent());
-                    if (rage != null && Math.Abs(target.FirstAware - rage.Time) <= ServerDelayConstant)
+                    if (rage != null && rage.IsAtTime(target.FirstAware))
                     {
                         target.OverrideName("Empowered " + target.Character);
                     }
                     break;
                 case (int)TargetID.EmbodimentOfRegret:
                     CombatItem? regret = combatData.FirstOrDefault(x => x.SkillID == EmpoweredRegretEmbodiment && x.DstMatchesAgent(target.AgentItem) && x.IsBuffApplyEvent());
-                    if (regret != null && Math.Abs(target.FirstAware - regret.Time) <= ServerDelayConstant)
+                    if (regret != null && regret.IsAtTime(target.FirstAware))
                     {
                         target.OverrideName("Empowered " + target.Character);
                     }
@@ -551,12 +550,12 @@ internal class TempleOfFebe : SecretOfTheObscureRaidEncounter
         }
 
         // Crushing Regret (Green) End
-        var crushingRegretEnds = new List<(GUID GUID, Color Color)>()
+        var crushingRegretEnds = new List<(Guid GUID, Color Color)>()
         {
             (EffectGUIDs.TempleOfFebeGreenSuccess, Colors.Green),
             (EffectGUIDs.TempleOfFebeGreenFailure, Colors.DarkRed)
         };
-        foreach ((GUID guid, Color color) in crushingRegretEnds)
+        foreach ((Guid guid, Color color) in crushingRegretEnds)
         {
             if (log.CombatData.TryGetEffectEventsByGUID(guid, out var crushingRegrets))
             {
@@ -585,8 +584,7 @@ internal class TempleOfFebe : SecretOfTheObscureRaidEncounter
                 int duration = log.LogData.EncounterIsCM(log, LogID, effect.Time) || log.LogData.EncounterIsLegendaryCM(log, LogID, effect.Time) ? 120000 : 60000;
                 (long start, long end) lifespan = effect.ComputeDynamicLifespan(log, duration);
                 var circle = new CircleDecoration(120, lifespan, Colors.RedSkin, 0.2, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.GetBorderDecoration(Colors.Red, 0.2));
+                environmentDecorations.AddWithBorder(circle, Colors.Red, 0.2);
             }
         }
 
@@ -597,8 +595,7 @@ internal class TempleOfFebe : SecretOfTheObscureRaidEncounter
             {
                 (long start, long end) lifespan = effect.ComputeDynamicLifespan(log, 999000);
                 var circle = new CircleDecoration(240, lifespan, Colors.RedSkin, 0.2, new PositionConnector(effect.Position));
-                environmentDecorations.Add(circle);
-                environmentDecorations.Add(circle.GetBorderDecoration(Colors.Red, 0.2));
+                environmentDecorations.AddWithBorder(circle, Colors.Red, 0.2);
             }
         }
     }
@@ -645,17 +642,17 @@ internal class TempleOfFebe : SecretOfTheObscureRaidEncounter
             // If the Embodiment hasn't been trimmed yet, trim the lifespan to start on first cast and end at the log end.
             if (!startTrimmed)
             {
-                replay.Trim(start, replay.TimeOffsets.end);
+                replay.HideInInterval(new(target.FirstAware, start));
                 startTrimmed = true;
             }
             else
             {
                 // Once already trimmed, hide them at the end of cast and show at the start of the next.
-                replay.Hidden.Add(new Segment(invisibleStart, start));
+                replay.HideInInterval(new Segment(invisibleStart, start));
             }
             invisibleStart = end;
         }
-        replay.Trim(replay.TimeOffsets.start, invisibleStart);
+        replay.HideInInterval(new(invisibleStart, target.LastAware));
     }
 
     /// <summary>

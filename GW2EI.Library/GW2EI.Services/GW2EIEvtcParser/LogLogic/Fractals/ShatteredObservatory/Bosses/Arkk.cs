@@ -4,15 +4,15 @@ using GW2EIEvtcParser.Exceptions;
 using GW2EIEvtcParser.Extensions;
 using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -93,19 +93,19 @@ internal class Arkk : ShatteredObservatory
 
     internal override IReadOnlyList<TargetID> GetTrashMobsIDs()
     {
-        var trashIDs = new List<TargetID>(10 + base.GetTrashMobsIDs().Count);
-        trashIDs.AddRange(base.GetTrashMobsIDs());
-        trashIDs.Add(TargetID.FanaticDagger2);
-        trashIDs.Add(TargetID.FanaticDagger1);
-        trashIDs.Add(TargetID.FanaticBow);
-        trashIDs.Add(TargetID.SolarBloom);
-        trashIDs.Add(TargetID.BLIGHT);
-        trashIDs.Add(TargetID.PLINK);
-        trashIDs.Add(TargetID.DOC);
-        trashIDs.Add(TargetID.CHOP);
-        trashIDs.Add(TargetID.ProjectionArkk);
-        trashIDs.Add(TargetID.ReactorActiveArkk);
-        return trashIDs;
+        return [
+            .. base.GetTrashMobsIDs(),
+            TargetID.FanaticDagger2,
+            TargetID.FanaticDagger1,
+            TargetID.FanaticBow,
+            TargetID.SolarBloom,
+            TargetID.BLIGHT,
+            TargetID.PLINK,
+            TargetID.DOC,
+            TargetID.CHOP,
+            TargetID.ProjectionArkk,
+            TargetID.ReactorActiveArkk,
+        ];
     }
 
     internal override LogData.Mode GetLogMode(CombatData combatData, AgentData agentData, LogData logData)
@@ -179,7 +179,7 @@ internal class Arkk : ShatteredObservatory
             phase.AddParentPhase(encounterPhase);
             phase.Name = $"Blooms {i + 1}";
             phase.AddTarget(arkk, log);
-            var invulLoss = invuls.FirstOrNull((in Segment x) => x.Start > phase.Start && x.Value == 0);
+            var invulLoss = invuls.FirstOrNull((in x) => x.Start > phase.Start && x.Value == 0);
             phase.OverrideEnd(Math.Min(phase.End, invulLoss?.Start ?? log.LogData.LogEnd));
         }
         phases.AddRange(bloomPhases);
@@ -350,13 +350,13 @@ internal class Arkk : ShatteredObservatory
                             int offset = 520; // ~520ms at the start and between
                             int castDuration = 2600;
                             var connector = new AgentConnector(target);
-                            var rotation = replay.PolledRotations.FirstOrNull((in ParametricPoint3D x) => x.Time >= cast.Time);
+                            var rotation = replay.PolledRotations.FirstOrNull((in x) => x.Time >= cast.Time);
                             if (!rotation.HasValue)
                             {
                                 break;
                             }
 
-                            var applies = log.CombatData.GetBuffApplyDataByDst(target.AgentItem).OfType<BuffApplyEvent>().Where(x => x.Time > cast.Time);
+                            var applies = log.CombatData.GetBuffApplyDataByDst(target.AgentItem).OfType<BuffApplyEvent>().Where(x => x.Time > cast.Time).ToList();
                             BuffApplyEvent? nextInvul = applies.FirstOrDefault(x => x.BuffID == Determined762);
                             BuffApplyEvent? nextStun = applies.FirstOrDefault(x => x.BuffID == Stun);
                             long cap = Math.Min(nextInvul?.Time ?? log.LogData.LogEnd, nextStun?.Time ?? log.LogData.LogEnd);
@@ -373,10 +373,10 @@ internal class Arkk : ShatteredObservatory
                                     {
                                         break;
                                     }
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (start, end), Colors.Orange, 0.2, connector).UsingRotationConnector(new AngleConnector(angle + 180)));
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (end, end + 300), Colors.Red, 0.2, connector).UsingRotationConnector(new AngleConnector(angle + 180)));
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (start, end), Colors.Orange, 0.2, connector).UsingRotationConnector(new AngleConnector(angle)));
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (end, end + 300), Colors.Red, 0.2, connector).UsingRotationConnector(new AngleConnector(angle)));
+                                    var indicator = new PieDecoration(1500, 30, (start, end), Colors.Orange, 0.2, connector);
+                                    replay.Decorations.AddFrontAndFlip(indicator, angle);
+                                    var damage = new PieDecoration(1500, 30, (end, end + 300), Colors.Red, 0.2, connector);
+                                    replay.Decorations.AddFrontAndFlip(damage, angle);
                                 }
                                 else if (cast.SkillID == HorizonStrikeArkk2)
                                 {
@@ -385,10 +385,10 @@ internal class Arkk : ShatteredObservatory
                                     {
                                         break;
                                     }
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (start, end), Colors.Orange, 0.2, connector).UsingRotationConnector(new AngleConnector(angle)));
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (end, end + 300), Colors.Red, 0.2, connector).UsingRotationConnector(new AngleConnector(angle)));
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (start, end), Colors.Orange, 0.2, connector).UsingRotationConnector(new AngleConnector(angle + 180)));
-                                    replay.Decorations.Add(new PieDecoration(1500, 30, (end, end + 300), Colors.Red, 0.2, connector).UsingRotationConnector(new AngleConnector(angle + 180)));
+                                    var indicator = new PieDecoration(1500, 30, (start, end), Colors.Orange, 0.2, connector);
+                                    replay.Decorations.AddFrontAndFlip(indicator, angle);
+                                    var damage = new PieDecoration(1500, 30, (end, end + 300), Colors.Red, 0.2, connector);
+                                    replay.Decorations.AddFrontAndFlip(damage, angle);
                                 }
                             }
                             break;
@@ -461,7 +461,7 @@ internal class Arkk : ShatteredObservatory
                 {
                     if (anim.AnimationToken == areas)
                     {
-                        var lifespan = (anim.Time, anim.LoopEnd ?? log.LogData.LogEnd);
+                        var lifespan = (anim.Time, anim.LoopEnd);
                         environmentDecorations.Add(new RectangleDecoration(width, length, lifespan, Colors.Orange, 0.2, connector).UsingRotationConnector(rotation));
                     }
                 }
@@ -478,7 +478,7 @@ internal class Arkk : ShatteredObservatory
             {
                 foreach (var anim in log.CombatData.GetGadgetAnimationData(tile))
                 {
-                    var lifespan = (anim.Time, anim.LoopEnd ?? log.LogData.LogEnd);
+                    var lifespan = (anim.Time, anim.LoopEnd);
                     Color color;
                     if (anim.AnimationToken == warning)
                     {

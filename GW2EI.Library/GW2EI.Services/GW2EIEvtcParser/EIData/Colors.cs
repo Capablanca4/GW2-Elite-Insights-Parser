@@ -72,7 +72,8 @@ internal static class Colors
     public static Color Emerald = new(0, 155, 119);
     public static Color DarkBlue = new(0, 0, 128);
     public static Color Teal = new(0, 255, 255);
-    public static Color MidTeal = new(0, 181, 255);
+    public static Color LightTeal = new(0, 181, 255);
+    public static Color MidTeal = new(49, 132, 137);
     public static Color DarkTeal = new(0, 160, 150);
     public static Color LightBlue = new(0, 140, 255);
     public static Color BreakbarActiveBlue = new(75, 173, 168);
@@ -87,6 +88,7 @@ internal static class Colors
     public static Color DarkPink = new(128, 0, 75);
     public static Color Magenta = new(255, 0, 255);
     public static Color DarkMagenta = new(128, 0, 128);
+    public static Color Lilla = new(200, 162, 200);
     public static Color Blue = new(0, 0, 255);
     public static Color SlightlyDarkBlue = new(0, 0, 180);
     public static Color CobaltBlue = new(0, 50, 180);

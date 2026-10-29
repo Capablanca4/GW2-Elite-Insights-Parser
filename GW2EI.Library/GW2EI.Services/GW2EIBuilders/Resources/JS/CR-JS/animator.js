@@ -48,6 +48,19 @@ let overheadAnimationIncrement = 1;
 const uint32 = new Uint32Array(1);
 const uint32ToUint8 = new Uint8Array(uint32.buffer);
 
+function getUniqueIDFromPixel(pixel) {
+    // Blending, applied to color so we get wrong ID if not fully opaque
+    if (pixel[3] !== 255) {
+        return 0;
+    }
+    uint32ToUint8[0] = pixel[0];
+    uint32ToUint8[1] = pixel[1];
+    uint32ToUint8[2] = pixel[2];
+    uint32ToUint8[3] = 0;
+
+    return uint32[0];
+}
+
 
 // Define the type of the decoration. Must match ordering of the enum in CombatReplayDescription.cs
 const Types = {
@@ -78,20 +91,13 @@ const Types = {
     CustomPolygon: 24,
 };
 
-function getDefaultCombatReplayTime() {
-    const time = EIUrlParams.get("crTime");
-    if (!time) {
-        return 0;
-    }
-    return Math.max(parseFloat(time), 0.0) * 1000;
-}
-
 let animator = null;
 let animationControlComponent = null;
 // reactive structures
 const reactiveAnimationData = {
-    time: getDefaultCombatReplayTime(),
+    time: 0,
     selectedActorID: null,
+    hoveredActor: null,
     animated: false,
     range: {
         min: 0,
@@ -103,18 +109,38 @@ const reactiveAnimationData = {
         actorName: null,
         name: null,
         times: [],
-    }
+    },
+    gameCoordinates: {
+        x: 0,
+        y: 0
+    },
+    scaleUnits: "5.0",
 };
-
-const sliderDelimiter = {
-    min: -1,
-    max: -1,
-    name: logData.phases[0].name
-}
 //
 
 let InchToPixel = 10;
 let PollingRate = 150;
+
+const CanvasTooltipData = {
+    posX: 0,
+    posY: 0,
+    canvasX: 0,
+    canvasY: 0,
+    updateRequested: false
+};
+
+const CanvasTooltipVirtualElement = {
+    getBoundingClientRect() {
+        return {
+            width: 0,
+            height: 0,
+            top: CanvasTooltipData.posY,
+            right: CanvasTooltipData.posX,
+            bottom: CanvasTooltipData.posY,
+            left: CanvasTooltipData.posX,
+        };
+    }
+};
 
 // Scenegraph
 
@@ -287,7 +313,7 @@ class Animator {
         this.backwards = false;
         this.extraDecorationMap = new Map();
         this.displaySettings = {
-            highlightSelectedGroup: true,
+            highlightSelectedGroup: getValueFromLocalStorage('highlightSelectedGroup') !== "false",
             displayAllMinions: false,
             displaySelectedMinions: true,
             displayMechanics: true,
@@ -296,7 +322,8 @@ class Animator {
             skillMechanicsMask: DefaultSkillDecorations,
             displayTrashMobs: true,
             useActorHitboxWidth: false,
-            followSelected: false
+            followSelected: false,
+            rotateSelected: false
         };
         this.selectedExtraDecorations = null;
         // actors
@@ -321,13 +348,17 @@ class Animator {
         this.selectedActor = null;
         // maps
         this.backgroundImages = new RenderablesRoot(start, end);
+        this.mapBounds = options.mapBounds;
+        this.mapSize = options.sizes;
         // animation
         this.needBGUpdate = false;
         this.animation = null;
         // manipulation
         this.mouseDown = null;
         this.dragged = false;
-        this.scale = 1.0;
+        this.globalScale = 1.0;
+        this.globalRotation = 0;
+        this.globalTranslation = null;
         // options
         if (options) {
             if (options.inchToPixel) {
@@ -371,10 +402,7 @@ class Animator {
         this.reactiveDataStatus.range.max = this.times[this.times.length - 1];
     }
 
-    attachDOM(mainCanvasID, bgCanvasID, pickCanvasID, timeRangeID, timeRangeDisplayID) {
-        // animation
-        this.timeSlider = document.getElementById(timeRangeID);
-        this.timeSliderDisplay = document.getElementById(timeRangeDisplayID);
+    attachDOM(mainCanvasID, bgCanvasID, pickCanvasID) {
         // main canvas
         this.mainCanvas = document.getElementById(mainCanvasID);
         this.mainCanvas.style.width = this.mainCanvas.width + "px";
@@ -400,6 +428,36 @@ class Animator {
         this.pickContext = this.pickCanvas.getContext('2d', {
             willReadFrequently: true,
         });
+        // Agent tooltip
+        if (this.agentTooltipPopper) {
+            this.agentTooltipPopper.destroy();
+            this.agentTooltipPopper = null;
+        }
+
+        this.agentTooltip = document.getElementById("combat-replay-agent-tooltip");
+
+        if (this.agentTooltip && typeof Popper !== "undefined") {
+
+            this.agentTooltipPopper = new Popper(
+                CanvasTooltipVirtualElement,
+                this.agentTooltip,
+                {
+                    placement: "top",
+                    positionFixed: true,
+                    modifiers: {
+                        offset: {
+                            offset: "0, 8"
+                        },
+                        arrow: {
+                            element: ".arrow"
+                        },
+                        preventOverflow: {
+                            boundariesElement: "viewport"
+                        }
+                    }
+                }
+            );
+        }
         // manipulation
         this.lastX = this.mainCanvas.width / 2;
         this.lastY = this.mainCanvas.height / 2;
@@ -637,10 +695,6 @@ class Animator {
         }
     }
 
-    updateTextInput() {
-        this.timeSliderDisplay.value = ((this.reactiveDataStatus.time - this.reactiveDataStatus.range.min) / 1000.0).toFixed(3);
-    }
-
     updateInputTime(value, offset) {
         try {
             const cleanedString = value.replace(",", ".");
@@ -779,13 +833,13 @@ class Animator {
     }
 
     getSelectableActorData(actorId) {
-        return animator.targetData.get(actorId) || animator.playerData.get(actorId) || 
-                animator.friendlyMobData.get(actorId) || animator.friendlyPlayerData.get(actorId) || 
-                animator.targetPlayerData.get(actorId);
+        return this.targetData.get(actorId) || this.playerData.get(actorId) || 
+                this.friendlyMobData.get(actorId) || this.friendlyPlayerData.get(actorId) || 
+                this.targetPlayerData.get(actorId);
     }
 
     getActorData(actorId) {
-        return this.getSelectableActorData(actorId) || animator.trashMobData.get(actorId);
+        return this.getSelectableActorData(actorId) || this.trashMobData.get(actorId);
     }
 
     getActiveActorMarkers(actorID) {
@@ -801,11 +855,19 @@ class Animator {
 
     toggleFollowSelected() {
         this.displaySettings.followSelected = !this.displaySettings.followSelected;
+        this.needBGUpdate = true;
+        animateCanvas(noUpdateTime);
+    }
+
+    toggleRotateSelected() {
+        this.displaySettings.rotateSelected = !this.displaySettings.rotateSelected;
+        this.needBGUpdate = true;
         animateCanvas(noUpdateTime);
     }
 
     toggleHighlightSelectedGroup() {
         this.displaySettings.highlightSelectedGroup = !this.displaySettings.highlightSelectedGroup;
+        setValueToLocalStorage("highlightSelectedGroup", this.displaySettings.highlightSelectedGroup);
         animateCanvas(noUpdateTime);
     }
 
@@ -903,11 +965,18 @@ class Animator {
         if (defaultViewpoint) {
             this._setScaleOnPoint(defaultViewpoint.s, 0, 0);
         }
+        this.globalTranslation = null;
+        this.globalRotation = 0;
         this.needBGUpdate = true;
         if (this.animation === null) {
             animateCanvas(noUpdateTime);
         }
     }
+
+    computeCurrentScale() {
+        return 50 / (InchToPixel * this.globalScale);
+    }
+
     _setScaleOnPoint(factor, ptX, ptY) {
         const ctx = this.mainContext;
         const bgCtx = this.bgContext;
@@ -916,7 +985,12 @@ class Animator {
         ctx.translate(pt.x, pt.y);
         bgCtx.translate(pt.x, pt.y);
         ctx.scale(factor, factor);
-        if ((50 / (InchToPixel * this.scale) < 10)) {
+
+        const maxAxis = this._getMaxAxisSize();
+
+        const currentScale = this.computeCurrentScale();
+        // Restrict zoom levels to a reasonable scale
+        if (currentScale < 10 || currentScale > Math.min(15000, 0.2 * maxAxis)) {
             ctx.scale(1.0 / factor, 1.0 / factor);
             factor = 1.0;
         }
@@ -928,8 +1002,104 @@ class Animator {
             animateCanvas(noUpdateTime);
         }
     }
+
+    _getMaxAxisSize() {
+        const minX = this.mapBounds[0];
+        const minY = this.mapBounds[1];
+        const maxX = this.mapBounds[2];
+        const maxY = this.mapBounds[3];
+        return Math.max(maxX - minX, maxY - minY);
+    }
+
+    _computeIGCoordinates(x, y) {        
+        const ctx = this.mainContext;
+
+        const point = ctx.transformedPoint(x, y);
+
+        // world boundries coordinates
+        const minX = this.mapBounds[0];
+        const minY = this.mapBounds[1];
+        const maxX = this.mapBounds[2];
+        const maxY = this.mapBounds[3];
+
+        // map pixels
+        const mapWidth = this.mapSize[0];
+        const mapHeight = this.mapSize[1];
+
+        // map pixels -> game coordinates
+        const gameX = minX + (point.x / mapWidth) * (maxX - minX);
+        const gameY = minY + (1 - point.y / mapHeight) * (maxY - minY); // 1 - because gw2 is Z down not Y down
+        return {x: gameX, y: gameY};
+    }
+    _updateCanvasCoordinates(canvasX, canvasY) {
+        const pt = this._computeIGCoordinates(canvasX, canvasY);
+
+        this.reactiveDataStatus.gameCoordinates.x = Number(pt.x.toFixed(2));
+        this.reactiveDataStatus.gameCoordinates.y = Number(pt.y.toFixed(2));
+    }
+    _hideAgentTooltip() {
+        if (this.reactiveDataStatus.hoveredActor !== null) {
+            this.reactiveDataStatus.hoveredActor = null;
+        }
+    }
+    _updateAgentTooltip(canvasX, canvasY, clientX, clientY) {
+        if (!this.agentTooltip || !this.agentTooltipPopper) {
+            return;
+        }
+        CanvasTooltipData.posX = clientX;
+        CanvasTooltipData.posY = clientY;
+        CanvasTooltipData.canvasX = canvasX;
+        CanvasTooltipData.canvasY = canvasY;
+        if (CanvasTooltipData.updateRequested) {
+            return;
+        }
+        CanvasTooltipData.updateRequested = true;
+
+        // Avoid high frequency picking calls when mouse DPI is higher than monitor refresh rate, which is very often the case
+        requestAnimationFrame(() => {
+            // To make sure to update on latest seen values and not the one seen on first request, if mouse in movement
+            canvasX = CanvasTooltipData.canvasX;
+            canvasY = CanvasTooltipData.canvasY;
+            clientX = CanvasTooltipData.posX;
+            clientY = CanvasTooltipData.posY;
+            const x = Math.round(canvasX * resolutionMultiplier);
+            const y = Math.round(canvasY * resolutionMultiplier);
+         
+            CanvasTooltipData.updateRequested = false;
+
+            if (x < 0 || y < 0 || x >= this.pickCanvas.width || y >= this.pickCanvas.height) {
+                this._hideAgentTooltip();
+                return;
+            }
+
+            this._drawPickCanvas({
+                x: x,
+                y: y
+            });
+
+            const pixel = this.pickContext.getImageData(x, y, 1, 1).data;
+
+            const actorId = getUniqueIDFromPixel(pixel);
+            const name = findTargetName("u" + actorId, false);
+
+            if (!name) {
+                this._hideAgentTooltip();
+                return;
+            }
+
+            this.reactiveDataStatus.hoveredActor = name;
+            this._updateAgentTooltipPopper();
+        });
+    }
+    _updateAgentTooltipPopper() {
+        if (this.agentTooltipPopper && this.reactiveDataStatus.hoveredActor) {
+            this.agentTooltipPopper.update();
+        }
+    }
+
     _initMouseEvents() {
         const _this = this;
+        this._mouseInside = false;
         const canvas = this.mainCanvas;
         const ctx = this.mainContext;
         const bgCtx = this.bgContext;
@@ -937,6 +1107,8 @@ class Animator {
 
         canvas.addEventListener('mousedown', function (evt) {
             evt.preventDefault();
+            _this._hideAgentTooltip();
+            _this._updateCanvasCoordinates(_this.lastX, _this.lastY);
             _this.lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
             _this.lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
             _this.mouseDown = {
@@ -948,34 +1120,40 @@ class Animator {
 
         canvas.addEventListener('mousemove', function (evt) {
             evt.preventDefault();
+            _this._mouseInside = true;
             _this.lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
             _this.lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
             _this.dragged = true;
             if (_this.mouseDown) {
+                _this._hideAgentTooltip();
                 const pt = ctx.transformedPoint(_this.lastX, _this.lastY);
                 const downPt = _this.mouseDown.pt;
                 ctx.translate(pt.x - downPt.x, pt.y - downPt.y);
-                bgCtx.translate(pt.x - downPt.x, pt.y - downPt.y);
+                bgCtx.translate(pt.x - downPt.x, pt.y - downPt.y);               
                 _this.needBGUpdate = true;
                 if (_this.animation === null) {
                     animateCanvas(noUpdateTime);
                 }
+            } else {
+                _this._updateAgentTooltip(_this.lastX, _this.lastY, evt.clientX, evt.clientY);
+                _this._updateCanvasCoordinates(_this.lastX, _this.lastY);
             }
+        }, false);
+
+        canvas.addEventListener('mouseleave', function () {
+            _this._hideAgentTooltip();
+            _this._mouseInside = false;
         }, false);
 
         document.body.addEventListener('mouseup', function (evt) {
             if (_this.mouseDown && Date.now() - _this.mouseDown.time < 150) {
-                _this._drawPickCanvas();
                 const downPt = {
                     x: Math.round(_this.lastX * resolutionMultiplier),
                     y: Math.round(_this.lastY * resolutionMultiplier)
                 };
+                _this._drawPickCanvas(downPt);
                 const pickedColor = pickCtx.getImageData(downPt.x, downPt.y, 1, 1).data;
-                uint32ToUint8[0] = pickedColor[0];
-                uint32ToUint8[1] = pickedColor[1];
-                uint32ToUint8[2] = pickedColor[2];
-                uint32ToUint8[3] = 0;
-                const actorID = uint32[0];
+                const actorID = getUniqueIDFromPixel(pickedColor);
                 _this.selectActor(actorID, true);
             }
             _this.mouseDown = null;
@@ -1066,7 +1244,7 @@ class Animator {
             xform = xform.scale(sx, sy);
             const xAxis = Math.sqrt(xform.a * xform.a + xform.b * xform.b);
             const yAxis = Math.sqrt(xform.c * xform.c + xform.d * xform.d);
-            _this.scale = Math.max(xAxis, yAxis) / resolutionMultiplier;
+            _this.globalScale = Math.max(xAxis, yAxis) / resolutionMultiplier;
             return scale.call(ctx, sx, sy);
         };
         
@@ -1289,6 +1467,9 @@ class Animator {
         if (overheadAnimationFrame === maxOverheadAnimationFrame || overheadAnimationFrame === 0) {
             overheadAnimationIncrement *= -1;
         }
+        if (this._mouseInside && !CanvasTooltipData.updateRequested) {
+            this._updateAgentTooltip(CanvasTooltipData.canvasX, CanvasTooltipData.canvasY, CanvasTooltipData.clientX, CanvasTooltipData.clientY);
+        }
         overheadAnimationFrame += overheadAnimationIncrement;
     }
 }
@@ -1307,10 +1488,6 @@ function animateCanvas(noRequest) {
     }
     if ((animator.reactiveDataStatus.time === lastTime && !animator.backwards) || (animator.reactiveDataStatus.time === firstTime && animator.backwards)) {
         animator.stopAnimate(true);
-    }
-    animator.timeSlider.value = (animator.reactiveDataStatus.time - animator.reactiveDataStatus.range.min).toString()
-    if (noRequest > updateText) {
-        animator.updateTextInput();
     }
     animator.draw();
     if (noRequest > noUpdateTime && animator.animation !== null) {

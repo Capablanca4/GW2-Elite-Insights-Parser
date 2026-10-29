@@ -126,7 +126,7 @@ partial class SingleActor
         );
         if (AgentItem.IsEnglobedAgent)
         {
-            var englobingRegroupedEvents = AgentItem.EnglobingAgentItem.Regrouped.Where(x => x.MergeStart >= AgentItem.EnglobingAgentItem.FirstAware && x.MergeEnd <= AgentItem.EnglobingAgentItem.LastAware).Select(x => (new SpawnEvent(AgentItem, x.MergeStart), new DespawnEvent(AgentItem, x.MergeEnd)));
+            var englobingRegroupedEvents = AgentItem.EnglobingAgentItem.Regrouped.Where(x => x.MergeStart >= AgentItem.EnglobingAgentItem.FirstAware && x.MergeEnd <= AgentItem.EnglobingAgentItem.LastAware).Select(x => (new SpawnEvent(AgentItem, x.MergeStart), new DespawnEvent(AgentItem, x.MergeEnd))).ToList();
             List<StatusEvent?> firstEvents = [
                 combatData.GetDownEvents(EnglobingAgentItem).LastOrDefault(x => x.Time < FirstAware),
                 combatData.GetAliveEvents(EnglobingAgentItem).LastOrDefault(x => x.Time < FirstAware),
@@ -163,7 +163,7 @@ partial class SingleActor
     [MemberNotNull(nameof(_dcs))]
     [MemberNotNull(nameof(_actives))]
     [MemberNotNull(nameof(_deads))]
-    private (IReadOnlyList<Segment> deads, IReadOnlyList<Segment> downs, IReadOnlyList<Segment> dcs, IReadOnlyList<Segment> actives) GetStatus(CombatData combatData)
+    internal (IReadOnlyList<Segment> deads, IReadOnlyList<Segment> downs, IReadOnlyList<Segment> dcs, IReadOnlyList<Segment> actives) GetStatus(CombatData combatData)
     {
         _downs ??= new(combatData.GetDownEvents(AgentItem).Count);
         _dcs ??= new(combatData.GetDespawnEvents(AgentItem).Count);
@@ -235,6 +235,35 @@ partial class SingleActor
         }
         (_, _, _, IReadOnlyList<Segment> actives) = GetStatus(combatData);
         return actives.Sum(x => x.IntersectingArea(start, end)) > duration;
+    }
+
+    internal IReadOnlyList<Segment> GetLifeSpanAsSegments(CombatData combatData)
+    {
+        List<Segment> minionSegments = [];
+        var (deads, downs, dcs, actives) = GetStatus(combatData);
+        foreach (var seg in deads)
+        {
+            minionSegments.Add(seg.WithOtherType(0.0));
+        }
+        foreach (var seg in dcs)
+        {
+            minionSegments.Add(seg.WithOtherType(0.0));
+        }
+        foreach (var seg in downs)
+        {
+            minionSegments.Add(seg.WithOtherType(1.0));
+        }
+        foreach (var seg in actives)
+        {
+            minionSegments.Add(seg.WithOtherType(1.0));
+        }
+        minionSegments.Sort((x, y) => x.Start.CompareTo(y.Start));
+        return minionSegments;
+    }
+
+    public IReadOnlyList<Segment> GetLifeSpanAsSegments(ParsedEvtcLog log)
+    {
+        return GetLifeSpanAsSegments(log.CombatData);
     }
     #endregion STATUS
     #region BREAKBAR
@@ -413,19 +442,19 @@ partial class SingleActor
         {
             return false;
         }
-        
+
         // return false if fight ends before any down events
-        Segment? nextDown = down.FirstOrNull((in Segment downSegment) => downSegment.Intersects(remainingLogTime));
+        Segment? nextDown = down.FirstOrNull((in downSegment) => downSegment.Intersects(remainingLogTime));
         if (nextDown == null)
         {
             return false;
         }
 
         var healthUpdatesBeforeEnd = GetHealthUpdates(log).Where(update => update.Start > curTime);
-        Segment? next90 = healthUpdatesBeforeEnd.FirstOrNull((in Segment update) => update.Value > 90);
-       
+        Segment? next90 = healthUpdatesBeforeEnd.FirstOrNull((in update) => update.Value > 90);
+
         // If there are no more 90 events before combat end and the actor has a down event remaining then the actor must down before next 90
-        if(next90 == null) { return true; }
+        if (next90 == null) { return true; }
 
         // Otherwise return false if the next 90 is before the next down
         if (next90.Value.Start < nextDown.Value.Start)
@@ -487,7 +516,7 @@ partial class SingleActor
                 //wepswap  
                 swapped = swe.SwappedTo;
                 swappedTime = swe.Time;
-            } 
+            }
             else if (estimateResult == WeaponDescriptor.WeaponEstimateResult.NeedNewSet)
             {
                 // We can't say exactly when weapon have been changed, use mid time

@@ -17,8 +17,171 @@ public class BuffsContainer
 
     private readonly BuffSourceFinder _buffSourceFinder;
 
-
     internal BuffsContainer(CombatData combatData, SkillData skillData, ParserController operation)
+    {
+        var currentBuffs = GetCurrentBuffs(combatData);
+        _buffsByName = currentBuffs.GroupBy(x => x.Name).ToDictionary(x => x.Key, x =>
+        {
+            if (x.Count() > 1)
+            {
+                throw new InvalidDataException("Same name present multiple times in buffs - " + x.First().Name);
+            }
+            return x.First();
+        });
+        // Unknown consumables
+        var buffIDs = new HashSet<long>(currentBuffs.Select(x => x.ID));
+        List<BuffInfoEvent> foodInfoEvents = FoodBuffs.NormalFoods.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null).ToList()!;
+        foodInfoEvents.AddRange(FoodBuffs.AscendedFood.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null)!);
+        var foodIDs = foodInfoEvents.Select(x => x.CategoryByte).Distinct().ToList();
+        if (foodIDs.Count == 1)
+        {
+            var foodID = foodIDs[0];
+            foreach (BuffInfoEvent buffInfoEvent in combatData.GetBuffInfoEventsByCategory(foodID))
+            {
+                if (!buffIDs.Contains(buffInfoEvent.BuffID))
+                {
+                    operation.UpdateProgressWithCancellationCheck("Parsing: Creating nourishement " + buffInfoEvent.BuffID);
+                    currentBuffs.Add(CreateCustomBuff("Parsing: Unknown Nourishment", buffInfoEvent.BuffID, ItemImages.NourishmentEffect, buffInfoEvent.MaxStacks, BuffClassification.Nourishment));
+                }
+            }
+        }
+        List<BuffInfoEvent> enhancementInfoEvents = UtilityBuffs.Utilities.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null).ToList()!;
+        enhancementInfoEvents.AddRange(UtilityBuffs.Writs.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null)!);
+        enhancementInfoEvents.AddRange(UtilityBuffs.SlayingPotions.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null)!);
+        var enhancementIDs = enhancementInfoEvents.Select(x => x.CategoryByte).Distinct().ToList();
+        if (enhancementIDs.Count == 1)
+        {
+            var enhancementID = enhancementIDs[0];
+            foreach (BuffInfoEvent buffInfoEvent in combatData.GetBuffInfoEventsByCategory(enhancementID))
+            {
+                if (!buffIDs.Contains(buffInfoEvent.BuffID))
+                {
+                    operation.UpdateProgressWithCancellationCheck("Creating enhancement " + buffInfoEvent.BuffID);
+                    currentBuffs.Add(CreateCustomBuff("Unknown Enhancement", buffInfoEvent.BuffID, ItemImages.EnhancementEffect, buffInfoEvent.MaxStacks, BuffClassification.Enhancement));
+                }
+            }
+        }
+        //
+        BuffsByIDs = currentBuffs.GroupBy(x => x.ID).ToDictionary(x => x.Key, x =>
+        {
+            if (x.Count() > 1 && x.Key != SkillIDs.NoBuff && x.Key != SkillIDs.Unknown)
+            {
+                throw new InvalidDataException("Same id present multiple times in buffs - " + x.First().ID);
+            }
+            return x.First();
+        });
+        AdjustSkillIconsFromBuffs(BuffsByIDs, skillData, operation);
+        operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting Buffs");
+        BuffInfoSolver.AdjustBuffs(combatData, BuffsByIDs, operation);
+        foreach (Buff buff in currentBuffs)
+        {
+            BuffInfoEvent? buffInfoEvt = combatData.GetBuffInfoEvent(buff.ID);
+            if (buffInfoEvt != null)
+            {
+                foreach (BuffFormula formula in buffInfoEvt.Formulas)
+                {
+                    if (formula.Attr1 == BuffAttribute.Unknown)
+                    {
+                        operation.UpdateProgressWithCancellationCheck("Parsing: Unknown Formula for " + buff.Name + ": " + formula.GetDescription(true, BuffsByIDs, buff));
+                    }
+                }
+            }
+        }
+        BuffsByClassification = currentBuffs.GroupBy(x => x.Classification).ToDictionary(x => x.Key, x => (IReadOnlyList<Buff>)x.ToList());
+        var buffsBySource = new Dictionary<ParserHelper.Source, List<Buff>>();
+        foreach (var buff in currentBuffs)
+        {
+            foreach (var source in buff.Sources)
+            {
+                if (buffsBySource.TryGetValue(source, out var list))
+                {
+                    list.Add(buff);
+                }
+                else
+                {
+                    buffsBySource[source] = [buff];
+                }
+            }
+        }
+        BuffsBySource = buffsBySource.ToDictionary(x => x.Key, x => (IReadOnlyList<Buff>)x.Value);
+        //
+        _buffSourceFinder = GetBuffSourceFinder(combatData, [.. BuffsByClassification[BuffClassification.Boon].Select(x => x.ID)]);
+        // Band aid for the stack type situation with fake inactive/infinite durations
+        if (combatData.HasStackIDs && combatData.HasExtraProcessing)
+        {
+            var stackTypeBuffs = currentBuffs.Where(x => x.StackType == BuffStackType.StackingConditionalLoss || x.StackType == BuffStackType.Stacking);
+            foreach (Buff buff in stackTypeBuffs)
+            {
+                IReadOnlyList<BuffEvent> buffData = combatData.GetBuffData(buff.ID);
+                if (buffData.OfType<BuffRemoveSingleEvent>().Any(x => !x.OverstackOrNaturalEnd && (buff.StackType == BuffStackType.StackingConditionalLoss || x.RemovedDuration == int.MaxValue)))
+                {
+                    foreach (var group in buffData.GroupBy(x => x.To))
+                    {
+                        var buffs = group.ToList();
+                        var appliesPerInstanceID = buffs.OfType<BuffApplyEvent>().GroupBy(x => x.BuffInstance).ToDictionary(x => x.Key, x => x.ToList());
+                        var othersPerInstanceID = buffs.Where(x => x is BuffExtensionEvent || x is BuffStackEvent).GroupBy(x => x is BuffExtensionEvent bee ? bee.BuffInstance : ((BuffStackEvent)x).BuffInstance).ToDictionary(x => x.Key, x => x.ToList());
+                        var removeSinglesPerInstanceID = buffs.OfType<BuffRemoveSingleEvent>().Where(x => !x.OverstackOrNaturalEnd && (buff.StackType == BuffStackType.StackingConditionalLoss || x.RemovedDuration == int.MaxValue)).GroupBy(x => x.BuffInstance);
+                        foreach (var removePair in removeSinglesPerInstanceID)
+                        {
+                            if (appliesPerInstanceID.TryGetValue(removePair.Key, out var applyList))
+                            {
+                                foreach (BuffRemoveSingleEvent remove in removePair)
+                                {
+                                    BuffApplyEvent? apply = applyList.LastOrDefault(x => x.Time <= remove.Time); //TODO_PERF(Rennorb)
+                                    if (apply != null)
+                                    {
+                                        var totalDuration = apply.OriginalAppliedDuration;
+                                        var previousTime = apply.Time;
+                                        if (othersPerInstanceID.TryGetValue(apply.BuffInstance, out var others))
+                                        {
+                                            foreach (var other in others)
+                                            {
+                                                if (other.Time >= apply.Time && other.Time <= remove.Time)
+                                                {
+                                                    if (other is BuffExtensionEvent bee)
+                                                    {
+                                                        totalDuration += (int)bee.ExtendedDuration;
+                                                    }
+                                                    else if (other is BuffStackActiveEvent bsae)
+                                                    {
+                                                        totalDuration -= (int)(other.Time - previousTime);
+                                                    }
+                                                }
+                                                previousTime = other.Time;
+                                            }
+                                        }
+                                        if (totalDuration == remove.RemovedDuration)
+                                        {
+                                            int activeTime = apply.OriginalAppliedDuration - apply.AppliedDuration;
+                                            int elapsedTime = (int)(remove.Time - apply.Time);
+                                            remove.OverrideRemovedDuration(remove.RemovedDuration - activeTime - elapsedTime);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    internal static void AdjustSkillIconsFromBuffs(IReadOnlyDictionary<long, Buff> buffsByIDs, SkillData skillData, ParserController operation)
+    {
+        operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting Skill icons using buffs");
+        var adjusted = 0;
+        foreach (var pair in buffsByIDs)
+        {
+            if (skillData.TryGet(pair.Key, out var skill))
+            {
+                adjusted++;
+                skill.OverrideFromBuff(pair.Value);
+            }
+        }
+        operation.UpdateProgressWithCancellationCheck($"Parsing: Adjusted {adjusted} Skill icons using buffs");
+    }
+
+    internal static List<Buff> GetCurrentBuffs(CombatData combatData)
     {
         var AllBuffs = new List<IReadOnlyList<Buff>>()
         {
@@ -97,160 +260,7 @@ public class BuffsContainer
         {
             currentBuffs.AddRange(buffs.Where(x => x.Available(combatData)));
         }
-        _buffsByName = currentBuffs.GroupBy(x => x.Name).ToDictionary(x => x.Key, x =>
-        {
-            if (x.Count() > 1)
-            {
-                throw new InvalidDataException("Same name present multiple times in buffs - " + x.First().Name);
-            }
-            return x.First();
-        });
-        // Unknown consumables
-        var buffIDs = new HashSet<long>(currentBuffs.Select(x => x.ID));
-        List<BuffInfoEvent> foodInfoEvents = FoodBuffs.NormalFoods.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null).ToList()!;
-        foodInfoEvents.AddRange(FoodBuffs.AscendedFood.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null)!);
-        var foodIDs = foodInfoEvents.Select(x => x.CategoryByte).Distinct().ToList();
-        if (foodIDs.Count == 1)
-        {
-            var foodID = foodIDs[0];
-            foreach (BuffInfoEvent buffInfoEvent in combatData.GetBuffInfoEvent(foodID))
-            {
-                if (!buffIDs.Contains(buffInfoEvent.BuffID))
-                {
-                    operation.UpdateProgressWithCancellationCheck("Parsing: Creating nourishement " + buffInfoEvent.BuffID);
-                    currentBuffs.Add(CreateCustomBuff("Parsing: Unknown Nourishment", buffInfoEvent.BuffID, ItemImages.NourishmentEffect, buffInfoEvent.MaxStacks, BuffClassification.Nourishment));
-                }
-            }
-        }
-        List<BuffInfoEvent> enhancementInfoEvents = UtilityBuffs.Utilities.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null).ToList()!;
-        enhancementInfoEvents.AddRange(UtilityBuffs.Writs.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null)!);
-        enhancementInfoEvents.AddRange(UtilityBuffs.SlayingPotions.Select(x => combatData.GetBuffInfoEvent(x.ID)).Where(x => x != null)!);
-        var enhancementIDs = enhancementInfoEvents.Select(x => x.CategoryByte).Distinct().ToList();
-        if (enhancementIDs.Count == 1)
-        {
-            var enhancementID = enhancementIDs[0];
-            foreach (BuffInfoEvent buffInfoEvent in combatData.GetBuffInfoEvent(enhancementID))
-            {
-                if (!buffIDs.Contains(buffInfoEvent.BuffID))
-                {
-                    operation.UpdateProgressWithCancellationCheck("Creating enhancement " + buffInfoEvent.BuffID);
-                    currentBuffs.Add(CreateCustomBuff("Unknown Enhancement", buffInfoEvent.BuffID, ItemImages.EnhancementEffect, buffInfoEvent.MaxStacks, BuffClassification.Enhancement));
-                }
-            }
-        }
-        //
-        BuffsByIDs = currentBuffs.GroupBy(x => x.ID).ToDictionary(x => x.Key, x =>
-        {
-            if (x.Count() > 1 && x.Key != SkillIDs.NoBuff && x.Key != SkillIDs.Unknown)
-            {
-                throw new InvalidDataException("Same id present multiple times in buffs - " + x.First().ID);
-            }
-            return x.First();
-        });
-        operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting Skill icons using buffs");
-        var adjusted = 0;
-        foreach (var pair in BuffsByIDs)
-        {
-            if (skillData.TryGet(pair.Key, out var skill))
-            {
-                adjusted++;
-                skill.OverrideFromBuff(pair.Value);
-            }
-        }
-        operation.UpdateProgressWithCancellationCheck($"Parsing: Adjusted {adjusted} Skill icons using buffs");
-        operation.UpdateProgressWithCancellationCheck("Parsing: Adjusting Buffs");
-        BuffInfoSolver.AdjustBuffs(combatData, BuffsByIDs, operation);
-        foreach (Buff buff in currentBuffs)
-        {
-            BuffInfoEvent? buffInfoEvt = combatData.GetBuffInfoEvent(buff.ID);
-            if (buffInfoEvt != null)
-            {
-                foreach (BuffFormula formula in buffInfoEvt.Formulas)
-                {
-                    if (formula.Attr1 == BuffAttribute.Unknown)
-                    {
-                        operation.UpdateProgressWithCancellationCheck("Parsing: Unknown Formula for " + buff.Name + ": " + formula.GetDescription(true, BuffsByIDs, buff));
-                    }
-                }
-            }
-        }
-        BuffsByClassification = currentBuffs.GroupBy(x => x.Classification).ToDictionary(x => x.Key, x => (IReadOnlyList<Buff>)x.ToList());
-        var buffsBySource = new Dictionary<ParserHelper.Source, List<Buff>>();
-        foreach (var buff in currentBuffs)
-        {
-            foreach (var source in buff.Sources)
-            {
-                if (buffsBySource.TryGetValue(source, out var list))
-                {
-                    list.Add(buff);
-                }
-                else
-                {
-                    buffsBySource[source] = [buff];
-                }
-            }
-        }
-        BuffsBySource = buffsBySource.ToDictionary(x => x.Key, x => (IReadOnlyList<Buff>)x.Value);
-        //
-        _buffSourceFinder = GetBuffSourceFinder(combatData, [.. BuffsByClassification[BuffClassification.Boon].Select(x => x.ID)]);
-        // Band aid for the stack type situation with fake inactive/infinite durations
-        if (combatData.HasStackIDs)
-        {
-            var stackTypeBuffs = currentBuffs.Where(x => x.StackType == BuffStackType.StackingConditionalLoss || x.StackType == BuffStackType.Stacking);
-            foreach (Buff buff in stackTypeBuffs)
-            {
-                IReadOnlyList<BuffEvent> buffData = combatData.GetBuffData(buff.ID);
-                if (buffData.OfType<BuffRemoveSingleEvent>().Any(x => !x.OverstackOrNaturalEnd && (buff.StackType == BuffStackType.StackingConditionalLoss || x.RemovedDuration == int.MaxValue)))
-                {
-                    foreach (var group in buffData.GroupBy(x => x.To))
-                    {
-                        var buffs = group.ToList();
-                        var appliesPerInstanceID = buffs.OfType<BuffApplyEvent>().GroupBy(x => x.BuffInstance).ToDictionary(x => x.Key, x => x.ToList());
-                        var othersPerInstanceID = buffs.Where(x => x is BuffExtensionEvent || x is BuffStackEvent).GroupBy(x => x is BuffExtensionEvent bee ? bee.BuffInstance : ((BuffStackEvent)x).BuffInstance).ToDictionary(x => x.Key, x => x.ToList());
-                        var removeSinglesPerInstanceID = buffs.OfType<BuffRemoveSingleEvent>().Where(x => !x.OverstackOrNaturalEnd && (buff.StackType == BuffStackType.StackingConditionalLoss || x.RemovedDuration == int.MaxValue)).GroupBy(x => x.BuffInstance);
-                        foreach (var removePair in removeSinglesPerInstanceID)
-                        {
-                            if (appliesPerInstanceID.TryGetValue(removePair.Key, out var applyList))
-                            {
-                                foreach (BuffRemoveSingleEvent remove in removePair)
-                                {
-                                    BuffApplyEvent? apply = applyList.LastOrDefault(x => x.Time <= remove.Time); //TODO_PERF(Rennorb)
-                                    if (apply != null)
-                                    {
-                                        var totalDuration = apply.OriginalAppliedDuration;
-                                        var previousTime = apply.Time;
-                                        if (othersPerInstanceID.TryGetValue(apply.BuffInstance, out var others))
-                                        {
-                                            foreach (var other in others)
-                                            {
-                                                if (other.Time >= apply.Time && other.Time <= remove.Time)
-                                                {
-                                                    if (other is BuffExtensionEvent bee)
-                                                    {
-                                                        totalDuration += (int)bee.ExtendedDuration;
-                                                    } 
-                                                    else if (other is BuffStackActiveEvent bsae)
-                                                    {
-                                                        totalDuration -= (int)(other.Time - previousTime);
-                                                    }
-                                                }
-                                                previousTime = other.Time;
-                                            }
-                                        }
-                                        if (totalDuration == remove.RemovedDuration)
-                                        {
-                                            int activeTime = apply.OriginalAppliedDuration - apply.AppliedDuration;
-                                            int elapsedTime = (int)(remove.Time - apply.Time);
-                                            remove.OverrideRemovedDuration(remove.RemovedDuration - activeTime - elapsedTime);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        return currentBuffs;
     }
 
     public bool TryGetBuffByName(string name, out Buff? buff)

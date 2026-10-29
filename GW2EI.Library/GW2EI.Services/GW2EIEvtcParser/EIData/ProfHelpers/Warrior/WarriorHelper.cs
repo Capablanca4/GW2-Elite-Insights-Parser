@@ -241,8 +241,8 @@ internal static class WarriorHelper
             defBanners = GetBannerAgents(combatData, BannerOfDefenseBuff, playerAgents),
             disBanners = GetBannerAgents(combatData, BannerOfDisciplineBuff, playerAgents),
             tacBanners = GetBannerAgents(combatData, BannerOfTacticsBuff, playerAgents);
-        var warriors = players.Where(x => x.BaseSpec == Spec.Warrior);
-        var warriorsCount = warriors.Count();
+        var warriors = players.Where(x => x.BaseSpec == Spec.Warrior).ToList();
+        var warriorsCount = warriors.Count;
         // if only one warrior, could only be that one
         if (warriorsCount == 1)
         {
@@ -264,7 +264,7 @@ internal static class WarriorHelper
 
     private static bool MercilessHammerChecker(DamageEvent x, ParsedEvtcLog log)
     {
-        long[] improvedSkills = 
+        long[] improvedSkills =
         [
             // Mace
             MaceSmash, MaceBash, PulverizeMace,

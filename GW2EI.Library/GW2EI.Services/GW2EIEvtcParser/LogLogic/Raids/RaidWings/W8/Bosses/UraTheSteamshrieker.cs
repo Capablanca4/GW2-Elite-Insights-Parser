@@ -6,16 +6,15 @@ using GW2EIEvtcParser.ParsedData;
 using GW2EIEvtcParser.ParserHelpers;
 using static GW2EIEvtcParser.AchievementEligibilityIDs;
 using static GW2EIEvtcParser.ArcDPSEnums;
-using static GW2EIEvtcParser.EIData.Mechanic;
+using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity;
 using static GW2EIEvtcParser.LogLogic.LogLogicPhaseUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicTimeUtils;
 using static GW2EIEvtcParser.LogLogic.LogLogicUtils;
+using static GW2EIEvtcParser.MechanicIDs;
 using static GW2EIEvtcParser.ParserHelper;
 using static GW2EIEvtcParser.ParserHelpers.LogImages;
 using static GW2EIEvtcParser.SkillIDs;
 using static GW2EIEvtcParser.SpeciesIDs;
-using static GW2EIEvtcParser.EIData.Mechanic.MechanicSeverity; 
-using static GW2EIEvtcParser.MechanicIDs;
 
 namespace GW2EIEvtcParser.LogLogic;
 
@@ -125,7 +124,7 @@ internal class UraTheSteamshrieker : MountBalrior
     }
 
 
-    internal override IReadOnlyList<TargetID>  GetTargetsIDs()
+    internal override IReadOnlyList<TargetID> GetTargetsIDs()
     {
         return
         [
@@ -148,7 +147,7 @@ internal class UraTheSteamshrieker : MountBalrior
 
     internal override IReadOnlyList<TargetID> GetTrashMobsIDs()
     {
-        return 
+        return
         [
             TargetID.SulfuricGeyser,
             TargetID.TitanspawnGeyser,
@@ -198,14 +197,14 @@ internal class UraTheSteamshrieker : MountBalrior
         return startToUse;
     }
 
-    internal static void FindGeysers(EvtcVersionEvent evtcVersion, AgentData agentData, List<CombatItem> combatData)
+    internal static void FindGeysers(AgentData agentData, List<CombatItem> combatData)
     {
         // titanspawn geysers
         var titanGeyserMarkerGUID = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Marker &&
-                MarkerGUIDs.UraTitanspawnGeyserMarker.Equals(x.SrcAgent, x.DstAgent))
-            .Select(x => new MarkerGUIDEvent(x, evtcVersion))
+                MarkerGUIDs.UraTitanspawnGeyserMarker.Equals(x.SrcAgent, x.DstAgent, true))
+            .Select(x => new MarkerGUIDEvent(x))
             .FirstOrDefault();
         if (titanGeyserMarkerGUID != null)
         {
@@ -223,8 +222,8 @@ internal class UraTheSteamshrieker : MountBalrior
         var toxicEffectGUID = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Effect &&
-                (EffectGUIDs.UraToxicGeyserSpawn.Equals(x.SrcAgent, x.DstAgent) || EffectGUIDs.UraToxicGeyserSpawnCM.Equals(x.SrcAgent, x.DstAgent)))
-            .Select(x => new EffectGUIDEvent(x, evtcVersion))
+                (EffectGUIDs.UraToxicGeyserSpawn.Equals(x.SrcAgent, x.DstAgent, true) || EffectGUIDs.UraToxicGeyserSpawnCM.Equals(x.SrcAgent, x.DstAgent, true)))
+            .Select(x => new EffectGUIDEvent(x))
             .FirstOrDefault();
         if (toxicEffectGUID != null)
         {
@@ -260,14 +259,14 @@ internal class UraTheSteamshrieker : MountBalrior
         }
     }
 
-    internal static void FindBloodstoneShards(EvtcVersionEvent evtcVersion, AgentData agentData, List<CombatItem> combatData)
+    internal static void FindBloodstoneShards(AgentData agentData, List<CombatItem> combatData)
     {
         // Bloodstone shards
         var bloodstoneShardMarkerGUID = combatData
             .Where(x => x.IsStateChange == StateChange.IDToGUID &&
                 GetContentLocal((byte)x.OverstackValue) == ContentLocal.Marker &&
-                MarkerGUIDs.UraBloodstoneShardMarker.Equals(x.SrcAgent, x.DstAgent))
-            .Select(x => new MarkerGUIDEvent(x, evtcVersion))
+                MarkerGUIDs.UraBloodstoneShardMarker.Equals(x.SrcAgent, x.DstAgent, true))
+            .Select(x => new MarkerGUIDEvent(x))
             .FirstOrDefault();
         if (bloodstoneShardMarkerGUID != null)
         {
@@ -283,23 +282,43 @@ internal class UraTheSteamshrieker : MountBalrior
         }
     }
 
-    internal static void RenameFumarollers(IReadOnlyList<SingleActor> targets)
+    internal static void RenameFumarollersAndVentshotsAndShards(IReadOnlyList<SingleActor> targets, EvtcVersionEvent evtcVersion)
     {
-        foreach (SingleActor target in targets)
+        if (evtcVersion.Build < ArcDPSBuilds.AgentInfoAdded)
         {
-            switch (target.ID)
+            foreach (SingleActor target in targets)
             {
-                case (int)TargetID.EliteFumaroller:
-                    target.OverrideName("Elite " + target.Character);
-                    break;
-                case (int)TargetID.ChampionFumaroller:
-                    target.OverrideName("Champion " + target.Character);
-                    break;
-                case (int)TargetID.LegendaryVentshot:
-                    target.OverrideName("Legendary " + target.Character);
-                    break;
-                default:
-                    break;
+                switch (target.ID)
+                {
+                    case (int)TargetID.EliteFumaroller:
+                        target.OverrideName("Elite " + target.Character);
+                        break;
+                    case (int)TargetID.ChampionFumaroller:
+                        target.OverrideName("Champion " + target.Character);
+                        break;
+                    case (int)TargetID.LegendaryVentshot:
+                        target.OverrideName("Legendary " + target.Character);
+                        break;
+                    case (int)TargetID.UraGadget_BloodstoneShard:
+                        target.OverrideName("Bloodstone Shard " + target.Character);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        else
+        {
+            foreach (SingleActor target in targets)
+            {
+                switch (target.ID)
+                {
+                    case (int)TargetID.UraGadget_BloodstoneShard:
+                        target.OverrideName("Bloodstone Shard " + target.Character);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -325,10 +344,11 @@ internal class UraTheSteamshrieker : MountBalrior
     }
     internal override void EIEvtcParse(ulong gw2Build, EvtcVersionEvent evtcVersion, LogData logData, AgentData agentData, List<CombatItem> combatData, IReadOnlyDictionary<uint, ExtensionHandler> extensions)
     {
-        FindGeysers(evtcVersion, agentData, combatData);
-        FindBloodstoneShards(evtcVersion, agentData, combatData);
+        FindGeysers(agentData, combatData);
+        FindBloodstoneShards(agentData, combatData);
         base.EIEvtcParse(gw2Build, evtcVersion, logData, agentData, combatData, extensions);
-        RenameFumarollers(Targets);
+        RenameFumarollersAndVentshotsAndShards(Targets, evtcVersion);
+        RenameFumarollersAndVentshotsAndShards(TrashMobs, evtcVersion);
     }
 
     internal static BuffEvent? GetHealedPhaseStartEvent(CombatData combatData, SingleActor ura, long start, long end)
@@ -360,7 +380,7 @@ internal class UraTheSteamshrieker : MountBalrior
             foreach (var swapEvent in swapEvents)
             {
                 if ((swapEvent.SwappedFrom == WeaponSetIDs.KitSet || swapEvent.SwappedTo == WeaponSetIDs.KitSet) &&
-                    deterrenceAppliesOnPicker.Any(x => Math.Abs(x.Time - swapEvent.Time) < ServerDelayConstant))
+                    deterrenceAppliesOnPicker.Any(x => x.IsAtTime(swapEvent)))
                 {
                     swapEvent.FlagAsSpecialBundleSwap();
                 }
@@ -565,7 +585,7 @@ internal class UraTheSteamshrieker : MountBalrior
                         {
                             counter = 0;
                         }
-                        lifespan = effect.ComputeDynamicLifespan(log, 1200);
+                        lifespan = effect.ComputeLifespan(log, 1200);
                         uint radius = initialRadius + (radiusIncrease * counter);
                         replay.Decorations.Add(new CircleDecoration(radius, lifespan, Colors.Red, 0.2, new AgentConnector(target)).UsingFilled(false));
                         counter++;
@@ -575,9 +595,7 @@ internal class UraTheSteamshrieker : MountBalrior
                     replay.Decorations.AddOverheadIcons(target.GetBuffStatus(log, HardenedCrust).Where(x => x.Value > 0), target, BuffImages.HardenedCrust);
 
                     // Breakbar
-                    var toxicPercentUpdates = target.GetBreakbarPercentUpdates(log);
-                    var toxicStates = target.GetBreakbarStatus(log);
-                    replay.Decorations.AddBreakbar(target, toxicPercentUpdates, toxicStates);
+                    replay.Decorations.AddBreakbars(log, target);
                 }
                 else
                 {
@@ -600,9 +618,7 @@ internal class UraTheSteamshrieker : MountBalrior
                 replay.Decorations.AddOverheadIcons(target.GetBuffStatus(log, HardenedCrust).Where(x => x.Value > 0), target, BuffImages.HardenedCrust);
 
                 // Breakbar
-                var titanspawnPercentUpdates = target.GetBreakbarPercentUpdates(log);
-                var titanspawnStates = target.GetBreakbarStatus(log);
-                replay.Decorations.AddBreakbar(target, titanspawnPercentUpdates, titanspawnStates);
+                replay.Decorations.AddBreakbars(log, target);
                 break;
             case (int)TargetID.LegendaryVentshot:
                 foreach (CastEvent cast in target.GetAnimatedCastEvents(log))
@@ -653,10 +669,10 @@ internal class UraTheSteamshrieker : MountBalrior
 
                             (long start, long end) lifespanIndicator = (startIndicator, ComputeEndCastTimeByBuffApplication(log, target, Stun, startIndicator, durationIndicator));
                             (long start, long end) lifespanJet = effect.ComputeLifespan(log, 3000);
-                            
+
                             var indicator = new CircleDecoration(225, lifespanIndicator, Colors.LightOrange, 0.2, new PositionConnector(effect.Position));
                             var jet = new CircleDecoration(225, lifespanJet, Colors.LightBlue, 0.2, new PositionConnector(effect.Position));
-                            
+
                             replay.Decorations.AddWithGrowing(indicator, growing);
                             replay.Decorations.Add(jet);
                         }
@@ -670,7 +686,7 @@ internal class UraTheSteamshrieker : MountBalrior
                 }
 
                 // Blue Tether - Applies Rising Pressure to targets - Skill ID is 75295
-                IEnumerable<AbstractBuffApplyEvent> tethers = log.CombatData.GetBuffApplyData(RisingPressure).Where(x => 
+                IEnumerable<AbstractBuffApplyEvent> tethers = log.CombatData.GetBuffApplyData(RisingPressure).Where(x =>
                     x is BuffApplyEvent &&
                     x.By.Is(target.AgentItem) &&
                     !x.To.Is(target.AgentItem));
@@ -812,7 +828,7 @@ internal class UraTheSteamshrieker : MountBalrior
                             long effectDuration = 800000;
                             foreach (var effect in eruptions.Where(x => x.Duration == effectDuration))
                             {
-                                (long start, long end) = effect.ComputeDynamicLifespan(log, effectDuration);
+                                (long start, long end) = effect.ComputeLifespan(log, effectDuration);
                                 // Making sure we don't use start + 800000 if an Effect End isn't present due to the encounter ending without interrupting the geyser.
                                 if (Math.Min(end, log.LogData.LogEnd) - start > 30000)
                                 {
@@ -847,7 +863,7 @@ internal class UraTheSteamshrieker : MountBalrior
             damageData.SortByTime();
             foreach (var evt in damageData)
             {
-                if (evt.HasHit && evt.To.Is(p.AgentItem) && p.InAwareTimes(evt.Time))
+                if (evt.HasHit && evt.To.IsAtTime(p.AgentItem, evt.Time))
                 {
                     InsertAchievementEligibityEventAndRemovePhase(uraPhases, hopscotchMasterEligibilityEvents, evt.Time, Ach_HopscotchMaster, p);
                 }

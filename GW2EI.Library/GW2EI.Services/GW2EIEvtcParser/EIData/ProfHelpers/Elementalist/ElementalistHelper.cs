@@ -29,7 +29,8 @@ internal static class ElementalistHelper
         new BuffGainCastFinder(GlyphOfElementalPowerAirSkill, GlyphOfElementalPowerAirBuff),
         new BuffGainCastFinder(GlyphOfElementalPowerEarthSkill, GlyphOfElementalPowerEarthBuff),
         // Arcane
-        new DamageCastFinder(ArcaneBlast, ArcaneBlast),
+        new DamageCastFinder(ArcaneBlast, ArcaneBlast)
+            .WithTarget(),
         new BuffGiveCastFinder(ArcanePower_ArcaneEcho_Skill, ArcanePowerBuff)
             .WithBuilds(GW2Builds.StartOfLife, GW2Builds.June2025Balance),
         new BuffGainCastFinder(ArcaneShieldSkill, ArcaneShieldBuff),
@@ -90,6 +91,7 @@ internal static class ElementalistHelper
         // Scepter
         new DamageCastFinder(LightningStrike, LightningStrike),
         new MissileCastFinder(Hurl, Hurl)
+            .WithTarget()
             .UsingICD(900), // Projectiles shoot in 800ms
         // Spear
         new BuffGainCastFinder(EnergizeSkill, EnergizeBuff),
@@ -219,7 +221,12 @@ internal static class ElementalistHelper
         // - Stone Flesh
         new BuffOnActorDamageModifier(Mod_StoneFlesh, [EarthAttunementBuff, FireEarthAttunement, WaterEarthAttunement, EarthAirAttunement, DualEarthAttunement], "Stone Flesh", "-7% damage while attuned to earth", DamageSource.Incoming, -7, DamageType.Strike, DamageType.All, Source.Elementalist, ByPresence, TraitImages.StoneFlesh, DamageModifierMode.All),
         // - Stone Heart
-        new BuffOnActorDamageModifier(Mod_StoneHeart, StoneHeart, "Stone Heart", "-40% damage", DamageSource.Incoming, -40, DamageType.Strike, DamageType.All, Source.Elementalist, ByPresence, TraitImages.StoneHeart, DamageModifierMode.All),
+        new BuffOnActorDamageModifier(Mod_StoneHeart, StoneHeart, "Stone Heart", "-50% damage", DamageSource.Incoming, -50, DamageType.Strike, DamageType.All, Source.Elementalist, ByPresence, TraitImages.StoneHeart, DamageModifierMode.PvE)
+            .WithBuilds(GW2Builds.April2026Balancepocalypse),
+        new BuffOnActorDamageModifier(Mod_StoneHeart, StoneHeart, "Stone Heart", "-40% damage", DamageSource.Incoming, -40, DamageType.Strike, DamageType.All, Source.Elementalist, ByPresence, TraitImages.StoneHeart, DamageModifierMode.WvW)
+            .WithBuilds(GW2Builds.April2026Balancepocalypse),
+        new BuffOnActorDamageModifier(Mod_StoneHeart, StoneHeart, "Stone Heart", "-40% damage", DamageSource.Incoming, -40, DamageType.Strike, DamageType.All, [Source.BaseElementalistOnly, Source.Tempest, Source.Weaver, Source.Catalyst], ByPresence, TraitImages.StoneHeart, DamageModifierMode.sPvP)
+            .WithBuilds(GW2Builds.April2026Balancepocalypse),
         // - Geomancer's Training
         new DamageLogDamageModifier(Mod_GeomancersTraining, "Geomancer's Training", "-10% damage from foes within 360 range", DamageSource.Incoming, -10.0, DamageType.Strike, DamageType.All, Source.Elementalist, TraitImages.GeomancersTraining, (x, log) => TargetWithinRangeChecker(x, log, 360), DamageModifierMode.All)
             .UsingApproximate()
@@ -478,7 +485,7 @@ internal static class ElementalistHelper
                 var skill = new SkillModeDescriptor(player, Spec.Elementalist, GeyserStaffElementalist, SkillModeCategory.Heal);
                 foreach (EffectEvent effect in geysers)
                 {
-                    if (!geyserSplash.Any(x => Math.Abs(x.Time - effect.Time) < ServerDelayConstant))
+                    if (!geyserSplash.Any(x => x.IsAtTime(effect)))
                     {
                         continue;
                     }
