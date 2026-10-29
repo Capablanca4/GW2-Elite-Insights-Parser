@@ -1192,7 +1192,7 @@ td.approximate::before {
 
 .simple-timeline-ticks {
     position: relative;
-    width: 100%;
+    width: calc(100% - 25px);
     height: 14px;
     font-size: 10px;
     line-height: 12px;
@@ -1203,7 +1203,6 @@ td.approximate::before {
 .simple-timeline-tick {
     position: absolute;
     top: 0;
-    transform: translateX(-50%);
     white-space: nowrap;
 }
 

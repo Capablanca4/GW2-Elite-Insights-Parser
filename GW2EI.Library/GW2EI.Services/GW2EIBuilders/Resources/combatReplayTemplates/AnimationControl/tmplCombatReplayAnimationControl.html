@@ -87,7 +87,7 @@
                 backgroundColor: timelineColors.background,
                 border: '1px solid ' + timelineColors.backgroundBorder
             }">
-            <svg v-if="!isTouchDevice" ref="svg" 
+            <svg v-if="useAdvancedTimeline" ref="svg" 
                  width="100%" :height="20 + 10 * maxDepth + 30"
                  @mousemove="onTimelineMouseMove"
                  @mouseleave="onTimelineMouseLeave">
@@ -214,12 +214,22 @@
                     {{ getFormattedPhaseText(hoveredPhase || selectedPhase) }}
                 </text>
             </svg>
-            <div v-else class="d-flex justify-content-center slidercontainer my-1">
-                <input style="min-width: 400px;" @input="updateTime($event.target.value)" type="range" :min="minTime"
-                       :max="maxTime" value="0" class="slider" :id="htmlElementIDs.timeRangeID"
-                       :style="{'background': getSliderGradient()}">
-                <div class="cr-slide-delimiter text-center w-100">
-                    {{ sliderDelimiter.name }}
+            <div v-else class="simple-timeline-container my-1">
+                <div class="simple-timeline-ticks"
+                     :style="{ color: timelineColors.text }">
+                    <span v-for="tick in ticks" :key="tick.x"
+                          class="simple-timeline-tick" :style="{left: tick.x }">
+                        {{ tick.label }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-center slidercontainer my-1">
+                    <input style="min-width: 400px;" :style="{'background': getSliderGradient()}"
+                           @mousemove="onSimpleTimelineSliderMouseMove" @mouseleave="hideSimpleTimelineTooltip"
+                           :min="minTime" :max="maxTime" value="0" @input="updateTime($event.target.value)" type="range"
+                           class="slider" :id="htmlElementIDs.simpleTimelineID">
+                    <div v-if="selectedPhase" class="cr-slide-delimiter text-center w-100">
+                        {{ getFormattedPhaseText(selectedPhase) }}
+                    </div>
                 </div>
             </div>
 

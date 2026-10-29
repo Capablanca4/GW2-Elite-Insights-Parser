@@ -216,7 +216,11 @@ class RenderablesBranch {
     }
 
     every(cb) {
-        return this.renderables.every(cb) && this.left?.forEach(cb) && this.right?.forEach(cb);
+        return this.renderables.every(cb) && (this.left?.every(cb) ?? true) && (this.right?.every(cb) ?? true);
+    }
+
+    any(cb) {
+        return this.renderables.every(cb) || (this.left?.any(cb) ?? false) || (this.right?.any(cb) ?? false);
     }
 
     draw(drawFunction) {
@@ -1294,57 +1298,24 @@ class Animator {
     }
 
     _drawBGCanvas() {
-        if (!this.needBGUpdate && this.backgroundImages.every(x => !x.needsUpdate()) && !!this._mustMoveToSelected()) {
+        if (!this.needBGUpdate && !this.backgroundImages.any(x => x.needsUpdate()) && !this._mustMoveToSelected())
+        {
             return;
         }
         this.needBGUpdate = false;
 
-        // Clear the canvas
-        const ctx = this.bgContext;
-        this._clearCanvas(ctx);
+        // Clear the bg canvas
+        this._clearCanvas(this.bgContext, this.bgCanvas);
 
         // Move to the selected item and draw the background images
-        this._moveToSelected(ctx);
+        this._moveToSelected(this.bgContext);
         this.backgroundImages.draw(standardDraw);
-
-        this._drawScale(ctx);
     }
 
-    _clearCanvas(ctx) {
-        const canvas = this.bgCanvas;
+    _clearCanvas(ctx, canvas) {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-    }
-
-    _drawScale(ctx) {
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        const pos = 70 * resolutionMultiplier;
-        const width = 120 * resolutionMultiplier;
-        const height = 6 * resolutionMultiplier;
-
-        ctx.strokeStyle = "#CC2200";
-        ctx.fillStyle = "#CC2200";
-
-        // Main line
-        ctx.lineWidth = 3 * resolutionMultiplier;
-        this._drawLine(ctx, pos, pos, width, pos);
-
-        // Borders
-        ctx.lineWidth = 2 * resolutionMultiplier;
-        this._drawLine(ctx, pos - resolutionMultiplier, pos - height, pos - resolutionMultiplier, pos + height);
-        this._drawLine(ctx, width + resolutionMultiplier, pos - height, width + resolutionMultiplier, pos + height);
-
-        // Label
-        const fontSize = 13 * resolutionMultiplier;
-        ctx.font = `bold ${fontSize}px Comic Sans MS`;
-        ctx.textAlign = "center";
-        const units = (50 / (InchToPixel * this.scale)).toFixed(1);
-        ctx.fillText(`${units} units`, 95 * resolutionMultiplier, 60 * resolutionMultiplier);
-
         ctx.restore();
     }
 
@@ -1360,7 +1331,7 @@ class Animator {
         const mainTransform = mainCtx.getTransform();
 
         const ctx = this.pickContext;
-        this._clearCanvas(ctx);
+        this._clearCanvas(ctx, this.pickCanvas);
 
         ctx.setTransform(mainTransform.a, mainTransform.b, mainTransform.c, mainTransform.d, mainTransform.e, mainTransform.f);
         if (!this.displaySettings.useActorHitboxWidth) {
@@ -1387,7 +1358,7 @@ class Animator {
 
     _drawMainCanvas() {
         const ctx = this.mainContext;
-        this._clearCanvas(ctx);
+        this._clearCanvas(ctx, this.mainCanvas);
 
         this._moveToSelected(ctx);
         // Background items commonly overlap so they need to be drawn in the correct order by height
